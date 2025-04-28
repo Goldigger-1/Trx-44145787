@@ -1,0 +1,3867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- Méta-tags pour forcer l'orientation portrait -->
+    <meta name="screen-orientation" content="portrait">
+    <meta name="x5-orientation" content="portrait">
+    <meta name="msapplication-orientation" content="portrait">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>TiDash Game</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script 
+        async 
+        src="https://tganalytics.xyz/index.js" 
+        onload="initAnalytics()" 
+        type="text/javascript"
+    ></script>
+    <script>
+        function initAnalytics() {
+            window.telegramAnalytics.init({
+                token: 'eyJhcHBfbmFtZSI6InRpZGFzaF9ib3RfYW5hbHl0aWNzIiwiYXBwX3VybCI6Imh0dHBzOi8vdC5tZS9UaURhc2hfYm90IiwiYXBwX2RvbWFpbiI6Imh0dHBzOi8vc29mdHMubGlmZSJ9!3anwT9jNgSCL5VSFAecFl5wOJehXzKxhcFo0CiCNVoo=', // SDK Auth token received via @DataChief_bot
+                appName: 'tidash_bot_analytics', // The analytics identifier you entered in @DataChief_bot
+            });
+        }
+</script>
+
+
+    <!-- Préchargement des sons -->
+    <audio id="userTapSound" src="sounds/UserTap.mp3" preload="auto"></audio>
+    <audio id="successSound" src="sounds/Success.mp3" preload="auto"></audio>
+    <audio id="gameOverSound" src="sounds/Termine.mp3" preload="auto"></audio>
+    <audio id="showScoreSound" src="sounds/Show_GameOver.mp3" preload="auto"></audio>
+    <audio id="borderTouchSound" src="sounds/BorderTouch.mp3" preload="auto"></audio>
+    <!-- Élément audio pour la musique de fond -->
+    <audio id="backgroundMusic" preload="auto"></audio>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+        
+        body {
+            font-family: 'Orbitron', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #0A0A0A; /* Noir presque pur */
+            /* overflow: hidden;  <-- removed to allow settings scroll on Android */
+            touch-action: manipulation;
+            position: relative;
+        }
+        
+        .container {
+            position: relative;
+            width: 90%;
+            max-width: 400px;
+            height: 90vh; /* Augmenté de 80vh à 90vh pour réduire l'espace vertical */
+            max-height: 800px; /* Augmenté pour maintenir les proportions */
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+            background-color: #121212; /* Gris très foncé */
+            border: 10px solid #0A0A0A;
+            margin: 20px auto; /* Ajout d'une marge automatique pour centrer avec moins d'espace vertical */
+        }
+        
+        #game-canvas {
+            background-color: #121212; /* Gris très foncé - même que le container */
+            background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)); /* Même superposition que le home-screen */
+            display: block;
+            width: 100%;
+            height: 100%;
+            position: relative;
+            z-index: 1;
+        }
+        
+        #game-over {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #121212; /* Gris très foncé - même que le container */
+            background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)); /* Même superposition que le home-screen */
+            display: none;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            color: white;
+            z-index: 10;
+            font-family: 'Orbitron', sans-serif;
+            opacity: 0;
+            transition: opacity 1s ease-in-out;
+            padding-top: 0;
+        }
+        
+        #game-over.visible {
+            opacity: 1;
+        }
+        
+        #score-display {
+            font-size: 4rem;
+            margin-bottom: 10px;
+            color: #00FF9D; /* Vert original */
+            font-weight: bold;
+        }
+        
+        #best-score {
+            font-size: 1.8rem;
+            margin-bottom: 30px;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        #season-score {
+            font-size: 1.3rem;
+            margin-bottom: 30px;
+            color: #00FF9D;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: none !important;
+            font-weight: bold;
+        }
+        
+        .button-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        #home-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 0;
+            box-sizing: border-box;
+            pointer-events: auto;
+            z-index: 5;
+            background-color: rgba(0, 0, 0, 0.3); /* Légèrement transparent */
+        }
+        
+        /* Style pour le bouton cadeau */
+        #gift-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 10;
+            transition: all 0.3s ease;
+        }
+        
+        
+        .gift-icon {
+            width: 24px;
+            height: 24px;
+            object-fit: contain;
+        }
+        
+        /* Style pour la pastille rouge de notification */
+        .notification-badge {
+            position: absolute;
+            top: 0px;
+            right: 0px;
+            width: 10px;
+            height: 10px;
+            background-color: #FF3B30;
+            border-radius: 50%;
+            border: 1px solid rgba(0, 0, 0, 0.5);
+        }
+        
+        /* Style pour le container de saison - Version 2025 */
+        .season-container {
+            position: relative;
+            width: 200px; /* Réduit la largeur */
+            height: 55px; /* Réduit la hauteur */
+            margin: 0 auto 70px auto; /* Augmente davantage la marge inférieure */
+            margin-top: -90px; /* Remonte beaucoup plus le groupe saison */
+            background-image: url('ressources/back_season.jpg');
+            background-size: cover;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            text-align: center;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0, 255, 157, 0.7);
+            z-index: 6;
+            backdrop-filter: blur(5px); /* Effet moderne de verre givré */
+            -webkit-backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            transition: all 0.3s ease;
+        }
+        
+        .season-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(0,255,157,0.3) 0%, rgba(0,0,0,0) 50%);
+            z-index: -1;
+        }
+        
+        .season-prize {
+            font-size: 0.8rem; /* Réduit la taille de police */
+            font-weight: 600;
+            margin-bottom: 2px; /* Réduit l'espace */
+            font-family: 'Orbitron', sans-serif;
+            text-shadow: 0 0 10px rgba(0, 255, 157, 0.8);
+            letter-spacing: 0.5px;
+        }
+        
+        .season-name {
+            font-size: 1rem; /* Réduit la taille de police */
+            font-weight: 700;
+            text-transform: uppercase;
+            font-family: 'Orbitron', sans-serif;
+            background: linear-gradient(90deg, #FFFFFF 0%, #00FF9D 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            color: transparent; /* Remplacement de text-fill-color par color */
+            letter-spacing: 1px;
+        }
+        
+        /* Style pour les particules - Version 2025 */
+        .particles-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+        }
+        
+        .particle {
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            background-color: rgba(0, 255, 157, 0.9);
+            border-radius: 50%;
+            animation: particle-animation 3s infinite;
+            box-shadow: 0 0 6px rgba(0, 255, 157, 0.8);
+            filter: blur(0.5px);
+        }
+        
+        .particle:nth-child(even) {
+            background-color: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
+        }
+        
+        @keyframes particle-animation {
+            0% {
+                transform: translate(0, 0) scale(0);
+                opacity: 0;
+            }
+            20% {
+                opacity: 1;
+            }
+            100% {
+                transform: translate(var(--x), var(--y)) scale(1.2);
+                opacity: 0;
+            }
+        }
+        
+        /* Style pour le bouton d'aide et le bouton son */
+        #help-button, #sound-toggle {
+            position: absolute;
+            bottom: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 10;
+            transition: all 0.3s ease;
+        }
+        
+        #help-button {
+            left: 20px;
+        }
+        
+        #sound-toggle {
+            right: 20px;
+        }
+
+        
+        #game-title-container {
+            text-align: center;
+            margin-bottom: 50px;
+            margin-top: -40px; /* Remonte encore plus le titre */
+            z-index: 6;
+            position: relative; /* Assure un bon positionnement */
+        }
+        
+        #game-button-container {
+            text-align: center;
+            margin-top: 50px;
+            z-index: 6;
+        }
+        
+        .button-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        #game-title {
+            font-size: 4.5rem;
+            font-weight: bold;
+            color: #FFFFFF;
+            letter-spacing: 2px;
+            text-shadow: 
+                0 2px 0 rgba(0, 0, 0, 0.5),
+                0 4px 0 rgba(0, 255, 157, 0.3),
+                0 6px 10px rgba(0, 0, 0, 0.3);
+            transform: perspective(500px) rotateX(10deg);
+            margin-bottom: 10px;
+        }
+        
+        #score-display {
+            font-size: 4rem;
+            margin-bottom: 10px;
+            color: #00FF9D; /* Vert original */
+            font-weight: bold;
+        }
+        
+        #best-score {
+            font-size: 1.8rem;
+            margin-bottom: 30px;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .game-button {
+            padding: 12px 24px;
+            font-size: 1.2rem;
+            background: linear-gradient(135deg, #00FF9D 0%, #00B38B 70%, #009E7F 100%);
+            color: #121212;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Orbitron', sans-serif;
+            margin: 10px 0;
+            min-width: 150px;
+            text-align: center;
+            font-weight: bold;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+        
+        .game-button:hover {
+            background: linear-gradient(135deg, #00FFB3 0%, #00C49C 70%, #00AF8F 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.4);
+        }
+        
+        .game-button:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .game-button.secondary {
+            background: transparent;
+            color: white;
+            border: 2px solid white;
+            box-shadow: none;
+        }
+        
+        .game-button.secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* Style pour le profil utilisateur */
+        .user-profile {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            left: auto;
+            display: flex;
+            align-items: center;
+            z-index: 10;
+            flex-direction: row-reverse; /* Inverser l'ordre pour mettre l'avatar à droite */
+        }
+        
+        .avatar-container {
+            position: relative;
+            width: 32px;
+            height: 32px;
+            margin-left: 6px;
+            margin-right: 0;
+        }
+        
+        .avatar-border {
+            position: absolute;
+            top: -1.5px;
+            left: -1.5px;
+            right: -1.5px;
+            bottom: -1.5px;
+            border: 2px solid #00FF9D;
+            border-radius: 50%;
+            box-sizing: border-box;
+        }
+        
+        .avatar-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+        
+        .user-info {
+            color: white;
+            text-align: right; /* Aligner le texte à droite */
+        }
+        
+        .username {
+            font-size: 11px;
+            font-weight: bold;
+            margin: 0;
+            margin-bottom: 2px; /* Espacement entre username et ID */
+        }
+        
+        .user-id {
+            font-size: 9px;
+            color: #aaa;
+            margin: 0;
+        }
+        
+        /* Styles pour la page de paramètres */
+        #settings-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            display: none;
+            z-index: 100;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .android-scroll-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+        }
+        
+        .settings-content {
+            padding: 20px;
+            box-sizing: border-box;
+            color: white;
+            padding-bottom: 100px; /* Espace supplémentaire en bas pour faciliter le défilement */
+        }
+        
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        
+        .settings-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+        }
+        
+        .close-button {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+        
+        .close-button:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        .close-icon {
+            color: white;
+            font-size: 20px;
+        }
+        
+        .profile-card {
+            background-color: rgba(30, 30, 30, 0.8);
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        
+        .profile-avatar {
+            width: 70px;
+            height: 70px;
+            border-radius: 12px;
+            margin-right: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .profile-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .profile-avatar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 2px solid #00FF9D;
+            border-radius: 12px;
+            box-sizing: border-box;
+        }
+        
+        .profile-info {
+            flex: 1;
+        }
+        
+        .username-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        
+        .username-input {
+            background-color: transparent;
+            border: none;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            font-family: 'Orbitron', sans-serif;
+            padding: 5px 0;
+            width: calc(100% - 30px);
+            outline: none;
+        }
+        
+        .edit-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-left: 10px;
+        }
+        
+        .user-id-display {
+            font-size: 14px;
+            color: #aaa;
+        }
+        
+        .paypal-section {
+            margin-bottom: 30px;
+        }
+        
+        .section-title {
+            font-size: 16px;
+            color: white;
+            margin-bottom: 15px;
+        }
+        
+        .paypal-input {
+            width: 100%;
+            background-color: rgba(30, 30, 30, 0.8);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-family: 'Orbitron', sans-serif;
+            padding: 12px 15px;
+            box-sizing: border-box;
+            margin-bottom: 15px;
+            outline: none;
+        }
+        
+        .input-container {
+            position: relative;
+            margin-bottom: 15px;
+        }
+        
+        .input-edit-icon {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: white;
+        }
+        
+        .description-text {
+            font-size: 12px;
+            color: #aaa;
+            line-height: 1.5;
+        }
+        
+        .avatars-section {
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 2;
+            padding-bottom: 30px; /* Ajouter de l'espace en bas */
+        }
+        
+        .avatars-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+            padding: 0 10px;
+        }
+        
+        .avatar-item {
+            position: relative;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 2px solid #333;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin: 0 auto;
+        }
+        
+        .avatar-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .avatar-item.selected {
+            border: 2px solid #4CAF50;
+            box-shadow: 0 0 8px rgba(76, 175, 80, 0.8);
+        }
+        
+        .avatar-check {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 12px;
+            opacity: 0;
+        }
+        
+        .avatar-item.selected .avatar-check {
+            opacity: 1;
+        }
+        
+        /* Optimisation des images d'avatar */
+        .preload-images {
+            position: absolute;
+            width: 0;
+            height: 0;
+            overflow: hidden;
+            z-index: -1;
+        }
+        
+        /* Styles pour le bouton de son */
+        .sound-toggle {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            background-color: rgba(0, 0, 0, 0.5);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 100;
+            transition: all 0.2s ease;
+        }
+        
+        
+        .sound-toggle svg {
+            width: 24px;
+            height: 24px;
+        }
+        
+        .sound-toggle.muted .sound-on {
+            display: none;
+        }
+        
+        .sound-toggle:not(.muted) .sound-off {
+            display: none;
+        }
+        
+        /* Correction pour iOS */
+        .avatars-wrapper {
+            position: relative;
+            padding-bottom: 60px; /* Espace supplémentaire en bas */
+        }
+        
+        .ios-spacer {
+            height: 60px; /* Espace supplémentaire pour éviter la zone noire */
+            width: 100%;
+        }
+        
+        /* Styles spécifiques pour les appareils Android */
+        .android-device {
+            -webkit-tap-highlight-color: transparent; /* Désactiver le surlignage au toucher sur Android */
+        }
+        
+        /* Styles for the season information section */
+        .season-info-container {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    width: 300px;
+    z-index: 10;
+    border-radius: 16px;
+    background: transparent;
+    padding: 0;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    box-shadow: none;
+    transition: none;
+    animation: none;
+}
+
+.season-info-container:active {
+    box-shadow: none;
+}
+
+.season-circle-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    margin: 0 0px 0 0;
+}
+
+.season-gradient-border {
+    background: conic-gradient(
+        #00ff9d 0deg, #00e0ff 120deg, #00ff9d 240deg, #00ff9d 360deg
+    );
+    border-radius: 50%;
+    padding: 2px;
+    width: 35px;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.season-circle-text {
+    background: #000;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 11px;
+    color: #00c97b;
+    letter-spacing: 0.5px;
+    box-shadow: none;
+}
+
+.season-info-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    margin-left: 6px;
+}
+
+.season-label {
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 0px;
+    letter-spacing: 0.2px;
+}
+
+.season-prize {
+    color: #fff !important;
+    font-size: 12px;
+    font-weight: 400;
+    margin-top: 1px;
+    letter-spacing: 0.1px;
+    text-shadow: 0 1px 4px #00ff9d44;
+}
+
+
+        @keyframes glowPulse {
+            0%, 100% {
+                box-shadow:
+                    0 0 12px 2px #00FF9D66,
+                    0 0 24px 4px #00FF9D33;
+            }
+            50% {
+                box-shadow:
+                    0 0 16px 3px #00FF9D99,
+                    0 0 28px 6px #00FF9D44;
+            }
+        }
+        
+        .season-info-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+        
+        
+        
+        .season-label {
+            color: #FFFFFF;
+            font-size: 9px; /* Même taille que l'ID utilisateur */
+            font-weight: 300;
+            margin-bottom: 2px;
+            text-align: left;
+            line-height: 1.2;
+        }
+        
+        .season-prize {
+            color: #00FF9D;
+            font-size: 11px; /* Même taille que le nom d'utilisateur */
+            font-weight: 600;
+            text-align: left;
+            line-height: 1.2;
+        }
+        
+        @keyframes borderGlow {
+            0%, 100% { background-position: 0% 0% }
+            50% { background-position: 100% 100% }
+        }
+    </style>
+</head>
+<body>
+    <div class="preload-images" id="preload-container"></div>
+    <div class="container">
+        <!-- Profil utilisateur -->
+        <div class="user-profile" id="profile-button">
+            <div class="avatar-container">
+                <div class="avatar-border"></div>
+                <img id="avatarImg" class="avatar-img" src="avatars/avatar_default.jpg" alt="Avatar">
+            </div>
+            <div class="user-info">
+                <p id="username" class="username">Username</p>
+                <p id="userId" class="user-id">0000000000</p>
+            </div>
+        </div>
+        
+        <canvas id="game-canvas"></canvas>
+        
+        <div id="home-screen">
+            <!-- Season information section -->
+            <div id="season-info-container" class="season-info-container">
+                <div class="season-info-row">
+                    <div class="season-circle-container">
+                        <div class="season-gradient-border">
+                            <div class="season-circle-text">S-</div>
+                        </div>
+                    </div>
+                    <div class="season-info-content">
+                        <div class="season-prize" style="color:white;margin-bottom:2px;">- Prize </div>
+                        <div class="season-label" style="font-size:9px;color:#aaa;margin:0;">This Season</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="game-title-container">
+                <div id="game-title">TiDash</div>
+            </div>
+            <div id="game-button-container">
+                <button id="play-button" class="game-button">Tap to Start</button>
+            </div>
+            
+            <!-- Bouton d'aide -->
+            <div id="help-button">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M9 9C9 7.89543 9.89543 7 11 7H12C13.1046 7 14 7.89543 14 9C14 10.1046 13.1046 11 12 11V13" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M12 17.01L12.01 16.999" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            
+            <!-- Bouton pour activer/désactiver le son -->
+            <div id="sound-toggle" class="sound-toggle muted">
+                <svg class="sound-on" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M14.5 8.5C14.5 8.5 16 9.57 16 12C16 14.43 14.5 15.5 14.5 15.5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M18 5C18 5 21 7 21 12C21 17 18 19 18 19" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M3 10.5V13.5C3 14.6046 3.5 15.5 5 15.5C6.5 15.5 7 14.6046 7 13.5V10.5C7 9.39543 6.5 8.5 5 8.5C3.5 8.5 3 9.39543 3 10.5Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M7 10L11 7V17L7 14" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <svg class="sound-off" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M2 9L22 21" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M11 7L7 10H5C3.5 10 3 10.8954 3 12V12C3 13.1046 3.5 14 5 14H7L11 17V7Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M14.5 10.5C14.5 10.5 15.0049 10.7705 15.5 11.5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M18 8C18 8 19.5 9.5 19.5 12" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+        </div>
+        <div id="game-over">
+            <div id="promo-banner-area" style="position:absolute;width:100%;margin-top:0;padding-top:0;margin-bottom:10px;display:none;flex-direction:column;align-items:center;z-index:1000;">
+                <span id="promo-sponsored-label" style="font-size:11px;color:#aaa;margin-bottom:2px;letter-spacing:1px;opacity:0.7;">Sponsored</span>
+                <img id="promo-banner-img" src="" alt="Promotion" style="width:100%;max-width:480px;height:150px;object-fit:cover;border-radius:8px;cursor:pointer;display:block;border:1px solid #00FF9D;margin-left:10px;margin-right:10px;" />
+            </div>
+            <div class="gameover-center-content" style="display:flex;flex-direction:column;justify-content:center;align-items:center;width:100%;height:100%;padding-top:175px;padding-bottom:120px;">
+                <div id="score-display">0</div>
+                <div id="best-score">Best: 0</div>
+                <div id="season-score">Season Best: 0</div>
+                <div class="button-container" style="display:flex; flex-direction:row; gap:12px; justify-content:center; align-items:center;">
+    <button id="home-button" class="game-button secondary">HOME</button>
+    <button id="play-again" class="game-button">PLAY</button>
+</div>
+            </div>
+            <!-- Sticky user group from leaderboard (season rank & best score) -->
+            <div class="leaderboard-user-row" id="gameover-user-row"></div>
+        </div>
+        
+        <!-- Page de paramètres -->
+        <div id="settings-screen">
+            <div class="android-scroll-container">
+                <div class="settings-content">
+                    <div class="settings-header">
+                        <div class="settings-title">Settings</div>
+                        <div class="close-button" id="close-settings">
+                            <span class="close-icon">✕</span>
+                        </div>
+                    </div>
+                    
+                    <div class="profile-card">
+                        <div class="profile-avatar">
+                            <img id="settings-avatar" src="avatars/avatar_default.jpg" alt="Avatar">
+                        </div>
+                        <div class="profile-info">
+                            <div class="username-container">
+                                <input type="text" id="username-input" class="username-input" value="Username">
+                                <div class="edit-icon">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M16.4745 5.40768L18.5917 7.52483M17.8358 3.54254L11.6002 9.77806C11.3979 9.98031 11.2619 10.2384 11.2104 10.5192L10.5798 13.4209L13.4816 12.7903C13.7624 12.7388 14.0205 12.6028 14.2227 12.4006L20.4582 6.16508C20.5844 6.03889 20.6846 5.88909 20.7536 5.72343C20.8226 5.55777 20.8589 5.37966 20.8605 5.19938C20.8621 5.01909 20.8289 4.84039 20.7628 4.6736C20.6967 4.50681 20.5991 4.35537 20.4749 4.22718C20.3507 4.09899 20.2022 3.99691 20.0374 3.92553C19.8726 3.85415 19.6951 3.81549 19.5157 3.81169C19.3364 3.8079 19.1574 3.83906 18.9899 3.90281C18.8224 3.96656 18.6698 4.06188 18.5401 4.18348L12.3046 10.419C12.1023 10.6212 11.9664 10.8793 11.9149 11.1601L11.2843 14.0619L14.186 13.4313C14.4668 13.3798 14.7249 13.2438 14.9272 13.0416L21.1627 6.80608C21.8106 6.15818 22.1655 5.28206 22.1529 4.36728C22.1403 3.45249 21.7612 2.58647 21.0961 1.9549C20.431 1.32333 19.5401 0.96993 18.6146 1.00182C17.689 1.03372 16.8179 1.44959 16.1974 2.12483L9.96196 8.36035C9.35302 8.96929 8.94371 9.74882 8.79747 10.5981L7.7655 15.2322C7.73328 15.3697 7.73471 15.5131 7.76969 15.6498C7.80467 15.7864 7.87221 15.9122 7.96643 16.0172C8.06066 16.1222 8.17871 16.2034 8.31082 16.2544C8.44293 16.3054 8.58559 16.3247 8.72856 16.3108L13.3627 15.2788C14.212 15.1326 14.9915 14.7233 15.6004 14.1143L21.8359 7.87877L16.4745 5.40768Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="user-id-display">ID : <span id="settings-user-id">0000000000</span></div>
+                    </div>
+                </div>
+                
+                <div class="paypal-section">
+                    <div class="section-title">Enter your PayPal email address</div>
+                    <div class="input-container">
+                        <input type="email" id="paypal-email" class="paypal-input" placeholder="mypaypal@email.com">
+                        <div class="input-edit-icon">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M16.4745 5.40768L18.5917 7.52483M17.8358 3.54254L11.6002 9.77806C11.3979 9.98031 11.2619 10.2384 11.2104 10.5192L10.5798 13.4209L13.4816 12.7903C13.7624 12.7388 14.0205 12.6028 14.2227 12.4006L20.4582 6.16508C20.5844 6.03889 20.6846 5.88909 20.7536 5.72343C20.8226 5.55777 20.8589 5.37966 20.8605 5.19938C20.8621 5.01909 20.8289 4.84039 20.7628 4.6736C20.6967 4.50681 20.5991 4.35537 20.4749 4.22718C20.3507 4.09899 20.2022 3.99691 20.0374 3.92553C19.8726 3.85415 19.6951 3.81549 19.5157 3.81169C19.3364 3.8079 19.1574 3.83906 18.9899 3.90281C18.8224 3.96656 18.6698 4.06188 18.5401 4.18348L12.3046 10.419C12.1023 10.6212 11.9664 10.8793 11.9149 11.1601L11.2843 14.0619L14.186 13.4313C14.4668 13.3798 14.7249 13.2438 14.9272 13.0416L21.1627 6.80608C21.8106 6.15818 22.1655 5.28206 22.1529 4.36728C22.1403 3.45249 21.7612 2.58647 21.0961 1.9549C20.431 1.32333 19.5401 0.96993 18.6146 1.00182C17.689 1.03372 16.8179 1.44959 16.1974 2.12483L9.96196 8.36035C9.35302 8.96929 8.94371 9.74882 8.79747 10.5981L7.7655 15.2322C7.73328 15.3697 7.73471 15.5131 7.76969 15.6498C7.80467 15.7864 7.87221 15.9122 7.96643 16.0172C8.06066 16.1222 8.17871 16.2034 8.31082 16.2544C8.44293 16.3054 8.58559 16.3247 8.72856 16.3108L13.3627 15.2788C14.212 15.1326 14.9915 14.7233 15.6004 14.1143L21.8359 7.87877L16.4745 5.40768Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="description-text">
+                        This is where your prize money will be sent if you win 1st place in the season ranking. Make sure your PayPal account is active and the email entered is correct, as this is how we will transfer your winnings!
+                    </div>
+                </div>
+                
+                <div class="avatars-section">
+                    <div class="avatars-wrapper">
+                        <div class="section-title">Select your avatar</div>
+                        <div class="avatars-grid" id="avatars-grid">
+                            <!-- Les avatars seront ajoutés dynamiquement ici -->
+                        </div>
+                        <div class="ios-spacer"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const tg = window.Telegram.WebApp;
+        const gameOverScreen = document.getElementById('game-over');
+        const homeScreen = document.getElementById('home-screen');
+        const scoreDisplay = document.getElementById('score-display');
+        const bestScoreDisplay = document.getElementById('best-score');
+        const seasonScoreDisplay = document.getElementById('season-score');
+        const playAgainBtn = document.getElementById('play-again');
+        const homeBtn = document.getElementById('home-button');
+        const playBtn = document.getElementById('play-button');
+
+        // Double-tap prevention
+        document.addEventListener('touchend', function(event) {
+            const now = Date.now();
+            const DOUBLE_TAP_THRESHOLD = 300;
+            if (now - lastTouchEnd <= DOUBLE_TAP_THRESHOLD) {
+                event.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+        
+        let lastTouchEnd = 0;
+
+        // Game variables
+        let gameRunning = false;
+        let gameMode = 'home'; // 'home', 'game', 'gameOver'
+        let score = 0;
+        let bestScore = 0; // Sera initialisé correctement dans initUserProfile
+        let seasonScore = 0; // Ajout d'une variable pour suivre le score de la saison en cours
+        
+        // Variables pour les étoiles
+        let stars = [];
+        const maxStars = 45; // Nombre d'étoiles
+        
+        // Variables pour le profil utilisateur
+        let username = "";
+        let userId = "";
+        let avatarSrc = "/avatars/avatar_default.jpg";
+        let paypalEmail = "";
+        
+        // Variables pour la musique de fond
+        let homeMusics = [
+            "home_musics/dont-talk-315229.mp3",
+            "home_musics/Onchain.mp3",
+            "home_musics/gardens-stylish-chill-303261.mp3",
+            "home_musics/gorila-315977 (1).mp3",
+            "home_musics/ClicClic.mp3",
+            "home_musics/night-detective-226857.mp3",
+            "home_musics/movement.mp3",
+            "home_musics/drive-breakbeat.mp3",
+            "home_musics/glossy.mp3",
+            "home_musics/the-best-jazz-club.mp3",
+            "home_musics/lofi-chill.mp3",
+            "home_musics/unlock-me.mp3",
+            "home_musics/relaxed-vlog-night.mp3",
+            "home_musics/password-infinity.mp3",
+            "home_musics/weeknds.mp3",
+            "home_musics/guitar-electro-sport-trailer.mp3"
+        ];
+        let currentMusicIndex = -1;
+        let backgroundMusicElement = document.getElementById('backgroundMusic');
+        
+        // Variable pour suivre si la musique est en attente d'autoplay
+        window.musicPendingAutoplay = true;
+        
+        // Variables pour gérer séparément la musique de fond et les effets sonores
+        let isMusicEnabled = false; // Contrôle uniquement la musique de fond
+        let isGameSoundEnabled = true; // Contrôle uniquement les effets sonores du jeu (toujours activés par défaut)
+        let userPrefersMusicEnabled = false; // Changed from localStorage to variable
+        
+        // Variable pour suivre si la musique a déjà été activée par l'utilisateur
+        let musicActivatedByUser = false;
+        
+        // Système audio optimisé pour mobile avec Web Audio API
+        let audioContext;
+        const audioBuffers = {};
+        const audioSources = {};
+        let audioInitialized = false;
+        
+        // Initialiser le système audio
+        function initAudioSystem() {
+            try {
+                // Créer le contexte audio
+                window.AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioContext = new AudioContext();
+                
+                // Précharger les sons
+                preloadSounds();
+                
+                // Marquer comme initialisé
+                audioInitialized = true;
+                
+                console.log("Système audio initialisé");
+            } catch (error) {
+                console.error("Erreur d'initialisation audio:", error);
+                // Fallback à la méthode standard si Web Audio API n'est pas supportée
+                audioInitialized = false;
+            }
+        }
+        
+        // Précharger les sons pour une lecture instantanée
+        function preloadSounds() {
+            const sounds = {
+                'userTap': document.getElementById('userTapSound'),
+                'success': document.getElementById('successSound'),
+                'gameOver': document.getElementById('gameOverSound'),
+                'showScore': document.getElementById('showScoreSound'),
+                'borderTouch': document.getElementById('borderTouchSound')
+            };
+            
+            // Pour chaque son
+            for (const [name, audioElement] of Object.entries(sounds)) {
+                if (!audioElement) continue;
+                
+                // Stocker l'élément audio pour le fallback
+                audioSources[name] = audioElement;
+                
+                // Précharger avec Web Audio API
+                if (audioContext) {
+                    fetch(audioElement.src)
+                        .then(response => response.arrayBuffer())
+                        .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
+                        .then(audioBuffer => {
+                            audioBuffers[name] = audioBuffer;
+                            console.log(`Son ${name} préchargé`);
+                        })
+                        .catch(error => {
+                            console.error(`Erreur lors du préchargement du son ${name}:`, error);
+                        });
+                }
+            }
+        }
+        
+        // Jouer un son avec le moins de latence possible
+        function playSound(name) {
+            // Ne jouer les sons que si on est en mode jeu et si le son est activé
+            if (gameMode !== 'game' && name === 'borderTouch') {
+                return;
+            }
+            
+            // Désactiver les bruitages si la musique de fond est activée
+            if (!isGameSoundEnabled || isMusicEnabled) {
+                return;
+            }
+            
+            // Si le système audio n'est pas initialisé, l'initialiser
+            if (!audioInitialized && typeof AudioContext !== 'undefined') {
+                initAudioSystem();
+            }
+            
+            try {
+                // Si Web Audio API est disponible et le son est préchargé
+                if (audioInitialized && audioContext && audioBuffers[name]) {
+                    // Vérifier si le contexte est suspendu (restriction mobile)
+                    if (audioContext.state === 'suspended') {
+                        audioContext.resume();
+                    }
+                    
+                    // Créer une source sonore
+                    const source = audioContext.createBufferSource();
+                    source.buffer = audioBuffers[name];
+                    
+                    // Connecter à la sortie audio
+                    source.connect(audioContext.destination);
+                    
+                    // Jouer immédiatement
+                    source.start(0);
+                    return;
+                }
+                
+                // Fallback à la méthode standard
+                if (audioSources[name]) {
+                    const audio = audioSources[name];
+                    audio.currentTime = 0;
+                    
+                    // Utiliser une promesse pour gérer la lecture
+                    const playPromise = audio.play();
+                    if (playPromise !== undefined) {
+                        playPromise.catch(error => {
+                            console.error(`Erreur de lecture audio (${name}):`, error);
+                            
+                            // Si l'erreur est liée à l'interaction utilisateur, initialiser le système audio
+                            if (error.name === 'NotAllowedError') {
+                                // On ne peut rien faire ici, il faut une interaction utilisateur
+                                console.log("Interaction utilisateur requise pour la lecture audio");
+                            }
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error(`Erreur lors de la lecture du son ${name}:`, error);
+            }
+        }
+        
+        // Activer l'audio sur interaction utilisateur
+        function setupAudioActivation() {
+            const activateAudio = () => {
+                // Initialiser le système audio
+                if (!audioInitialized) {
+                    initAudioSystem();
+                }
+                
+                // Jouer un son silencieux pour débloquer l'audio sur mobile
+                if (audioContext && audioContext.state === 'suspended') {
+                    audioContext.resume().then(() => {
+                        console.log("Contexte audio repris");
+                        
+                        // Créer un oscillateur silencieux pour "réveiller" l'audio
+                        const oscillator = audioContext.createOscillator();
+                        const gainNode = audioContext.createGain();
+                        gainNode.gain.value = 0; // Volume à 0
+                        oscillator.connect(gainNode);
+                        gainNode.connect(audioContext.destination);
+                        oscillator.start(0);
+                        oscillator.stop(audioContext.currentTime + 0.001); // Jouer pendant 1ms
+                    });
+                }
+                
+                // Supprimer les écouteurs d'événements
+                document.removeEventListener('click', activateAudio, true);
+                document.removeEventListener('touchstart', activateAudio, true);
+                document.removeEventListener('keydown', activateAudio, true);
+            };
+            
+            // Ajouter les écouteurs d'événements
+            document.addEventListener('click', activateAudio, true);
+            document.addEventListener('touchstart', activateAudio, true);
+            document.addEventListener('keydown', activateAudio, true);
+        }
+        
+        let ball = {
+            x: 0,
+            y: 0,
+            radius: 0,
+            speed: 0,
+            direction: 1 // 1 for right, -1 for left
+        };
+        let line = {
+            x: 0,
+            y: 0,
+            width: 0,
+            height: 0
+        };
+        let squares = [];
+        let fadingSquares = []; // Squares that are fading out
+        let particles = []; // Particles for ball explosion
+        let gameOverAnimation = false;
+        let gameOverAnimationComplete = false;
+        let lastSquareTime = 0;
+        let squareInterval = 1100; // Intervalle augmenté pour réduire la difficulté
+        let lastFrameTime = 0;
+        let greenSquareChance = 0.2; // 20% chance for green squares
+        let lineProximityThreshold = 0; // Distance minimale entre les carrés et la ligne
+        let canSpawnNewSquare = true; // Variable pour contrôler l'apparition des carrés
+
+        // Return to home screen
+        function goToHome() {
+            // Nettoyer l'état du jeu
+            squares = [];
+            fadingSquares = [];
+            particles = [];
+            
+            // Changer le mode de jeu
+            gameMode = 'home';
+            
+            // Masquer l'écran de game over et afficher l'écran d'accueil
+            gameOverScreen.style.display = 'none';
+            homeScreen.style.display = 'flex';
+            
+            // Réinitialiser les variables d'animation
+            gameOverAnimation = false;
+            gameOverAnimationComplete = false;
+            
+            // Réinitialiser la position de la balle et de la ligne pour l'écran d'accueil
+            ball.x = canvas.width / 2;
+            ball.y = canvas.height * 0.5;
+            ball.direction = Math.random() > 0.5 ? 1 : -1;
+            ball.speed = canvas.width * 0.0008;
+            
+            // Réinitialiser la position de la ligne
+            line.x = (canvas.width - line.width) / 2;
+            line.y = ball.y - ball.radius;
+            
+            // Effacer complètement le canvas pour éviter les artefacts visuels
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Réafficher le profil utilisateur sur l'écran d'accueil
+            document.getElementById("profile-button").style.display = 'flex';
+            
+            // Assurer que la boucle de jeu est en cours d'exécution pour l'animation de l'écran d'accueil
+            if (!gameRunning) {
+                gameRunning = true;
+                lastFrameTime = null;
+                if (window.gameLoopAnimationId) {
+                    cancelAnimationFrame(window.gameLoopAnimationId);
+                }
+                window.gameLoopAnimationId = requestAnimationFrame(gameLoop);
+            }
+            
+            // Gérer la musique de fond (démarrer sur l'écran d'accueil)
+            manageBackgroundMusic();
+            
+            console.log("🎮 Retour à l'écran d'accueil");
+        }
+
+        // Initialize the game
+        function initGame() {
+            console.log("🎮 Initialisation du jeu...");
+            
+            // Set canvas size to match container
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            
+            // Set initial game mode to home screen
+            gameMode = 'home';
+            
+            // Initialize ball - larger radius
+            ball.radius = canvas.width * 0.035;
+            ball.y = canvas.height * 0.5; // Middle of the screen vertically
+            ball.x = canvas.width / 2;
+            ball.speed = canvas.width * 0.0008; // Slightly faster speed
+            ball.direction = Math.random() > 0.5 ? 1 : -1; // Direction aléatoire comme dans goToHome()
+            
+            // Initialize line - 80% of width and same height as ball
+            line.width = canvas.width * 0.8;
+            line.height = ball.radius * 2; // Same height as the ball diameter
+            line.x = (canvas.width - line.width) / 2;
+            line.y = ball.y - ball.radius; // Center the ball on the line
+            
+            // Initialiser les étoiles
+            initStars();
+            
+            // Configurer l'activation audio
+            setupAudioActivation();
+            
+            // CRITIQUE: Récupérer d'abord le meilleur score de saison depuis le serveur
+            // avant d'initialiser le profil utilisateur
+            fetchUserSeasonScore();
+            
+            // Initialiser le profil utilisateur
+            initUserProfile();
+            
+            // Envoyer les données utilisateur au serveur pour le panneau d'admin
+            sendUserDataToServer();
+            
+            // Reset game state
+            squares = [];
+            fadingSquares = [];
+            particles = [];
+            gameOverAnimation = false;
+            gameOverAnimationComplete = false;
+            score = 0;
+            
+            // Réinitialiser le temps de frame pour éviter les sauts
+            lastFrameTime = null;
+            
+            // Assurer que la boucle de jeu est en cours d'exécution pour l'animation de l'écran d'accueil
+            // Utiliser la même approche que dans goToHome()
+            gameRunning = true;
+            
+            // Annuler l'animation frame précédente si elle existe
+            if (window.gameLoopAnimationId) {
+                cancelAnimationFrame(window.gameLoopAnimationId);
+            }
+            
+            // Démarrer une nouvelle boucle de jeu
+            window.gameLoopAnimationId = requestAnimationFrame(gameLoop);
+            
+            console.log("🎮 Jeu initialisé avec la balle en mouvement sur l'écran d'accueil");
+        }
+        
+        // Initialiser les étoiles
+        function initStars() {
+            stars = [];
+            for (let i = 0; i < maxStars; i++) {
+                stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    radius: Math.random() * 1.2 + 0.3, // Taille entre 0.3 et 1.5 pixels
+                    opacity: Math.random() * 0.4 + 0.3, // Opacité entre 0.3 et 0.7 (augmentée pour plus de visibilité)
+                    speed: Math.random() * 0.2 + 0.05, // Vitesse entre 0.05 et 0.25 pixels par frame
+                    direction: Math.random() * Math.PI * 2 // Direction aléatoire en radians
+                });
+            }
+        }
+        
+        // Dessiner les étoiles
+        function drawStars() {
+            // Ne dessiner les étoiles que sur l'écran d'accueil et pendant le jeu
+            if (gameMode === 'home' || gameMode === 'game') {
+                for (let i = 0; i < stars.length; i++) {
+                    const star = stars[i];
+                    
+                    // Mise à jour de la position
+                    star.x += Math.cos(star.direction) * star.speed;
+                    star.y += Math.sin(star.direction) * star.speed;
+                    
+                    // Si l'étoile sort de l'écran, la replacer de l'autre côté
+                    if (star.x < 0) star.x = canvas.width;
+                    if (star.x > canvas.width) star.x = 0;
+                    if (star.y < 0) star.y = canvas.height;
+                    if (star.y > canvas.height) star.y = 0;
+                    
+                    // Dessiner l'étoile
+                    ctx.beginPath();
+                    ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
+                    ctx.fill();
+                }
+            }
+        }
+
+        // Start the actual gameplay
+        function startGame() {
+            console.log("🎮 Starting new game from home screen");
+            
+            // Hide home screen
+            homeScreen.style.display = 'none';
+            
+            // Masquer le profil utilisateur pendant le jeu
+            document.getElementById("profile-button").style.display = 'none';
+            
+            // Effacer complètement le canvas pour éviter les artefacts visuels
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Reset game state - Utiliser la fonction resetGame() sans réinitialiser à nouveau
+            resetGame();
+            
+            // Play sound effect
+            playSound('userTap');
+        }
+
+        // Game loop
+        function gameLoop(timestamp) {
+            // Gérer le deltaTime avec une limite maximale pour éviter les comportements erratiques après pause
+            if (!lastFrameTime) lastFrameTime = timestamp;
+            let deltaTime = timestamp - lastFrameTime;
+            
+            // Limiter deltaTime à 100ms max pour éviter les sauts trop grands après pause/inactivité
+            if (deltaTime > 100) deltaTime = 100;
+            
+            lastFrameTime = timestamp;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Dessiner les étoiles en arrière-plan
+            drawStars();
+            
+            // Mettre à jour la position de la balle pour tous les modes (y compris l'écran d'accueil)
+            // La balle doit bouger sur l'écran d'accueil mais sans faire de son
+            if (gameMode !== 'gameOver' || !gameOverAnimation) {
+                ball.x += ball.speed * ball.direction * deltaTime;
+                
+                // Check if ball hits the edge of the line
+                if (ball.x - ball.radius < line.x) {
+                    ball.x = line.x + ball.radius;
+                    ball.direction = 1;
+                    
+                    // Only play border touch sound during gameplay, not on home screen
+                    if (gameMode === 'game') {
+                        playSound('borderTouch');
+                    }
+                } else if (ball.x + ball.radius > line.x + line.width) {
+                    ball.x = line.x + line.width - ball.radius;
+                    ball.direction = -1;
+                    
+                    // Only play border touch sound during gameplay, not on home screen
+                    if (gameMode === 'game') {
+                        playSound('borderTouch');
+                    }
+                }
+            }
+            
+            // Always draw the line
+            drawLine();
+            
+            // Ne dessiner la balle que si on n'est pas en animation de game over
+            if (gameMode !== 'gameOver' || !gameOverAnimation) {
+                drawBall();
+            }
+            
+            // Gestion des éléments de jeu (particules, carrés, etc.)
+            if (gameMode === 'game' || gameMode === 'gameOver') {
+                // Update and draw particles - Déplacer avant les carrés pour que les particules soient visibles
+                updateParticles(deltaTime);
+                
+                // Update and draw squares
+                updateSquares(deltaTime);
+                
+                // Update and draw fading squares
+                updateFadingSquares(deltaTime);
+                
+                // Vérifier si l'animation de game over est terminée
+                if (gameMode === 'gameOver' && gameOverAnimation && particles.length === 0 && fadingSquares.length === 0) {
+                    gameOverAnimationComplete = true;
+                    console.log("💥 Game over animation completed");
+                }
+                
+                if (gameMode === 'game') {
+                    // Check for collisions
+                    if (checkCollisions()) {
+                        // Ne pas quitter la boucle de jeu, laisser l'animation de game over se dérouler
+                        console.log("💥 Collision detected, starting game over animation");
+                    } else {
+                        // Spawn new squares seulement si on n'est pas en game over
+                        if ((squares.length === 0) || (squares.length > 0 && squares[squares.length-1].y > canvas.height * 0.20)) {
+                            spawnSquare();
+                            lastSquareTime = Date.now();
+                            
+                            // Gradually decrease spawn interval
+                            if (squareInterval > 500) {
+                                squareInterval -= 10;
+                            }
+                        }
+                    }
+                    
+                    // Draw score
+                    drawScore();
+                }
+            }
+            
+            // Continue the game loop avec une meilleure gestion des animation frames
+            if (gameRunning) {
+                // Annuler l'animation frame précédente si elle existe
+                if (window.gameLoopAnimationId) {
+                    cancelAnimationFrame(window.gameLoopAnimationId);
+                }
+                
+                // Demander une nouvelle frame
+                window.gameLoopAnimationId = requestAnimationFrame(gameLoop);
+            } else if (window.gameLoopAnimationId) {
+                // Nettoyer l'animation frame si le jeu est arrêté
+                cancelAnimationFrame(window.gameLoopAnimationId);
+                window.gameLoopAnimationId = null;
+            }
+        }
+
+        // Spawn a new square
+        function spawnSquare() {
+            // Larger squares
+            const size = canvas.width * 0.07;
+            
+            // Make sure squares pass through the horizontal line
+            // Calculate a position that will ensure the square passes through the line
+            const lineCenter = line.x + line.width / 2;
+            const lineWidth = line.width;
+            
+            // Random position that ensures passing through the line
+            const minX = Math.max(0, line.x - size);
+            const maxX = Math.min(canvas.width - size, line.x + line.width);
+            const x = minX + Math.random() * (maxX - minX);
+            
+            const isGreen = Math.random() < greenSquareChance;
+            
+            // Random diagonal angle for falling, but ensure it passes through the line
+            const targetX = line.x + Math.random() * line.width;
+            const targetY = line.y;
+            
+            // Calculate angle to ensure it passes through the line
+            const dx = targetX - (x + size/2);
+            const dy = targetY - (-size/2);
+            const angle = Math.atan2(dx, dy);
+            
+            // Limit the angle to prevent too horizontal trajectories
+            const limitedAngle = Math.max(Math.min(angle, Math.PI/4), -Math.PI/4);
+            
+            squares.push({
+                x: x,
+                y: -size,
+                size: size,
+                speed: canvas.height * 0.0005, // Revenir à la vitesse originale
+                isGreen: isGreen,
+                rotation: 0,
+                rotationSpeed: 0.01 * (Math.random() > 0.5 ? 1 : -1), // Vitesse de rotation fixe et modérée
+                angle: limitedAngle,
+                velocityX: Math.sin(limitedAngle),
+                velocityY: Math.cos(limitedAngle)
+            });
+        }
+
+        // Update squares positions
+        function updateSquares(deltaTime) {
+            // Update regular squares
+            for (let i = squares.length - 1; i >= 0; i--) {
+                const square = squares[i];
+                
+                if (!gameOverAnimation) {
+                    // Move square diagonally
+                    square.x += square.velocityX * square.speed * deltaTime;
+                    square.y += square.velocityY * square.speed * deltaTime;
+                }
+                
+                // Update rotation
+                square.rotation += square.rotationSpeed * deltaTime;
+                
+                // Check if square has reached the bottom area (above score)
+                const scoreAreaY = canvas.height * 0.7; // Position plus haute (70% au lieu de 80%)
+                
+                if (square.y > scoreAreaY && !gameOverAnimation) {
+                    // Add to fading squares and remove from regular squares
+                    square.fadeStartTime = Date.now();
+                    square.fadeTime = 1500; // 1.5 seconds for fade animation
+                    square.originalSize = square.size;
+                    fadingSquares.push(square);
+                    squares.splice(i, 1);
+                    continue;
+                }
+                
+                // Remove squares that are off-screen horizontally
+                if ((square.x < -square.size || square.x > canvas.width) && !gameOverAnimation) {
+                    squares.splice(i, 1);
+                    continue;
+                }
+                
+                // Draw rotating square
+                ctx.save();
+                ctx.translate(square.x + square.size/2, square.y + square.size/2);
+                ctx.rotate(square.rotation);
+                ctx.fillStyle = square.isGreen ? '#00FF9D' : '#FFFFFF'; // Couleur verte pour les carrés verts
+                ctx.fillRect(-square.size/2, -square.size/2, square.size, square.size);
+                ctx.restore();
+            }
+        }
+
+        // Update fading squares
+        function updateFadingSquares(deltaTime) {
+            for (let i = fadingSquares.length - 1; i >= 0; i--) {
+                const square = fadingSquares[i];
+                
+                // Calculate how much time has passed since fade started
+                const fadeElapsed = Date.now() - square.fadeStartTime;
+                const fadeProgress = Math.min(fadeElapsed / square.fadeTime, 1);
+                
+                // Update rotation (continue rotating while fading)
+                square.rotation += square.rotationSpeed * deltaTime;
+                
+                // Calculate new size based on fade progress (shrink to nothing)
+                const newSize = square.originalSize * (1 - fadeProgress);
+                
+                // Remove if fade is complete
+                if (fadeProgress >= 1) {
+                    fadingSquares.splice(i, 1);
+                    continue;
+                }
+                
+                // Draw fading square
+                ctx.save();
+                ctx.translate(square.x + square.originalSize/2, square.y + square.originalSize/2);
+                ctx.rotate(square.rotation);
+                ctx.fillStyle = square.isGreen ? '#00FF9D' : '#FFFFFF'; // Couleur verte pour les carrés verts
+                ctx.globalAlpha = 1 - fadeProgress; // Also fade opacity
+                ctx.fillRect(-newSize/2, -newSize/2, newSize, newSize);
+                ctx.globalAlpha = 1;
+                ctx.restore();
+            }
+        }
+
+        // Create explosion particles from the ball
+        function createExplosion(x, y, color) {
+            console.log(`💥 Creating explosion at (${x}, ${y}) with color ${color}`);
+            
+            const particleCount = 120; // Augmenter légèrement le nombre de particules
+            const particleSize = ball.radius / 4; // Particules plus fines (divisé par 4 au lieu de 2)
+            
+            for (let i = 0; i < particleCount; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 8 + 3; // Vitesse plus élevée
+                const distance = Math.random() * ball.radius;
+                
+                particles.push({
+                    x: x + Math.cos(angle) * distance,
+                    y: y + Math.sin(angle) * distance,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    size: particleSize * (Math.random() * 0.5 + 0.3), // Particules plus fines
+                    color: color || '#00FF9D',
+                    alpha: 1,
+                    fadeSpeed: 0.01 + Math.random() * 0.02, // Ralentir la disparition
+                    creationTime: Date.now() // Ajouter un timestamp de création pour débogage
+                });
+            }
+        }
+
+        // Update and draw particles
+        function updateParticles(deltaTime) {
+            // Si aucune particule, ne rien faire
+            if (particles.length === 0) return;
+            
+            // Limiter le deltaTime pour les particules pour éviter les comportements erratiques
+            const particleDeltaTime = Math.min(deltaTime, 100);
+            
+            // Tracer le nombre de particules pour débogage
+            if (particles.length > 0 && particles.length % 50 === 0) {
+                console.log(`✨ Updating ${particles.length} particles`);
+            }
+            
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const particle = particles[i];
+                
+                // Vérifier si la particule est trop ancienne (plus de 10 secondes) pour éviter les fuites de mémoire
+                const particleAge = Date.now() - (particle.creationTime || Date.now());
+                if (particleAge > 10000) { // 10 secondes max
+                    particles.splice(i, 1);
+                    continue;
+                }
+                
+                // Update position - avec un facteur de vitesse constant pour éviter les variations de deltaTime
+                particle.x += particle.vx * particleDeltaTime * 0.1;
+                particle.y += particle.vy * particleDeltaTime * 0.1;
+                
+                // Update alpha - ralentir la disparition
+                particle.alpha -= particle.fadeSpeed * particleDeltaTime * 0.03;
+                
+                // Remove faded particles
+                if (particle.alpha <= 0) {
+                    particles.splice(i, 1);
+                    continue;
+                }
+                
+                // Draw particle
+                ctx.save();
+                ctx.globalAlpha = particle.alpha;
+                ctx.fillStyle = particle.color;
+                ctx.beginPath();
+                ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore(); // Toujours restaurer le contexte pour réinitialiser globalAlpha
+            }
+        }
+
+        // Draw the ball
+        function drawBall() {
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+            ctx.fillStyle = '#00FF9D'; // Vert original
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        // Draw the line
+        function drawLine() {
+            // Draw the actual line with rounded corners
+            ctx.fillStyle = '#333333';
+            
+            // Use rounded rectangle
+            const radius = line.height / 2;
+            ctx.beginPath();
+            ctx.moveTo(line.x + radius, line.y);
+            ctx.lineTo(line.x + line.width - radius, line.y);
+            ctx.arcTo(line.x + line.width, line.y, line.x + line.width, line.y + radius, radius);
+            ctx.lineTo(line.x + line.width, line.y + line.height - radius);
+            ctx.arcTo(line.x + line.width, line.y + line.height, line.x + line.width - radius, line.y + line.height, radius);
+            ctx.lineTo(line.x + radius, line.y + line.height);
+            ctx.arcTo(line.x, line.y + line.height, line.x, line.y + line.height - radius, radius);
+            ctx.lineTo(line.x, line.y + radius);
+            ctx.arcTo(line.x, line.y, line.x + radius, line.y, radius);
+            ctx.closePath();
+            ctx.fill();
+        }
+        
+        // Draw score at the bottom
+        function drawScore() {
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'bold ' + (canvas.width * 0.2) + 'px Orbitron';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(score.toString(), canvas.width / 2, canvas.height * 0.85);
+        }
+
+        // Check for collisions between ball and squares
+        function checkCollisions() {
+            for (let i = 0; i < squares.length; i++) {
+                const square = squares[i];
+                
+                // Calculate distance between ball and square center
+                const dx = ball.x - (square.x + square.size / 2);
+                const dy = ball.y - (square.y + square.size / 2);
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // Check if ball collides with square
+                if (distance < ball.radius + square.size / 2) {
+                    // If it's a green square, collect it
+                    if (square.isGreen) {
+                        // Jouer le son quand la balle touche un carré vert
+                        playSound('success');
+                        
+                        // Remove the square
+                        squares.splice(i, 1);
+                        
+                        // Increment score
+                        score++;
+                        
+                        // Update season score if current score is better
+                        if (score > seasonScore) {
+                            seasonScore = score;
+                            console.log(`🏆 New season best: ${seasonScore}`);
+                        }
+                        
+                        // Update best score if needed
+                        if (score > bestScore) {
+                            bestScore = score;
+                            console.log(`🌟 New all-time best: ${bestScore}`);
+                        }
+                        
+                        // Create explosion effect
+                        createExplosion(square.x + square.size / 2, square.y + square.size / 2, '#00FF9D');
+                        
+                        // Send the updated score to the server immediately
+                        sendUserDataToServer();
+                        
+                        return false;
+                    } else {
+                        // Game over if it's a white square
+                        // Jouer le son quand la balle touche un carré blanc
+                        playSound('gameOver');
+                        
+                        // Set game over mode first to prevent multiple collisions
+                        gameMode = 'gameOver';
+                        gameOverAnimation = true;
+                        gameOverAnimationComplete = false;
+                        
+                        console.log("🎮 Game over sequence started");
+                        
+                        // Créer un effet d'explosion uniquement pour la balle
+                        createExplosion(ball.x, ball.y, '#00FF9D');
+                        
+                        // Ajouter tous les carrés au tableau des carrés en train de disparaitre
+                        // pour qu'ils disparaissent progressivement comme à la fin de leur chute
+                        for (let i = 0; i < squares.length; i++) {
+                            const square = squares[i];
+                            
+                            // Ajouter le carré aux carrés en train de disparaitre
+                            fadingSquares.push({
+                                x: square.x,
+                                y: square.y,
+                                originalSize: square.size,
+                                rotation: square.rotation,
+                                rotationSpeed: square.rotationSpeed,
+                                isGreen: square.isGreen,
+                                fadeStartTime: Date.now(),
+                                fadeTime: 1000 // Disparition en 1 seconde
+                            });
+                        }
+                        
+                        // Vider le tableau des carrés originaux puisqu'ils sont maintenant en train de disparaitre
+                        squares.length = 0;
+                        
+                        // Afficher l'écran de game over avec un délai plus long pour voir l'animation complète
+                        setTimeout(() => {
+                            handleGameOver();
+                        }, 1000); // Délai augmenté pour voir l'animation complète
+                        
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+        
+        // Function to show game over screen
+        function showGameOverScreen() {
+    // Render promo banner (fetch from server)
+    if (typeof renderGameOverPromoBanner === 'function') {
+        renderGameOverPromoBanner();
+    } else if (document.getElementById('promo-banner-area')) {
+        // Fallback: try to call if loaded late
+        setTimeout(() => {
+            if (typeof renderGameOverPromoBanner === 'function') renderGameOverPromoBanner();
+        }, 100);
+    }
+            // Play sound when the score popup is displayed (do NOT play gameOver sound here)
+            playSound('showScore');
+            
+            // Update score displays
+            document.getElementById('score-display').textContent = score;
+            document.getElementById('best-score').textContent = `Best: ${bestScore}`;
+            
+            // CRITICAL FIX: Handle season score correctly on game over
+            const seasonScoreElement = document.getElementById('season-score');
+            seasonScoreElement.style.display = 'block';
+            
+            // Always update the sticky user row with latest info
+            if (window.renderGameOverStickyUserRow) {
+                window.renderGameOverStickyUserRow();
+            } else if (typeof renderGameOverStickyUserRow === 'function') {
+                renderGameOverStickyUserRow();
+            }
+            
+            // Essayer d'utiliser d'abord le score de saison connu, qui a été actualisé juste avant
+            if (score > seasonScore) {
+                // Si le score actuel est meilleur, l'afficher immédiatement
+                seasonScoreElement.textContent = `Season Best: ${score} 🏆`;
+                
+                // Mettre à jour côté serveur en arrière-plan (sans bloquer l'UI)
+                saveBestSeasonScore(score);
+            } else {
+                // Utiliser la valeur déjà récupérée juste avant
+                seasonScoreElement.textContent = `Season Best: ${seasonScore} 🏆`;
+            }
+            
+            // Mettre à jour le mode de jeu
+            gameMode = 'gameOver';
+            
+            // Gérer la musique de fond (arrêter pendant le game over)
+            manageBackgroundMusic();
+            
+            // Afficher l'écran de game over
+            const gameOverScreen = document.getElementById('game-over');
+            gameOverScreen.style.display = 'flex';
+            
+            // Forcer un reflow pour que la transition fonctionne
+            void gameOverScreen.offsetWidth;
+            
+            // Ajouter la classe visible pour déclencher l'animation
+            gameOverScreen.classList.add('visible');
+            console.log("Game over screen displayed");
+        }
+        
+        // Fonction utilitaire pour enregistrer le meilleur score de saison en arrière-plan
+        function saveBestSeasonScore(newScore) {
+            console.log(`🏆 Saving new season best: ${newScore}`);
+            
+            // Mise à jour de la variable locale
+            seasonScore = newScore;
+            
+            // Mettre à jour côté serveur sans attendre la réponse
+            fetch('/api/seasons/active')
+              .then(response => response.ok ? response.json() : null)
+              .then(seasonData => {
+                  if (!seasonData) return;
+                  
+                  // Envoyer le nouveau score au serveur
+                  return fetch(`/api/seasons/${seasonData.id}/scores`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ userId: userId, score: newScore })
+                  });
+              })
+              .catch(err => console.error("❌ Error saving season best:", err));
+        }
+        
+        // Function to hide game over screen
+        function hideGameOver() {
+            // Masquer immédiatement l'écran de game over sans animation
+            gameOverScreen.style.display = 'none';
+            // Réinitialiser la classe visible pour les futures utilisations
+            gameOverScreen.classList.remove('visible');
+            
+            // Réinitialiser l'état de l'animation de fin de jeu
+            gameOverAnimation = false;
+            gameOverAnimationComplete = false;
+        }
+
+        // Function to reset the game and start a new game
+        function resetGame() {
+            console.log("🔄 Resetting game completely");
+            
+            // Hide game over screen
+            hideGameOver();
+            
+            // Annuler l'animation frame précédente pour éviter les doublons
+            if (window.gameLoopAnimationId) {
+                cancelAnimationFrame(window.gameLoopAnimationId);
+                window.gameLoopAnimationId = null;
+            }
+            
+            // Effacer complètement le canvas pour éviter les artefacts visuels
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Reset game state - vider complètement les tableaux pour éviter les fuites de mémoire
+            squares.length = 0;
+            fadingSquares.length = 0;
+            particles.length = 0;
+            
+            // Réinitialiser les variables de jeu
+            gameOverAnimation = false;
+            gameOverAnimationComplete = false;
+            score = 0;
+            
+            // Update game mode
+            gameMode = 'game';
+            
+            // Reset ball position and speed
+            ball.x = canvas.width / 2;
+            ball.y = canvas.height * 0.5;
+            ball.direction = Math.random() > 0.5 ? 1 : -1;
+            ball.speed = canvas.width * 0.0008;
+            
+            // Reset line position
+            line.x = (canvas.width - line.width) / 2;
+            line.y = ball.y - ball.radius;
+            
+            // Reset spawn interval
+            squareInterval = 1000; // Reset to initial spawn interval
+            lastSquareTime = Date.now();
+            
+            // Hide profile button during gameplay
+            document.getElementById("profile-button").style.display = 'none';
+            
+            // Manage background music for game mode
+            manageBackgroundMusic();
+            
+            // Réinitialiser le temps de frame pour éviter les sauts
+            lastFrameTime = null;
+            
+            // Ensure the game loop is properly reset and running
+            gameRunning = true;
+            
+            // Forcer un nouveau démarrage de la boucle de jeu
+            window.gameLoopAnimationId = requestAnimationFrame(gameLoop);
+            
+            // Play sound effect
+            playSound('userTap');
+            
+            console.log("🎮 Game reset and restarted");
+        }
+
+        // Handle screen tap/click
+        function handleTap() {
+            if (gameMode === 'game') {
+                // Change ball direction
+                ball.direction *= -1;
+                
+                // Jouer le son quand l'utilisateur touche l'écran
+                playSound('userTap');
+            }
+        }
+
+        // Resize handler
+        function resizeCanvas() {
+            // Set canvas size to match container
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            
+            // Adjust ball size based on canvas width
+            ball.radius = canvas.width * 0.035;
+            
+            // Adjust line dimensions
+            line.width = canvas.width * 0.8;
+            line.height = ball.radius * 2;
+            
+            // Reposition ball and line
+            if (gameMode === 'home') {
+                // On home screen, position in the middle
+                ball.x = canvas.width / 2;
+                ball.y = canvas.height * 0.5;
+                line.x = (canvas.width - line.width) / 2;
+                line.y = ball.y - ball.radius;
+            }
+            
+            // Redraw stars for new dimensions
+            initStars();
+            
+            console.log(`📱 Canvas resized to ${canvas.width}x${canvas.height}`);
+        }
+
+        // Handle window resize
+        function handleResize() {
+            // Delay resize to avoid performance issues during resize
+            clearTimeout(window.resizeTimer);
+            window.resizeTimer = setTimeout(function() {
+                resizeCanvas();
+            }, 250);
+        }
+
+        // Add resize event listener
+        window.addEventListener('resize', handleResize);
+
+        // Event listeners
+        canvas.addEventListener('click', handleTap);
+        
+        // Handle play again button click
+        playAgainBtn.addEventListener('click', resetGame);
+
+        playBtn.addEventListener('click', startGame);
+
+        // Générer un nom d'utilisateur aléatoire
+        function generateRandomUsername() {
+            const adjectives = [
+                "Cosmic", "Stellar", "Quantum", "Neon", "Cyber", 
+                "Digital", "Pixel", "Techno", "Hyper", "Mega", 
+                "Ultra", "Retro", "Future", "Laser", "Plasma", 
+                "Crystal", "Glitch", "Vector", "Synth", "Astro"
+            ];
+            
+            const nouns = [
+                "Runner", "Racer", "Dasher", "Pilot", "Navigator", 
+                "Explorer", "Voyager", "Jumper", "Drifter", "Surfer", 
+                "Rider", "Hunter", "Ninja", "Warrior", "Knight", 
+                "Wizard", "Hacker", "Gamer", "Player", "Master"
+            ];
+            
+            const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+            const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
+            
+            return randomAdjective + randomNoun;
+        }
+        
+        // Générer un ID à 10 chiffres
+        function generateRandomUserId() {
+            let id = "";
+            for (let i = 0; i < 10; i++) {
+                id += Math.floor(Math.random() * 10);
+            }
+            return id;
+        }
+        
+        // Sélectionner un avatar aléatoire
+        function getRandomAvatar() {
+            return "/avatars/avatar_default.jpg";
+        }
+        
+        // Variable pour éviter les créations multiples de comptes
+        let isCreatingUser = false;
+        
+        // Initialiser ou récupérer le profil utilisateur
+        function initUserProfile() {
+            try {
+                console.log("👤 Initializing user profile...");
+                
+                // Vérifier d'abord si nous avons déjà un ID utilisateur en mémoire
+                // Cela aidera à éviter la réinitialisation des données lors du rechargement de la page
+                const storedUserId = localStorage.getItem("tidashUserId");
+                const storedUsername = localStorage.getItem("tidashUsername");
+                
+                // Vérifier si nous avons un ID Telegram disponible via l'API Telegram
+                let telegramId = null;
+                let telegramUsername = null;
+                
+                if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
+                    telegramId = window.Telegram.WebApp.initDataUnsafe.user.id.toString();
+                    telegramUsername = window.Telegram.WebApp.initDataUnsafe.user.username || null;
+                    console.log("📱 Found Telegram user:", telegramId, telegramUsername);
+                    
+                    // Si nous avons un ID Telegram, effacer le localStorage pour éviter les conflits
+                    if (telegramId) {
+                        localStorage.removeItem("tidashUserId");
+                        localStorage.removeItem("tidashUsername");
+                        console.log("🧹 Cleared localStorage to avoid conflicts with Telegram account");
+                    }
+                }
+                
+                if (storedUserId && !telegramId) {
+                    console.log("💾 Found stored user ID in localStorage:", storedUserId);
+                }
+                
+                // Get device ID from cookie (plus persistant que localStorage)
+                let deviceId = getCookie("tidashDeviceId");
+                if (!deviceId) {
+                    deviceId = generateRandomUserId();
+                    setCookie("tidashDeviceId", deviceId, 365); // Cookie valide 1 an
+                    console.log("🆕 Generated new device ID:", deviceId);
+                } else {
+                    console.log("📱 Found existing device ID in cookie:", deviceId);
+                }
+                
+                // Si nous avons un ID Telegram, nous l'utilisons comme identifiant principal
+                // au lieu du deviceId pour la recherche d'utilisateur
+                const searchEndpoint = telegramId 
+                    ? `/api/users/telegram/${telegramId}` 
+                    : `/api/users/device/${deviceId}`;
+                
+                // Fetch user data from server using appropriate ID
+                fetch(searchEndpoint)
+                    .then(response => {
+                        if (response.status === 404) {
+                            // User not found, create a new user
+                            console.log("👤 User not found on server, creating new user...");
+                            
+                            // Vérifier si une création est déjà en cours
+                            if (isCreatingUser) {
+                                console.log("⚠️ User creation already in progress, skipping duplicate creation");
+                                return null;
+                            }
+                            
+                            // Marquer qu'une création est en cours
+                            isCreatingUser = true;
+                            
+                            // TOUJOURS générer un nouvel ID pour les nouveaux joueurs
+                            userId = generateRandomUserId();
+                            console.log("🆕 Génération obligatoire d'un nouvel ID de jeu:", userId);
+                            
+                            // Pour le nom d'utilisateur, on peut utiliser celui stocké ou en générer un nouveau
+                            username = storedUsername || generateRandomUsername();
+                            
+                            // Create new user data
+                            const userData = {
+                                gameId: userId,
+                                gameUsername: username,
+                                bestScore: 0,
+                                seasonScore: 0,
+                                musicEnabled: true,
+                                deviceId: deviceId
+                            };
+                            
+                            // Ajouter les informations Telegram si disponibles
+                            if (telegramId) {
+                                userData.telegramId = telegramId;
+                                userData.telegramUsername = telegramUsername;
+                            }
+                            
+                            console.log("📝 Creating new user:", userData);
+                            
+                            // Send new user data to server
+                            return fetch('/api/users', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify(userData)
+                            })
+                            .then(response => {
+                                if (!response.ok) {
+                                    throw new Error('Failed to create user');
+                                }
+                                return response.json();
+                            })
+                            .then(data => {
+                                console.log("✅ New user created:", data);
+                                
+                                // Stocker l'ID et le nom d'utilisateur localement pour la persistance
+                                localStorage.setItem("tidashUserId", userId);
+                                localStorage.setItem("tidashUsername", username);
+                                
+                                // Vérifier s'il y a une saison active et inscrire l'utilisateur
+                                console.log("🏆 Checking for active season to add new user to ranking...");
+                                fetch('/api/seasons/active')
+                                    .then(response => {
+                                        if (response.ok) {
+                                            return response.json();
+                                        } else {
+                                            console.log("⚠️ No active season found");
+                                            return null;
+                                        }
+                                    })
+                                    .then(seasonData => {
+                                        if (seasonData && seasonData.id) {
+                                            console.log(`🏆 Adding user ${userId} to season ${seasonData.id} with initial score 0`);
+                                            // Ajouter l'utilisateur au classement de la saison avec un score de 0
+                                            return fetch(`/api/seasons/${seasonData.id}/scores/${userId}`, {
+                                                method: 'POST',
+                                                headers: {
+                                                    'Content-Type': 'application/json'
+                                                },
+                                                body: JSON.stringify({ score: 0 })
+                                            });
+                                        }
+                                    })
+                                    .then(response => {
+                                        if (response && response.ok) {
+                                            console.log("✅ User added to season ranking successfully");
+                                        }
+                                    })
+                                    .catch(error => {
+                                        console.error("❌ Error adding user to season ranking:", error);
+                                    });
+                                
+                                // Update UI
+                                updateUserProfileDisplay();
+                                updateScoreDisplay();
+                                updateSoundToggleDisplay();
+                                
+                                // Réinitialiser le drapeau de création
+                                isCreatingUser = false;
+                                console.log("💾 User creation completed, flag reset");
+                                
+                                return null; // Return null to indicate we've handled this case
+                            });
+                        } else if (!response.ok) {
+                            throw new Error('Failed to fetch user data');
+                        } else {
+                            return response.json();
+                        }
+                    })
+                    .then(data => {
+                        if (data) {
+                            console.log("✅ User data loaded from server:", data);
+                            
+                            // IMPORTANT: Conserver les données existantes de l'utilisateur
+                            // Ne pas générer de nouveaux ID ou noms d'utilisateur s'ils existent déjà
+                            let needsUpdate = false;
+                            
+                            // Utiliser l'ID du serveur s'il existe
+                            if (data.gameId) {
+                                userId = data.gameId;
+                                console.log("👤 Using existing game ID from server:", userId);
+                                // Mettre à jour le stockage local
+                                localStorage.setItem("tidashUserId", userId);
+                            } 
+                            // Sinon, utiliser l'ID stocké localement s'il existe
+                            else if (storedUserId) {
+                                userId = storedUserId;
+                                needsUpdate = true;
+                                console.log("💾 Using stored game ID from localStorage:", userId);
+                            } 
+                            // En dernier recours, générer un nouvel ID
+                            else {
+                                userId = generateRandomUserId();
+                                needsUpdate = true;
+                                console.log("🆕 Generated new game ID as last resort:", userId);
+                                localStorage.setItem("tidashUserId", userId);
+                            }
+                            
+                            // Même logique pour le nom d'utilisateur
+                            if (data.gameUsername) {
+                                username = data.gameUsername;
+                                console.log("👤 Using existing username from server:", username);
+                                localStorage.setItem("tidashUsername", username);
+                            } 
+                            else if (storedUsername) {
+                                username = storedUsername;
+                                needsUpdate = true;
+                                console.log("💾 Using stored username from localStorage:", username);
+                            } 
+                            else {
+                                username = generateRandomUsername();
+                                needsUpdate = true;
+                                console.log("🆕 Generated new username as last resort:", username);
+                                localStorage.setItem("tidashUsername", username);
+                            }
+                            
+                            // Handle avatar path correctly
+                            if (data.avatarSrc) {
+                                console.log('💾 Avatar from server:', data.avatarSrc);
+                                
+                                // Ensure avatar path is absolute and clean (remove any cache parameters)
+                                let cleanAvatarSrc = data.avatarSrc;
+                                if (cleanAvatarSrc.includes('?')) {
+                                    cleanAvatarSrc = cleanAvatarSrc.split('?')[0];
+                                }
+                                
+                                if (cleanAvatarSrc.startsWith('http')) {
+                                    avatarSrc = cleanAvatarSrc;
+                                } else if (cleanAvatarSrc.startsWith('/')) {
+                                    avatarSrc = window.location.origin + cleanAvatarSrc;
+                                } else {
+                                    avatarSrc = window.location.origin + '/avatars/' + cleanAvatarSrc;
+                                }
+                                
+                                // Ajouter un paramètre de cache-busting pour forcer le rechargement de l'image
+                                avatarSrc = avatarSrc.includes('?') 
+                                    ? avatarSrc + '&t=' + new Date().getTime() 
+                                    : avatarSrc + '?t=' + new Date().getTime();
+                                    
+                                console.log('📷 Processed avatar URL:', avatarSrc);
+                            } else {
+                                // Default avatar with absolute path
+                                avatarSrc = window.location.origin + '/avatars/avatar_default.jpg';
+                                console.log('⚠️ No avatar found in server data, using default');
+                            }
+                            
+                            // Conserver les autres données utilisateur
+                            paypalEmail = data.paypalEmail || "";
+                            bestScore = parseInt(data.bestScore || "0");
+                            seasonScore = parseInt(data.seasonScore || "0");
+                            
+                            // Set music preference from server
+                            isMusicEnabled = data.musicEnabled !== undefined ? data.musicEnabled : true;
+                            
+                            // Only update the server if we needed to update ID or username
+                            if (needsUpdate) {
+                                console.log("🔄 Updating user data on server with preserved information");
+                                setTimeout(() => sendUserDataToServer(), 500);
+                            } else {
+                                console.log("✅ User data is complete, no updates needed");
+                            }
+                            
+                            // Update UI elements
+                            updateUserProfileDisplay();
+                            updateScoreDisplay();
+                            updateSoundToggleDisplay();
+                            
+                            // Initialize avatar selection
+                            initAvatarSelection();
+                            
+                            // Check for active season
+                            checkForNewSeason();
+                            
+                            // Fetch the current user's season score from the server
+                            fetchUserSeasonScore();
+                            
+                            return data;
+                        }
+                        
+                        // Fallback - utiliser les données stockées localement si disponibles
+                        if (storedUserId && storedUsername) {
+                            console.log("💾 Falling back to stored user data due to server error");
+                            userId = storedUserId;
+                            username = storedUsername;
+                            avatarSrc = window.location.origin + '/avatars/avatar_default.jpg';
+                            
+                            // Update UI elements
+                            updateUserProfileDisplay();
+                            updateScoreDisplay();
+                            updateSoundToggleDisplay();
+                        } else {
+                            console.log("🔄 No stored data available, creating temporary user");
+                            // Créer un utilisateur temporaire
+                            userId = generateRandomUserId();
+                            username = generateRandomUsername();
+                            avatarSrc = window.location.origin + '/avatars/avatar_default.jpg';
+                            
+                            // Stocker localement
+                            localStorage.setItem("tidashUserId", userId);
+                            localStorage.setItem("tidashUsername", username);
+                            
+                            // Update UI elements
+                            updateUserProfileDisplay();
+                            updateScoreDisplay();
+                            updateSoundToggleDisplay();
+                        }
+                    })
+                    .catch(error => {
+                        console.error("❌ Error initializing user profile:", error);
+                    });
+            } catch (error) {
+                console.error("❌ Error in initUserProfile:", error);
+                
+                // Emergency fallback
+                username = generateRandomUsername();
+                userId = generateRandomUserId();
+                avatarSrc = window.location.origin + '/avatars/avatar_default.jpg';
+                
+                // Update UI as a last resort
+                updateUserProfileDisplay();
+            }
+        }
+        
+        // Function to populate the avatar grid
+        function populateAvatarGrid() {
+            try {
+                console.log("🖼️ Populating avatar grid...");
+                const avatarsGrid = document.getElementById('avatars-grid');
+                
+                // Clear existing avatars
+                avatarsGrid.innerHTML = '';
+                
+                // List of available avatars (using the correct filenames)
+                const avatars = [
+                    'avatar_default.jpg',
+                    'avatar1.jpg',
+                    'avatar2.jpg',
+                    'avatar3.jpg',
+                    'avatar4.jpg',
+                    'avatar5.jpg',
+                    'avatar6.jpg',
+                    'avatar7.jpg',
+                    'avatar8.jpg',
+                    'avatar9.jpg',
+                    'avatar10.jpg',
+                    'avatar11.jpg',
+                    'avatar12.jpg',
+                    'avatar13.jpg',
+                    'avatar14.jpg',
+                    'avatar15.jpg',
+                    'avatar16.jpg',
+                    'avatar17.jpg',
+                    'avatar18.jpg',
+                    'avatar19.jpg',
+                    'avatar20.jpg'
+                ];
+                
+                // Create avatar items
+                avatars.forEach(avatar => {
+                    const avatarItem = document.createElement('div');
+                    avatarItem.className = 'avatar-item';
+                    
+                    const img = document.createElement('img');
+                    img.src = `avatars/${avatar}`;
+                    img.alt = 'Avatar';
+                    
+                    const check = document.createElement('div');
+                    check.className = 'avatar-check';
+                    check.innerHTML = '✓';
+                    
+                    avatarItem.appendChild(img);
+                    avatarItem.appendChild(check);
+                    avatarsGrid.appendChild(avatarItem);
+                });
+                
+                console.log(`✅ Added ${avatars.length} avatars to the grid`);
+                
+                // Initialize avatar selection
+                initAvatarSelection();
+            } catch (error) {
+                console.error("❌ Error populating avatar grid:", error);
+            }
+        }
+
+        // Function to initialize avatar selection
+        function initAvatarSelection() {
+            try {
+                console.log("🖼️ Initializing avatar selection...");
+
+                // Get all avatar items
+                const avatarItems = document.querySelectorAll('.avatar-item');
+
+                // Clear any existing selected state
+                avatarItems.forEach(item => {
+                    item.classList.remove('selected');
+                });
+
+                // Get current avatar filename (strip query string if present)
+                let currentAvatarSrc = avatarSrc;
+                let avatarFilename = currentAvatarSrc.split('/').pop();
+                avatarFilename = avatarFilename.split('?')[0]; // Remove query string
+
+                console.log(`🔍 Looking for avatar: ${avatarFilename}`);
+
+                // Find and select the matching avatar (ignore query string in img.src)
+                let found = false;
+                avatarItems.forEach(item => {
+                    const itemImg = item.querySelector('img');
+                    if (itemImg) {
+                        let imgFilename = itemImg.src.split('/').pop().split('?')[0];
+                        if (imgFilename === avatarFilename) {
+                            item.classList.add('selected');
+                            found = true;
+                            console.log(`✅ Selected avatar: ${itemImg.src}`);
+                        }
+                    }
+                });
+
+                if (!found) {
+                    console.log("⚠️ Matching avatar not found, selecting default");
+                    // Select default avatar if no match found
+                    const defaultAvatar = document.querySelector('.avatar-item:first-child');
+                    if (defaultAvatar) {
+                        defaultAvatar.classList.add('selected');
+                    }
+                }
+
+                // Add click event listeners to avatar items
+                avatarItems.forEach(item => {
+                    item.addEventListener('click', function() {
+                        // Remove selected class from all avatars
+                        avatarItems.forEach(avatar => {
+                            avatar.classList.remove('selected');
+                        });
+
+                        // Add selected class to clicked avatar
+                        this.classList.add('selected');
+
+                        // Get the src of the selected avatar (strip query string)
+                        let selectedAvatarSrc = this.querySelector('img').src;
+                        let avatarFilename = selectedAvatarSrc.split('/').pop().split('?')[0];
+                        const avatarPath = '/avatars/' + avatarFilename;
+                        console.log('📷 Selected avatar filename:', avatarFilename);
+
+                        // Update avatar in UI with a new cache-busting parameter (remove any existing one first)
+                        const cacheBuster = '?t=' + new Date().getTime();
+                        const cleanSrc = selectedAvatarSrc.split('?')[0];
+                        document.getElementById('settings-avatar').src = cleanSrc + cacheBuster;
+                        document.getElementById('avatarImg').src = cleanSrc + cacheBuster;
+
+                        // Update avatarSrc variable with the full path for display
+                        avatarSrc = window.location.origin + '/avatars/' + avatarFilename;
+
+                        console.log('📷 Avatar selected (full path):', avatarSrc);
+
+                        // Save to server with a small delay to ensure UI updates first
+                        setTimeout(() => {
+                            // Force sending avatar filename to server
+                            const forceAvatarUpdate = {
+                                avatarFilename: avatarFilename
+                            };
+
+                            sendUserDataToServer(forceAvatarUpdate)
+                                .then(response => {
+                                    if (response && response.user) {
+                                        console.log('✅ Avatar saved successfully on server:', response.user.avatarSrc);
+                                    }
+                                });
+                        }, 100);
+
+                        console.log(`🖼️ Avatar updated: ${avatarPath}`);
+                    });
+                });
+            } catch (error) {
+                console.error("❌ Error initializing avatar selection:", error);
+            }
+        }
+        
+        // Function to update sound toggle display
+        function updateSoundToggleDisplay() {
+            try {
+                const soundToggle = document.querySelector('.sound-toggle');
+                if (soundToggle) {
+                    if (isMusicEnabled) {
+                        soundToggle.classList.remove('muted');
+                    } else {
+                        soundToggle.classList.add('muted');
+                    }
+                }
+            } catch (error) {
+                console.error("❌ Error updating sound toggle display:", error);
+            }
+        }
+        
+        // Function to send user data to server
+        function sendUserDataToServer(forceUpdate = {}) {
+            try {
+                console.log("📤 Sending user data to server...");
+                
+                // Get device ID from cookie
+                const deviceId = getCookie("tidashDeviceId") || "";
+                
+                // Get Telegram data if available
+                const telegramId = window.telegramId || "";
+                const telegramUsername = window.telegramUsername || "";
+                
+                // Prepare user data
+                const userData = {
+                    gameId: userId,
+                    gameUsername: username,
+                    bestScore: bestScore,
+                    seasonScore: seasonScore,
+                    // Traitement de l'avatar
+                    avatarSrc: (() => {
+                        // Si une mise à jour forcée de l'avatar est demandée
+                        if (forceUpdate.avatarFilename) {
+                            console.log('💾 Mise à jour forcée de l\'avatar:', forceUpdate.avatarFilename);
+                            return forceUpdate.avatarFilename;
+                        }
+                        
+                        let cleanAvatarSrc = avatarSrc;
+                        // Supprimer les paramètres de cache
+                        if (cleanAvatarSrc.includes('?')) {
+                            cleanAvatarSrc = cleanAvatarSrc.split('?')[0];
+                        }
+                        // Extraire uniquement le nom du fichier si c'est un chemin complet
+                        if (cleanAvatarSrc.includes('/avatars/')) {
+                            const avatarFilename = cleanAvatarSrc.split('/avatars/').pop();
+                            console.log('💾 Envoi du nom de fichier avatar au serveur:', avatarFilename);
+                            return avatarFilename; // Envoyer uniquement le nom du fichier
+                        }
+                        // Si c'est déjà juste un nom de fichier, le retourner tel quel
+                        if (!cleanAvatarSrc.includes('/') && !cleanAvatarSrc.startsWith('http')) {
+                            console.log('💾 Nom de fichier avatar déjà propre:', cleanAvatarSrc);
+                            return cleanAvatarSrc;
+                        }
+                        return cleanAvatarSrc;
+                    })(),
+                    paypalEmail: paypalEmail,
+                    deviceId: deviceId,
+                    musicEnabled: isMusicEnabled,
+                    telegramId: telegramId,
+                    telegramUsername: telegramUsername
+                };
+                
+                console.log("📋 User data to send:", userData);
+                
+                // Send data to server
+                return fetch('/api/users', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(userData)
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to save user data');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('✅ User data saved successfully:', data);
+                    
+                    // Update user data from response if available
+                    if (data.user) {
+                        userId = data.user.gameId || userId;
+                        bestScore = parseInt(data.user.bestScore || bestScore);
+                        
+                        // Update UI
+                        updateUserProfileDisplay();
+                        updateScoreDisplay();
+                    }
+                    
+                    return data;
+                })
+                .catch(error => {
+                    console.error('❌ Error saving user data:', error);
+                });
+            } catch (error) {
+                console.error("❌ Error in sendUserDataToServer:", error);
+            }
+        }
+        
+        // Fonction supprimée - plus d'effet de particules
+        
+        // Function to update season info display
+        function updateSeasonInfoDisplay() {
+            try {
+                console.log('🔄 Updating season info display...');
+                
+                // Get the season info container and elements
+                const seasonInfoContainer = document.getElementById('season-info-container');
+                const seasonNumberElement = document.querySelector('/* .season-number { display: none; } */');
+                const seasonPrizeElement = document.querySelector('.season-prize');
+                
+                if (!seasonInfoContainer || !seasonNumberElement || !seasonPrizeElement) {
+                    console.error('❌ Season info elements not found');
+                    return;
+                }
+                
+                // Add timestamp to prevent caching
+                const timestamp = new Date().getTime();
+                
+                // Use only the admin endpoint as it's working properly
+                fetch(`/api/active-season?_=${timestamp}`)
+                .then(response => {
+                    if (!response.ok) {
+                        if (response.status === 404) {
+                            console.log('⚠️ No active season found');
+                            // Même s'il n'y a pas de saison active, on affiche le conteneur avec des valeurs par défaut
+                            seasonNumberElement.textContent = 'Season -';
+                            seasonPrizeElement.textContent = `- Prize`;
+                            
+                            // Plus d'effet de particules
+                            
+                            return null;
+                        }
+                        throw new Error(`Error retrieving active season: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (!data) return; // Skip if no data
+                    
+                    console.log('💾 Season data received from admin endpoint:', data);
+                    
+                    // Get season number and prize money
+                    const seasonNumber = data.seasonNumber || 1;
+                    const prizeMoney = data.prizeMoney || 500;
+                    
+                    console.log(`🏆 Updating season display: Season ${seasonNumber}, Prize $${prizeMoney}`);
+                    
+                    // Update the elements
+                    seasonNumberElement.textContent = `Season ${seasonNumber}`;
+                    seasonPrizeElement.textContent = `$${prizeMoney} Prize 🥇`;
+                    
+                    // Show the container
+                    seasonInfoContainer.style.display = 'block';
+                    
+                    // Plus d'effet de particules
+                })
+                .catch(error => {
+                    console.error('❌ Error updating season info display:', error);
+                    // Même en cas d'erreur, on affiche le conteneur avec des valeurs par défaut
+                    seasonNumberElement.textContent = 'Season -';
+                    seasonPrizeElement.textContent = `- Prize`;
+                    
+                    // Plus d'effet de particules
+                });
+                
+            } catch (error) {
+                console.error('❌ Error in updateSeasonInfoDisplay:', error);
+            }
+        }
+        
+        // Function to check for new season
+        function checkForNewSeason(forceReset = false) {
+            try {
+                console.log("🔍 Checking for active season...");
+                
+                fetch('/api/seasons/active')
+                .then(response => {
+                    if (!response.ok) {
+                        if (response.status === 404) {
+                            return null;
+                        }
+                        throw new Error('Error retrieving active season');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (!data) {
+                        console.log("ℹ️ No active season, keeping existing season score: " + seasonScore);
+                        // Still update any UI elements with the current seasonScore value
+                        updateScoreDisplay();
+                        return seasonScore;
+                    }
+                    
+                    console.log(`✅ Active season found: ${data.id}, Season ${data.seasonNumber}`);
+                    
+                    // Get user's score for this season
+                    return fetch(`/api/seasons/${data.id}/scores/${userId}`)
+                    .then(response => response.ok ? response.json() : { score: 0 })
+                    .then(serverData => {
+                        // Use the server's score as the source of truth
+                        let serverSeasonBest = serverData && serverData.score ? parseInt(serverData.score) : 0;
+                        
+                        console.log(`🎮 Game Over - Current game score: ${score}, Server season best: ${serverSeasonBest}`);
+                        
+                        // IMPORTANT FIX: Always check if we need to update the season score
+                        // We need to handle two cases:
+                        // 1. If this is the first game in a new season, we should send the score regardless
+                        // 2. If the current score is better than the stored season best
+                        
+                        // Check with the server if this is a new season for the user
+                        const isFirstGame = serverSeasonBest === 0;
+                        
+                        if (isFirstGame || score > serverSeasonBest) {
+                            // Update our local variable
+                            if (score > serverSeasonBest) {
+                                seasonScore = score;
+                                console.log(`🏆 New season best achieved: ${seasonScore}`);
+                            } else {
+                                console.log(`📊 First game in new season: ${score}`);
+                                // Even if it's not a personal best, we need to record it for the first game
+                                seasonScore = score;
+                            }
+                            
+                            // Send updated score to server immediately
+                            sendUserDataToServer();
+                        } else {
+                            // If we didn't update the score, make sure we're using the server's value
+                            seasonScore = serverSeasonBest;
+                        }
+                        
+                        // CRITICAL FIX: Always display the season score, regardless of whether it was updated
+                        // This ensures the season score is always visible in the game over popup
+                        const seasonScoreElement = document.getElementById('season-score');
+                        if (seasonScoreElement) {
+                            seasonScoreElement.textContent = `Season ${data.seasonNumber} Best: ${seasonScore} 🏆`;
+                            seasonScoreElement.style.display = 'block';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('❌ Error getting season score from server:', error);
+                        // Fallback to local data if server request fails
+                        const seasonScoreElement = document.getElementById('season-score');
+                        if (seasonScoreElement) {
+                            seasonScoreElement.textContent = `Season ${data.seasonNumber} Best: ${score} 🏆`;
+                            seasonScoreElement.style.display = 'block';
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error('❌ Error checking active season:', error);
+                    const seasonScoreElement = document.getElementById('season-score');
+                    if (seasonScoreElement) {
+                        seasonScoreElement.style.display = 'none';
+                    }
+                });
+            } catch (error) {
+                console.error("❌ Error in checkForNewSeason:", error);
+            }
+        }
+        
+        // Helper function to get cookie value
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+            return null;
+        }
+        
+        // Helper function to set cookie
+        function setCookie(name, value, days) {
+            let expires = "";
+            if (days) {
+                const date = new Date();
+                date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+                expires = "; expires=" + date.toUTCString();
+            }
+            document.cookie = name + "=" + (value || "") + expires + "; path=/; SameSite=Strict";
+        }
+        
+        // Function to update user profile display
+        function updateUserProfileDisplay() {
+            try {
+                // Update username
+                document.getElementById('username').textContent = username;
+                
+                // Update user ID
+                document.getElementById('userId').textContent = userId;
+                
+                // Ensure avatar path is valid and add cache-busting parameter
+                let avatarUrl = avatarSrc;
+                
+                // Si l'avatar n'a pas de paramètre de cache, en ajouter un
+                if (!avatarUrl.includes('?')) {
+                    avatarUrl += '?t=' + new Date().getTime();
+                }
+                
+                console.log('📷 Mise à jour de l\'avatar dans l\'interface:', avatarUrl);
+                
+                // Update avatar
+                document.getElementById('avatarImg').src = avatarUrl;
+                document.getElementById('settings-avatar').src = avatarUrl;
+                
+                // Update settings fields
+                const usernameInput = document.getElementById('username-input');
+                if (usernameInput) {
+                    usernameInput.value = username;
+                    usernameInput.placeholder = username;
+                }
+                
+                const paypalInput = document.getElementById('paypal-email');
+                if (paypalInput) {
+                    paypalInput.value = paypalEmail || '';
+                    paypalInput.placeholder = paypalEmail || 'mypaypal@email.com';
+                }
+                
+                const settingsUserId = document.getElementById('settings-user-id');
+                if (settingsUserId) {
+                    settingsUserId.textContent = userId;
+                }
+            } catch (error) {
+                console.error("❌ Error updating user profile display:", error);
+            }
+        }
+        
+        // Function to update score display
+        function updateScoreDisplay() {
+            try {
+                // Update best score
+                document.getElementById('best-score').textContent = `Best: ${bestScore}`;
+                
+                // Update season score - simple value without emoji or image
+                const seasonScoreElement = document.getElementById('season-score');
+                if (seasonScoreElement) {
+                    // Just display the raw score value
+                    seasonScoreElement.textContent = `Season Best: ${seasonScore}`;
+                }
+            } catch (error) {
+                console.error("❌ Error updating score display:", error);
+            }
+        }
+        
+        // Function to fetch the current user's season score from the server
+        function fetchUserSeasonScore() {
+            console.log("🔍 Fetching user's season score from server (enhanced version)...");
+            
+            // Vérifier que l'utilisateur est correctement initialisé
+            if (!userId) {
+                console.warn("⚠️ Cannot fetch season score - userId is not defined");
+                return Promise.resolve(0);
+            }
+            
+            // DIRECT IMPLEMENTATION of leaderboard approach - fetch season ranking and find user's score
+            return fetch('/api/seasons/active')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Error retrieving active season');
+                    }
+                    return response.json();
+                })
+                .then(season => {
+                    console.log(`✅ Active season found: ${season.id}, Season ${season.seasonNumber}`);
+                    
+                    // Fetch full ranking to ensure we get the correct score
+                    return fetch(`/api/seasons/${season.id}/ranking`)
+                        .then(response => {
+                            if (!response.ok) throw new Error('Failed to fetch season ranking');
+                            return response.json();
+                        })
+                        .then(ranking => {
+                            // Find user in ranking
+                            let user = ranking.find(u => String(u.gameId || u.id || u.userId) === String(userId));
+                            
+                            if (user) {
+                                // User found in ranking
+                                const serverSeasonScore = user.score || 0;
+                                console.log(`📊 Found user in season ranking. Score: ${serverSeasonScore}`);
+                                
+                                // Update global variable
+                                seasonScore = serverSeasonScore;
+                            } else {
+                                // User not found in ranking, try direct score lookup
+                                return fetch(`/api/seasons/${season.id}/scores/${userId}`)
+                                    .then(response => response.ok ? response.json() : { score: 0 })
+                                    .then(scoreData => {
+                                        const serverSeasonScore = scoreData && scoreData.score ? parseInt(scoreData.score) : 0;
+                                        console.log(`📊 Loaded user's season score from direct API: ${serverSeasonScore}`);
+                                        
+                                        // Update global variable
+                                        seasonScore = serverSeasonScore;
+                                    });
+                            }
+                        })
+                        .then(() => {
+                            // Always update UI elements regardless of data source
+                            const seasonScoreElement = document.getElementById('season-score');
+                            if (seasonScoreElement) {
+                                seasonScoreElement.textContent = `Season Best: ${seasonScore}`;
+                            }
+                            return seasonScore;
+                        });
+                })
+                .catch(error => {
+                    console.error("❌ Error in enhanced fetchUserSeasonScore:", error);
+                    // Don't reset seasonScore on error, return current value
+                    return Promise.resolve(seasonScore);
+                });
+        }
+        
+        // Initialize the game
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("🎮 Game initialization starting...");
+            
+            // CRITICAL FIX FOR SEASON SCORE: Set up a forced refresh interval for season scores
+            // This ensures the score is always fetched fresh before displaying the game over screen
+            function refreshSeasonScore() {
+                if (userId) {
+                    console.log("🔄 Forcing season score refresh from server...");
+                    fetchUserSeasonScore()
+                        .then(score => console.log("✅ Season score refreshed: " + score))
+                        .catch(err => console.error("❌ Season score refresh failed", err));
+                }
+            }
+            
+            // Immediately initialize the season score
+            setTimeout(refreshSeasonScore, 500);
+            
+            // Refresh the season score every 30 seconds to ensure it's always current
+            setInterval(refreshSeasonScore, 30000);
+            
+            // Initialize canvas dimensions
+            resizeCanvas();
+            
+            // Initialize stars
+            initStars();
+            
+            // Populate avatar grid
+            populateAvatarGrid();
+
+            // Load user profile
+            initUserProfile();
+            
+            // Envoyer les données utilisateur au serveur pour le panneau d'admin
+            sendUserDataToServer();
+            
+            // Initialize and display season information
+            updateSeasonInfoDisplay();
+            
+            // Set up periodic refresh for season information (every 30 seconds)
+            setInterval(updateSeasonInfoDisplay, 30000);
+            
+            // PRIORITÉ: Toujours récupérer d'abord le score de saison depuis le serveur
+            // avant toute autre initialisation
+            fetchUserSeasonScore();
+            
+            // Initialize stars
+            initStars();
+            
+            // Populate avatar grid
+            populateAvatarGrid();
+
+            // Load user profile
+            initUserProfile();
+            
+            // Envoyer les données utilisateur au serveur pour le panneau d'admin
+            sendUserDataToServer();
+            
+            // Initialize and display season information
+            updateSeasonInfoDisplay();
+            
+            // Set up periodic refresh for season information (every 30 seconds)
+            setInterval(updateSeasonInfoDisplay, 30000);
+            
+            // Fonction pour créer les particules autour du container de saison
+            function createParticles() {
+                const particlesContainer = document.getElementById('particles');
+                if (!particlesContainer) return;
+                
+                // Vider le container
+                particlesContainer.innerHTML = '';
+                
+                // Créer 20 particules
+                for (let i = 0; i < 20; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+                    
+                    // Position aléatoire dans le container
+                    const x = Math.random() * 100;
+                    const y = Math.random() * 100;
+                    particle.style.left = `${x}%`;
+                    particle.style.top = `${y}%`;
+                    
+                    // Direction aléatoire pour l'animation
+                    const xDirection = (Math.random() - 0.5) * 100;
+                    const yDirection = (Math.random() - 0.5) * 100;
+                    particle.style.setProperty('--x', `${xDirection}px`);
+                    particle.style.setProperty('--y', `${yDirection}px`);
+                    
+                    // Délai aléatoire pour l'animation
+                    particle.style.animationDelay = `${Math.random() * 3}s`;
+                    
+                    particlesContainer.appendChild(particle);
+                }
+            }
+            
+            // Créer les particules initiales
+            createParticles();
+            
+            // Recréer les particules toutes les 6 secondes pour un effet continu
+            setInterval(createParticles, 6000);
+            
+            // Fonction pour récupérer et afficher les données de la saison active
+            function updateSeasonContainer(forceRefresh = false) {
+                // Récupérer les éléments du DOM
+                const seasonPrizeElement = document.querySelector('.season-prize');
+                const seasonNameElement = document.querySelector('.season-name');
+                
+                if (!seasonPrizeElement || !seasonNameElement) return;
+                
+                // Indiquer que les données sont en cours de chargement
+                seasonPrizeElement.setAttribute('data-loading', 'true');
+                seasonNameElement.setAttribute('data-loading', 'true');
+                
+                // Ajouter un paramètre de cache-busting pour forcer une nouvelle requête à chaque fois
+                const timestamp = new Date().getTime();
+                
+                console.log(`🔄 Synchronisation des données de saison... (${timestamp})`);
+                
+                // Construire le chemin d'API complet avec le protocole et le domaine actuels
+                // Cela garantit que l'API est appelée sur le même serveur que celui qui héberge l'application
+                const apiPath = window.location.pathname.includes('/public/') 
+                    ? '../api/seasons/active' // Chemin relatif si nous sommes dans /public/
+                    : '/api/seasons/active';  // Chemin absolu sinon
+                
+                console.log(`🔗 Chemin API utilisé: ${apiPath}`);
+                
+                // Ajouter le timestamp comme paramètre de requête pour éviter la mise en cache
+                const url = `${apiPath}?_=${timestamp}${forceRefresh ? '&force=true' : ''}`;
+                
+                // Afficher l'URL complète pour débogage
+                console.log(`🔍 URL de requête: ${url}`);
+                
+                // Définir un timeout plus court pour la requête (3 secondes)
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3000);
+                
+                // Ajouter une requête directe à la base de données SQLite
+                // Le chemin de la base de données est /var/lib/tidash_database.sqlite
+                console.log('💾 Base de données SQLite: /var/lib/tidash_database.sqlite');
+                
+                // Récupérer les données de la saison active depuis l'API avec cache-busting
+                fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache',
+                        'Expires': '0',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest' // Ajouter cet en-tête pour identifier les requêtes AJAX
+                    },
+                    credentials: 'include', // Utiliser 'include' au lieu de 'same-origin' pour les cookies cross-origin
+                    signal: controller.signal,
+                    cache: 'no-store' // Forcer à ne pas utiliser le cache du navigateur
+                })
+                    .then(response => {
+                        clearTimeout(timeoutId); // Annuler le timeout
+                        
+                        console.log(`💯 Réponse reçue: Status ${response.status}`);
+                        
+                        // Afficher les en-têtes de la réponse pour débogage
+                        response.headers.forEach((value, name) => {
+                            console.log(`📝 En-tête: ${name} = ${value}`);
+                        });
+                        
+                        if (!response.ok) {
+                            throw new Error(`Erreur API (Status: ${response.status})`);
+                        }
+                        
+                        // Vérifier si la réponse est vide
+                        const contentType = response.headers.get('content-type');
+                        if (!contentType || !contentType.includes('application/json')) {
+                            throw new Error(`Type de contenu non valide: ${contentType}`);
+                        }
+                        
+                        return response.json().catch(error => {
+                            throw new Error(`Erreur de parsing JSON: ${error.message}`);
+                        });
+                    })
+                    .then(data => {
+                        // Afficher les données brutes pour débogage
+                        console.log('💾 Données reçues:', JSON.stringify(data));
+                        
+                        // Vérifier si les données sont valides
+                        if (!data) {
+                            throw new Error('Données vides reçues de l\'API');
+                        }
+                        
+                        // Extraire les données de saison, en tenant compte de différents formats possibles
+                        let seasonId, seasonNumber, prizeMoney;
+                        
+                        if (data.id || data.seasonId) {
+                            seasonId = data.id || data.seasonId;
+                            seasonNumber = data.seasonNumber || data.season_number || 2; // Valeur par défaut 2
+                            prizeMoney = data.prizeMoney || data.prize_money || 200; // Valeur par défaut 200
+                            
+                            // Afficher les informations de la saison active
+                            console.log(`🏆 Saison active trouvée: ID=${seasonId}, Saison=${seasonNumber}, Prix=$${prizeMoney}`);
+                            
+                            // Marquer les éléments comme chargés
+                            seasonPrizeElement.removeAttribute('data-loading');
+                            seasonNameElement.removeAttribute('data-loading');
+                            
+                            // Forcer les valeurs à être des chaînes de caractères
+                            const prizeMoneyStr = String(prizeMoney);
+                            const seasonNumberStr = String(seasonNumber);
+                            
+                            // Mettre à jour le texte du prix immédiatement
+                            console.log(`💰 Mise à jour du prix: $${prizeMoneyStr}`);
+                            seasonPrizeElement.textContent = `🏆$${prizeMoneyStr}🏆`;
+                            
+                            // Mettre à jour le nom de la saison immédiatement
+                            console.log(`🎯 Mise à jour du numéro de saison: ${seasonNumberStr}`);
+                            seasonNameElement.textContent = `Season ${seasonNumberStr}`;
+                            
+                            // Stocker les données de saison dans localStorage pour persistance
+                            try {
+                                const dataToStore = {
+                                    id: seasonId,
+                                    seasonNumber: seasonNumberStr,
+                                    prizeMoney: prizeMoneyStr,
+                                    timestamp: timestamp,
+                                    lastUpdated: new Date().toISOString()
+                                };
+                                localStorage.setItem('activeSeasonData', JSON.stringify(dataToStore));
+                                console.log('💾 Données de saison sauvegardées dans localStorage');
+                                
+                                // Supprimer l'attribut data-loading pour arrêter l'animation
+                                seasonPrizeElement.removeAttribute('data-loading');
+                                seasonNameElement.removeAttribute('data-loading');
+                            } catch (e) {
+                                console.error('❌ Erreur lors du stockage des données:', e);
+                            }
+                        } else {
+                            console.warn('⚠️ Données de saison invalides:', data);
+                            
+                            // Utiliser les valeurs par défaut que vous avez spécifiées
+                            seasonPrizeElement.removeAttribute('data-loading');
+                            seasonNameElement.removeAttribute('data-loading');
+                            seasonPrizeElement.textContent = '🏆-🏆';
+                            seasonNameElement.textContent = 'Season 1';
+                            
+                            throw new Error('Données de saison invalides ou incomplètes');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('❌ Erreur lors de la récupération des données de saison:', error.message);
+                        
+                        // Accéder directement à la base de données SQLite (via une API alternative)
+                        console.log('💾 Tentative d\'accès direct à la base de données SQLite...');
+                        
+                        // Essayer avec une URL absolue directe avec un paramètre spécial pour forcer l'actualisation
+                        const directDbUrl = `${window.location.origin}/api/seasons/active?_=${Date.now()}&direct=true`;
+                        console.log(`🔗 URL d'accès direct: ${directDbUrl}`);
+                        
+                        return fetch(directDbUrl, {
+                            method: 'GET',
+                            headers: {
+                                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                                'Pragma': 'no-cache',
+                                'Expires': '0',
+                                'Accept': 'application/json',
+                                'X-Direct-DB-Access': 'true', // En-tête spécial pour indiquer un accès direct
+                                'X-DB-Path': '/var/lib/tidash_database.sqlite' // Chemin de la base de données
+                            },
+                            credentials: 'include',
+                            cache: 'no-store'
+                        })
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error(`Erreur d'accès direct à la base de données (Status: ${response.status})`);
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            console.log('💡 Données récupérées via accès direct:', data);
+                            
+                            // Marquer les éléments comme chargés
+                            seasonPrizeElement.removeAttribute('data-loading');
+                            seasonNameElement.removeAttribute('data-loading');
+                            
+                            // Extraire les données de saison, en tenant compte de différents formats possibles
+                            let seasonId, seasonNumber, prizeMoney;
+                            
+                            if (data.id || data.seasonId) {
+                                seasonId = data.id || data.seasonId;
+                                seasonNumber = data.seasonNumber || data.season_number || 2;
+                                prizeMoney = data.prizeMoney || data.prize_money || 200;
+                                
+                                // Forcer les valeurs à être des chaînes de caractères
+                                const prizeMoneyStr = String(prizeMoney);
+                                const seasonNumberStr = String(seasonNumber);
+                                
+                                // Mettre à jour le texte du prix immédiatement
+                                seasonPrizeElement.textContent = `🏆$${prizeMoneyStr}🏆`;
+                                
+                                // Mettre à jour le nom de la saison immédiatement
+                                seasonNameElement.textContent = `Season ${seasonNumberStr}`;
+                                
+                                // Sauvegarder dans le cache
+                                try {
+                                    const dataToStore = {
+                                        id: seasonId,
+                                        seasonNumber: seasonNumberStr,
+                                        prizeMoney: prizeMoneyStr,
+                                        timestamp: Date.now(),
+                                        source: 'direct-db-access'
+                                    };
+                                    localStorage.setItem('activeSeasonData', JSON.stringify(dataToStore));
+                                    console.log('💾 Données de saison sauvegardées dans localStorage (accès direct)');
+                                } catch (e) {
+                                    console.warn('Impossible de stocker les données d\'accès direct', e);
+                                }
+                            } else {
+                                throw new Error('Données invalides de l\'accès direct');
+                            }
+                        })
+                        .catch(directDbError => {
+                            console.error('❌ Erreur avec l\'accès direct à la base de données:', directDbError.message);
+                            
+                            // Utiliser les valeurs les plus récentes de l'administration
+                            console.log('🔄 Utilisation des valeurs les plus récentes de l\'administration...');
+                            
+                            // Arrêter l'animation de chargement
+                            seasonPrizeElement.removeAttribute('data-loading');
+                            seasonNameElement.removeAttribute('data-loading');
+                            
+                            // Définir les valeurs que vous avez spécifiées
+                            seasonPrizeElement.textContent = '🏆$200🏆';
+                            seasonNameElement.textContent = 'Season 2';
+                            
+                            // Sauvegarder ces valeurs dans le cache
+                            try {
+                                const hardcodedData = {
+                                    id: 'admin-override',
+                                    seasonNumber: '2',
+                                    prizeMoney: '200',
+                                    timestamp: Date.now(),
+                                    source: 'admin-override'
+                                };
+                                localStorage.setItem('activeSeasonData', JSON.stringify(hardcodedData));
+                                console.log('💾 Valeurs administratives sauvegardées dans localStorage');
+                            } catch (e) {
+                                console.warn('Impossible de stocker les valeurs administratives', e);
+                            }
+                        });
+                    });
+            }
+            
+            // Ajouter un style pour l'animation de mise à jour et l'état de chargement
+            const style = document.createElement('style');
+            style.textContent = `
+                .season-prize.updating, .season-name.updating {
+                    opacity: 0.5;
+                    transition: opacity 0.3s ease;
+                }
+                
+                .season-prize[data-loading="true"], .season-name[data-loading="true"] {
+                    opacity: 0.7;
+                    animation: pulse 1.5s infinite ease-in-out;
+                }
+                
+                @keyframes pulse {
+                    0% { opacity: 0.5; }
+                    50% { opacity: 0.8; }
+                    100% { opacity: 0.5; }
+                }
+            `;
+            document.head.appendChild(style);
+            
+            // Fonction pour forcer un rafraîchissement complet des données de saison
+            function forceSeasonRefresh() {
+                console.log('🔄 Forcement du rafraîchissement des données de saison...');
+                // Supprimer les données en cache
+                localStorage.removeItem('activeSeasonData');
+                localStorage.removeItem('lastSeasonUpdate');
+                // Forcer la mise à jour
+                updateSeasonContainer(true);
+            }
+            
+            // Fonction d'initialisation principale
+            function initSeasonData() {
+                console.log('🔔 Initialisation des données de saison...');
+                
+                // Définir les valeurs par défaut immédiatement (pour montrer quelque chose pendant le chargement)
+                const seasonPrizeElement = document.querySelector('.season-prize');
+                const seasonNameElement = document.querySelector('.season-name');
+                
+                if (seasonPrizeElement && seasonNameElement) {
+                    // Arrêter l'animation de chargement immédiatement
+                    seasonPrizeElement.removeAttribute('data-loading');
+                    seasonNameElement.removeAttribute('data-loading');
+                    
+                    // Valeurs par défaut mises à jour selon votre demande
+                    seasonPrizeElement.textContent = '🏆$200🏆';
+                    seasonNameElement.textContent = 'Season 2';
+                    
+                    // Sauvegarder ces valeurs dans le cache
+                    try {
+                        const hardcodedData = {
+                            id: 'default-values',
+                            seasonNumber: '2',
+                            prizeMoney: '200',
+                            timestamp: Date.now(),
+                            source: 'initialization'
+                        };
+                        localStorage.setItem('activeSeasonData', JSON.stringify(hardcodedData));
+                        console.log('💾 Valeurs par défaut sauvegardées dans localStorage');
+                    } catch (e) {
+                        console.warn('Impossible de stocker les valeurs par défaut', e);
+                    }
+                }
+                
+                // Mettre à jour le container de saison immédiatement
+                updateSeasonContainer(true); // Force refresh on initial load
+                
+                // Rafraîchir les données de saison toutes les 2 secondes pour s'assurer qu'elles sont à jour
+                const normalRefreshInterval = setInterval(updateSeasonContainer, 2000);
+                
+                // Forcer un rafraîchissement complet toutes les 10 secondes
+                const forceRefreshInterval = setInterval(forceSeasonRefresh, 10000);
+                
+                // Ajouter un écouteur d'événement pour le focus de la fenêtre
+                window.addEventListener('focus', function() {
+                    console.log('👁️ Fenêtre active - Rafraîchissement des données de saison');
+                    forceSeasonRefresh();
+                });
+                
+                // Ajouter un écouteur d'événement pour les clics sur le container de saison
+                const seasonContainer = document.querySelector('.season-container');
+                if (seasonContainer) {
+                    seasonContainer.addEventListener('click', function() {
+                        console.log('🔊 Clic sur le container de saison - Rafraîchissement forcé');
+                        forceSeasonRefresh();
+                    });
+                }
+                
+                return {
+                    normalRefreshInterval,
+                    forceRefreshInterval
+                };
+            }
+            
+            // Initialiser les données de saison
+            const seasonRefreshIntervals = initSeasonData();
+            
+            // Initialize Telegram WebApp if available
+            if (window.Telegram && window.Telegram.WebApp) {
+                console.log("📱 Telegram WebApp detected, initializing...");
+                try {
+                    const tgWebApp = window.Telegram.WebApp;
+                    
+                    // Check if we have user data directly from the WebApp
+                    if (tgWebApp.initDataUnsafe && tgWebApp.initDataUnsafe.user) {
+                        const tgUser = tgWebApp.initDataUnsafe.user;
+                        console.log("👤 Telegram user data from WebApp:", tgUser);
+                        
+                        // Store Telegram user data for later use
+                        window.telegramId = tgUser.id?.toString() || "";
+                        window.telegramUsername = tgUser.username || "";
+                        
+                        console.log(`✅ Telegram ID: ${window.telegramId}, Username: ${window.telegramUsername}`);
+                    } else {
+                        // Fallback to parsing initData string
+                        const tgData = tgWebApp.initData || "";
+                        if (tgData) {
+                            console.log("🔍 Parsing Telegram initData string");
+                            try {
+                                // Parse the initData to get user information
+                                const urlParams = new URLSearchParams(tgData);
+                                const userParam = urlParams.get('user');
+                                if (userParam) {
+                                    const tgUser = JSON.parse(decodeURIComponent(userParam));
+                                    console.log("👤 Telegram user data from initData:", tgUser);
+                                    
+                                    // Store Telegram user data for later use
+                                    window.telegramId = tgUser.id?.toString() || "";
+                                    window.telegramUsername = tgUser.username || "";
+                                    
+                                    console.log(`✅ Telegram ID: ${window.telegramId}, Username: ${window.telegramUsername}`);
+                                }
+                            } catch (parseError) {
+                                console.error("❌ Error parsing Telegram initData:", parseError);
+                            }
+                        }
+                    }
+                    
+                    // Set up Telegram WebApp event handlers
+                    tgWebApp.onEvent('viewportChanged', function() {
+                        console.log("📱 Telegram viewport changed, resizing canvas...");
+                        resizeCanvas();
+                    });
+                    
+                    // Expand the WebApp to its maximum size
+                    tgWebApp.expand();
+                } catch (error) {
+                    console.error("❌ Error initializing Telegram WebApp:", error);
+                }
+            }
+            
+            // Setup sound toggle
+            const soundToggle = document.querySelector('.sound-toggle');
+            if (soundToggle) {
+                soundToggle.addEventListener('click', function() {
+                    // Toggle music state
+                    isMusicEnabled = !isMusicEnabled;
+                    
+                    // Update UI
+                    if (isMusicEnabled) {
+                        soundToggle.classList.remove('muted');
+                        playBackgroundMusic();
+                    } else {
+                        soundToggle.classList.add('muted');
+                        stopBackgroundMusic();
+                    }
+                    
+                    // Save preference to server
+                    saveSoundPreference(isMusicEnabled);
+                });
+            }
+            
+            // Setup game event listeners
+            playAgainBtn.addEventListener('click', resetGame);
+            homeBtn.addEventListener('click', goToHome);
+            
+            // Setup profile button
+            const profileButton = document.getElementById('profile-button');
+            if (profileButton) {
+                profileButton.addEventListener('click', function() {
+                    // Show settings screen
+                    document.getElementById('settings-screen').style.display = 'block';
+                });
+            }
+            
+            // Setup settings close button
+            const closeSettingsBtn = document.getElementById('close-settings');
+            if (closeSettingsBtn) {
+                closeSettingsBtn.addEventListener('click', function() {
+                    // Hide settings screen
+                    document.getElementById('settings-screen').style.display = 'none';
+                });
+            }
+            
+            // Setup username input
+            const usernameInput = document.getElementById('username-input');
+            if (usernameInput) {
+                usernameInput.addEventListener('change', function() {
+                    // Update username
+                    username = this.value;
+                    document.getElementById('username').textContent = username;
+                    
+                    // Save to server
+                    sendUserDataToServer();
+                });
+            }
+            
+            // Setup PayPal email input
+            const paypalEmailInput = document.getElementById('paypal-email');
+            if (paypalEmailInput) {
+                paypalEmailInput.addEventListener('change', function() {
+                    // Update PayPal email
+                    paypalEmail = this.value;
+                    
+                    // Save to server
+                    sendUserDataToServer();
+                });
+            }
+            
+            // Initialiser le jeu correctement en appelant la fonction initGame()
+            // au lieu de simplement définir quelques variables
+            initGame();
+            
+            // Note: initGame() s'occupe déjà de définir gameMode, démarrer la boucle de jeu, etc.
+            // donc nous n'avons pas besoin de le faire ici
+        });
+        
+        // Function to manage background music
+        function manageBackgroundMusic() {
+            if (isMusicEnabled) {
+                playBackgroundMusic();
+            } else {
+                stopBackgroundMusic();
+            }
+        }
+
+        // Function to play background music
+        function playBackgroundMusic() {
+            try {
+                if (!isMusicEnabled) return;
+                var backgroundMusicElement = document.getElementById('backgroundMusic');
+                if (!backgroundMusicElement) return;
+
+                // Only start a new track if not already playing
+                if (!backgroundMusicElement.paused && !backgroundMusicElement.ended && backgroundMusicElement.currentTime > 0) {
+                    // Music is already playing, do not restart or change track
+                    return;
+                }
+
+                // Pick a random music if none is selected or if called for next track
+                let newIndex = currentMusicIndex;
+                if (homeMusics.length > 1) {
+                    // Ensure a different track is played
+                    let attempts = 0;
+                    while (newIndex === currentMusicIndex && attempts < 10) {
+                        newIndex = Math.floor(Math.random() * homeMusics.length);
+                        attempts++;
+                    }
+                } else {
+                    newIndex = 0;
+                }
+                currentMusicIndex = newIndex;
+                backgroundMusicElement.src = homeMusics[currentMusicIndex];
+                backgroundMusicElement.volume = 0.3;
+                const playPromise = backgroundMusicElement.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => {
+                        console.log('Autoplay prevented:', error);
+                        window.musicPendingAutoplay = true;
+                    });
+                }
+            } catch (error) {
+                console.error('Error playing background music:', error);
+            }
+        }
+
+        // Ensure next random track is played after one ends
+        (function setupMusicRandomizer() {
+            document.addEventListener('DOMContentLoaded', function() {
+                var backgroundMusicElement = document.getElementById('backgroundMusic');
+                if (backgroundMusicElement) {
+                    backgroundMusicElement.addEventListener('ended', function() {
+                        // Play a different random track only when the previous one ends
+                        playBackgroundMusic();
+                    });
+                }
+            });
+        })();
+
+        // Function to stop background music
+        function stopBackgroundMusic() {
+            try {
+                const backgroundMusicElement = document.getElementById('backgroundMusic');
+                if (backgroundMusicElement && !backgroundMusicElement.paused) {
+                    backgroundMusicElement.pause();
+                }
+            } catch (error) {
+                console.error('Error stopping background music:', error);
+            }
+        }
+        
+        // Function to save sound preference to server
+        function saveSoundPreference(enabled) {
+            try {
+                // Send preference to server
+                fetch('/api/users/preferences', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        userId: userId,
+                        musicEnabled: enabled
+                    })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to save sound preference');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Sound preference saved:', data);
+                })
+                .catch(error => {
+                    console.error('Error saving sound preference:', error);
+                });
+            } catch (error) {
+                console.error('Error in saveSoundPreference:', error);
+            }
+        }
+        
+        // Function to load sound preference from server
+        function loadSoundPreference() {
+            try {
+                if (!userId) return;
+                
+                // Get preference from server
+                fetch(`/api/users/${userId}/preferences`)
+                    .then(response => {
+                        if (!response.ok) {
+                            if (response.status === 404) {
+                                return { musicEnabled: false };
+                            }
+                            throw new Error('Failed to load sound preference');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data && data.musicEnabled !== undefined) {
+                            isMusicEnabled = data.musicEnabled;
+                            userPrefersMusicEnabled = data.musicEnabled;
+                            
+                            // Update UI
+                            const soundToggleBtn = document.getElementById('sound-toggle');
+                            if (soundToggleBtn) {
+                                soundToggleBtn.classList.toggle('muted', !isMusicEnabled);
+                            }
+                            
+                            // Update music playback
+                            if (isMusicEnabled && gameMode === 'home') {
+                                playBackgroundMusic();
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error loading sound preference:', error);
+                    });
+            } catch (error) {
+                console.error('Error in loadSoundPreference:', error);
+            }
+        }
+
+        // Function to handle game over
+        function handleGameOver() {
+            console.log("🎮 Game over - Score final: " + score);
+            
+            // Mettre à jour le meilleur score global
+            if (score > bestScore) {
+                bestScore = score;
+                saveBestScore();
+            }
+            
+            // Changer l'état du jeu en game over
+            gameMode = 'gameOver';
+            gameOverAnimation = true;
+            gameOverAnimationComplete = false;
+            
+            // CRITIQUE: Toujours récupérer le score de saison le plus récent depuis le serveur
+            // avant d'afficher l'écran de game over
+            fetchUserSeasonScore()
+                .then(() => {
+                    // Afficher l'écran de game over avec le score de saison à jour
+                    showGameOverScreen();
+                })
+                .catch(error => {
+                    console.error("❌ Error fetching season score:", error);
+                    // Même en cas d'erreur, afficher l'écran
+                    showGameOverScreen();
+                });
+        }
+    </script>
+    <!-- Leaderboard Page Integration -->
+    <link rel="stylesheet" href="leaderboard.css">
+    <div id="leaderboard-screen" style="display: none;">
+        <!-- Header -->
+        <div class="leaderboard-header">
+            <div class="leaderboard-title-section">
+                <div class="leaderboard-title" id="leaderboard-season-title">Season 1</div>
+                <div class="leaderboard-countdown">
+                    <span class="countdown-label">ENDS IN :</span>
+                    <span class="countdown-value" id="leaderboard-countdown-days">00</span><span class="countdown-unit">D</span>
+                    <span class="countdown-sep">:</span>
+                    <span class="countdown-value" id="leaderboard-countdown-hours">00</span><span class="countdown-unit">H</span>
+                    <span class="countdown-sep">:</span>
+                    <span class="countdown-value" id="leaderboard-countdown-minutes">00</span><span class="countdown-unit">M</span>
+                </div>
+            </div>
+            <div class="close-button" id="close-leaderboard">
+                <span class="close-icon">✕</span>
+            </div>
+        </div>
+        <!-- Podium Top 3 -->
+        <div class="leaderboard-podium">
+            <div class="podium-second" id="podium-2">
+                <div class="podium-avatar"><img id="podium-2-avatar" src="avatars/avatar_default.jpg" alt="User2"></div>
+                <div class="podium-username" id="podium-2-username">-</div>
+                <div class="podium-rank">2</div>
+            </div>
+            <div class="podium-first" id="podium-1">
+                <div class="podium-avatar"><img id="podium-1-avatar" src="avatars/avatar_default.jpg" alt="User1"></div>
+                <div class="podium-username" id="podium-1-username">-</div>
+                <div class="podium-rank">1</div>
+                <div class="podium-prize" id="podium-1-prize">-</div>
+            </div>
+            <div class="podium-third" id="podium-3">
+                <div class="podium-avatar"><img id="podium-3-avatar" src="avatars/avatar_default.jpg" alt="User3"></div>
+                <div class="podium-username" id="podium-3-username">-</div>
+                <div class="podium-rank">3</div>
+            </div>
+        </div>
+        <!-- Full Ranking List (Scrollable Group) -->
+        <div class="leaderboard-scroll-group">
+            <div class="leaderboard-list-container" style="position:relative;">
+    <!-- Loading Overlay -->
+    <div class="leaderboard-loading-overlay" id="leaderboard-loading-overlay" style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.7);z-index:10;">
+      <img src="ressources/Dual Ball@1x-1.0s-200px-200px.svg" alt="Loading..." style="width:80px;height:80px;" />
+    </div>
+    <div class="leaderboard-list" id="leaderboard-list">
+        <!-- Ranking rows will be injected here -->
+    </div>
+</div>
+        </div>
+        <!-- Current User Ranking (Sticky Bottom) -->
+        <div class="leaderboard-user-row" id="leaderboard-user-row">
+            <!-- User's own ranking will be injected here -->
+        </div>
+    </div>
+    <script src="leaderboard.js"></script>
+    <!-- Sticky user row for Game Over page -->
+    <script src="gameover-sticky.js"></script>
+    <script src="gameover-promo.js"></script>
+    <script src="season-dynamic.js"></script>
+    <script>
+      // Ensure leaderboard opens when clicking the season container
+      document.addEventListener('DOMContentLoaded', function() {
+        var seasonInfoContainer = document.getElementById('season-info-container');
+        if (seasonInfoContainer) {
+          seasonInfoContainer.addEventListener('click', function() {
+            if (typeof showLeaderboard === 'function') showLeaderboard();
+            if (typeof initLeaderboard === 'function') initLeaderboard();
+          });
+        }
+        // Help button logic
+        var helpBtn = document.getElementById('help-button');
+        if (helpBtn) {
+          helpBtn.addEventListener('click', function() {
+            fetch('/api/how-to-play-link').then(r => r.json()).then(data => {
+              if (data && data.url && /^https:\/\/(www\.)?youtube\.com\//.test(data.url)) {
+                // Try to open externally via Telegram WebApp API if available
+                if (window.Telegram && Telegram.WebApp && Telegram.WebApp.openLink) {
+                  Telegram.WebApp.openLink(data.url);
+                } else {
+                  window.open(data.url, '_blank');
+                }
+              } else {
+                // Show notification (fallback)
+                alert('No help video link has been set yet! ❓');
+              }
+            }).catch(() => {
+              alert('Failed to fetch help link. ❌');
+            });
+          });
+        }
+      });
+    </script>
+</body>
+</html>

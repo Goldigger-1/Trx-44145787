@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TiDash - Administration</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="login-container">
+        <div class="login-card">
+            <h1>TiDash Admin</h1>
+            <div class="login-form">
+                <div class="input-group">
+                    <label for="admin-id">Identifiant</label>
+                    <input type="text" id="admin-id" placeholder="Entrez votre identifiant">
+                </div>
+                <div class="input-group">
+                    <label for="admin-password">Mot de passe</label>
+                    <input type="password" id="admin-password" placeholder="Entrez votre mot de passe">
+                </div>
+                <button id="login-btn" class="admin-button">Connexion</button>
+                <p id="login-error" class="error-message"></p>
+            </div>
+        </div>
+    </div>
+
+    <div id="admin-dashboard" style="display: none;">
+        <header>
+            <div class="logo">TiDash Admin</div>
+            <button id="how-to-play-btn" class="admin-button" style="margin-right:16px;">How to play (YouTube) 🎬</button>
+            <button id="promo-banner-btn" class="admin-button" style="margin-right:16px;">Promotion Banner 🖼️</button>
+            <button id="logout-btn" class="admin-button secondary">Déconnexion</button>
+        </header>
+        
+        <main>
+            <h1>Panneau d'administration</h1>
+            
+            <div class="stats-container">
+                <div class="stat-card">
+                    <h3>Utilisateurs</h3>
+                    <p id="total-users">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Meilleur score</h3>
+                    <p id="highest-score">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Saison active</h3>
+                    <p id="active-season">Aucune</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Récompense</h3>
+                    <p id="prize-money">$0</p>
+                </div>
+            </div>
+            
+            <!-- Section liste des utilisateurs -->
+            <div class="users-section">
+                <div class="section-header">
+                    <h2>Liste des utilisateurs</h2>
+                    <div class="search-container">
+                        <input type="text" id="search-users" placeholder="Rechercher...">
+                    </div>
+                </div>
+                
+                <div class="table-container">
+                    <table id="users-table">
+                        <thead>
+                            <tr>
+                                <th>ID du jeu</th>
+                                <th>Username du jeu</th>
+                                <th>ID Telegram</th>
+                                <th>Username Telegram</th>
+                                <th>Email PayPal</th>
+                                <th>Meilleur score</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-table-body">
+                            <!-- Les utilisateurs seront chargés ici dynamiquement -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div id="pagination">
+                    <button id="prev-page" class="pagination-btn" disabled>Précédent</button>
+                    <span id="page-info">Page 1 sur 1</span>
+                    <button id="next-page" class="pagination-btn" disabled>Suivant</button>
+                </div>
+            </div>
+
+            <!-- Section de gestion des saisons -->
+            <div class="seasons-section">
+                <div class="section-header">
+                    <h2>Gestion des saisons</h2>
+                    <button id="new-season-btn" class="admin-button">Nouvelle saison</button>
+                </div>
+                
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="current-season">Saison en cours</button>
+                    <button class="tab-btn" data-tab="season-history">Historique des saisons</button>
+                </div>
+                
+                <div class="tab-content active" id="current-season">
+                    <div class="season-info">
+                        <div class="season-header">
+                            <h3>Saison <span id="season-number">-</span></h3>
+                            <div class="season-actions">
+                                <button id="edit-season-btn" class="admin-button secondary">Modifier</button>
+                                <button id="close-season-btn" class="admin-button danger">Clôturer</button>
+                            </div>
+                        </div>
+                        <div class="season-details">
+                            <div class="detail-item">
+                                <span class="detail-label">Date de fin:</span>
+                                <span id="season-end-date">-</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Récompense:</span>
+                                <span id="season-prize">$0</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Statut:</span>
+                                <span id="season-status">-</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="ranking-table">
+                        <h3>Classement de la saison</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Rang</th>
+                                    <th>Utilisateur</th>
+                                    <th>Score</th>
+                                </tr>
+                            </thead>
+                            <tbody id="season-ranking-table">
+                                <tr>
+                                    <td colspan="3">Chargement des données...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="tab-content" id="season-history">
+                    <div class="seasons-list">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Saison</th>
+                                    <th>Date de fin</th>
+                                    <th>Récompense</th>
+                                    <th>Gagnant</th>
+                                    <th>Actions</th>
+                                    <th>Supprimer</th>
+                                </tr>
+                            </thead>
+                            <tbody id="seasons-history-table">
+                                <tr>
+                                    <td colspan="6">Chargement des données...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="users-section">
+                <div class="section-header">
+                    <h2>Liste des utilisateurs</h2>
+                    <div class="search-container">
+                        <input type="text" id="search-users" placeholder="Rechercher...">
+                    </div>
+                </div>
+                
+                <div class="table-container">
+                    <table id="users-table">
+                        <thead>
+                            <tr>
+                                <th>ID du jeu</th>
+                                <th>Username du jeu</th>
+                                <th>ID Telegram</th>
+                                <th>Username Telegram</th>
+                                <th>Email PayPal</th>
+                                <th>Meilleur score</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-table-body">
+                            <!-- Les utilisateurs seront chargés ici dynamiquement -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div id="pagination">
+                    <button id="prev-page" class="pagination-btn" disabled>Précédent</button>
+                    <span id="page-info">Page 1 sur 1</span>
+                    <button id="next-page" class="pagination-btn" disabled>Suivant</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal pour voir les détails d'un utilisateur -->
+    <div id="user-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Détails de l'utilisateur</h2>
+            <div class="user-details">
+                <div class="detail-row">
+                    <span class="detail-label">ID:</span>
+                    <span id="modal-user-id"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Nom d'utilisateur:</span>
+                    <span id="modal-username"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">ID Telegram:</span>
+                    <span id="modal-telegram-id"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Nom Telegram:</span>
+                    <span id="modal-telegram-username"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Email PayPal:</span>
+                    <span id="modal-paypal-email"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Meilleur score:</span>
+                    <span id="modal-best-score"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Date d'inscription:</span>
+                    <span id="modal-registration-date"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Dernière connexion:</span>
+                    <span id="modal-last-login"></span>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button id="delete-user-btn" class="admin-button danger">Supprimer</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal pour créer ou modifier une saison -->
+    <div id="season-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2 id="season-modal-title">Nouvelle saison</h2>
+            <div class="season-form">
+                <div class="form-group">
+                    <label for="season-number-input">Numéro de saison</label>
+                    <input type="number" id="season-number-input" min="1" placeholder="Exemple: 1">
+                </div>
+                <div class="form-group">
+                    <label for="season-end-date-input">Date de fin</label>
+                    <input type="datetime-local" id="season-end-date-input">
+                </div>
+                <div class="form-group">
+                    <label for="season-prize-input">Récompense (en $)</label>
+                    <input type="number" id="season-prize-input" min="0" step="0.01" placeholder="Exemple: 100">
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button id="cancel-season-btn" class="admin-button secondary">Annuler</button>
+                <button id="save-season-btn" class="admin-button">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal pour confirmer la clôture d'une saison -->
+    <div id="close-season-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Clôturer la saison</h2>
+            <p>Êtes-vous sûr de vouloir clôturer la saison <span id="close-season-number"></span> ?</p>
+            <p>Cette action est irréversible et déterminera le gagnant de la saison.</p>
+            <div class="modal-actions">
+                <button id="cancel-close-season-btn" class="admin-button secondary">Annuler</button>
+                <button id="confirm-close-season-btn" class="admin-button danger">Clôturer</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal pour voir les scores d'une saison passée -->
+    <div id="season-scores-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Classement de la saison <span id="scores-season-number"></span></h2>
+            <div class="ranking-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rang</th>
+                            <th>Utilisateur</th>
+                            <th>Score</th>
+                        </tr>
+                    </thead>
+                    <tbody id="scores-ranking-table">
+                        <tr>
+                            <td colspan="3">Chargement des données...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- How To Play Modal -->
+    <div id="how-to-play-modal" class="modal">
+      <div class="modal-content">
+        <span class="close-modal">&times;</span>
+        <h2>How to play</h2>
+        <div class="form-group">
+          <label for="how-to-play-input">How to play (YouTube link)</label>
+          <input type="text" id="how-to-play-input" placeholder="https://youtube.com/..." style="width:100%" />
+        </div>
+        <div class="modal-actions">
+          <button id="cancel-how-to-play" class="admin-button secondary">Cancel</button>
+          <button id="save-how-to-play" class="admin-button">Save</button>
+        </div>
+      </div>
+    </div>
+    <!-- Promotion Banner Modal -->
+    <div id="promo-banner-modal" class="modal">
+      <div class="modal-content">
+        <span class="close-promo-modal">&times;</span>
+        <h2>Promotion Banner</h2>
+        <div class="form-group">
+          <label for="promo-image-input">Image</label>
+          <input type="file" id="promo-image-input" accept="image/*" />
+          <div id="promo-image-preview" style="margin-top:10px;"></div>
+        </div>
+        <div class="form-group">
+          <label for="promo-link-input">Link</label>
+          <input type="text" id="promo-link-input" placeholder="https://your-promo-link.com" style="width:100%" />
+        </div>
+        <div class="modal-actions">
+          <button id="cancel-promo-banner" class="admin-button secondary">Cancel</button>
+          <button id="save-promo-banner" class="admin-button">Save</button>
+        </div>
+      </div>
+    </div>
+    <script src="admin.js"></script>
+</body>
+</html>

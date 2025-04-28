@@ -1,0 +1,52 @@
+<!-- Leaderboard Page for Current Season -->
+<div id="leaderboard-screen" style="display: none;">
+    <!-- Header -->
+    <div class="leaderboard-header">
+        <div class="leaderboard-title-section">
+            <div class="leaderboard-title" id="leaderboard-season-title">Season 1</div>
+            <div class="leaderboard-countdown">
+                <span class="countdown-label">ENDS IN :</span>
+                <span class="countdown-value" id="leaderboard-countdown-days">00</span><span class="countdown-unit">D</span>
+                <span class="countdown-sep">:</span>
+                <span class="countdown-value" id="leaderboard-countdown-hours">00</span><span class="countdown-unit">H</span>
+                <span class="countdown-sep">:</span>
+                <span class="countdown-value" id="leaderboard-countdown-minutes">00</span><span class="countdown-unit">M</span>
+            </div>
+        </div>
+        <div class="close-button" id="close-leaderboard" aria-label="Close leaderboard" tabindex="0">
+            <span class="close-icon">✕</span>
+        </div>
+    </div>
+    
+    <!-- Podium Top 3 -->
+    <div class="leaderboard-podium">
+        <div class="podium-second" id="podium-2">
+            <div class="podium-avatar"><img id="podium-2-avatar" src="avatars/avatar_default.jpg" alt="User2"></div>
+            <div class="podium-username" id="podium-2-username">-</div>
+            <div class="podium-rank">2</div>
+        </div>
+        <div class="podium-first" id="podium-1">
+            <div class="podium-avatar"><img id="podium-1-avatar" src="avatars/avatar_default.jpg" alt="User1"></div>
+            <div class="podium-username" id="podium-1-username">-</div>
+            <div class="podium-rank">1</div>
+            <div class="podium-prize" id="podium-1-prize">-</div>
+        </div>
+        <div class="podium-third" id="podium-3">
+            <div class="podium-avatar"><img id="podium-3-avatar" src="avatars/avatar_default.jpg" alt="User3"></div>
+            <div class="podium-username" id="podium-3-username">-</div>
+            <div class="podium-rank">3</div>
+        </div>
+    </div>
+
+    <!-- Full Ranking List (JS will inject all player rows here) -->
+    <div class="leaderboard-list-container">
+        <div class="leaderboard-list" id="leaderboard-list" aria-label="Leaderboard ranking list">
+            <!-- Ranking rows will be injected here by leaderboard.js -->
+        </div>
+    </div>
+
+    <!-- Current User Ranking (Sticky Bottom, always visible) -->
+    <div class="leaderboard-user-row" id="leaderboard-user-row" aria-label="Your ranking">
+        <!-- User's own ranking will be injected here by leaderboard.js -->
+    </div>
+</div>
