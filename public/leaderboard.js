@@ -98,56 +98,38 @@
 
     // Render leaderboard
     function renderLeaderboard(ranking, currentUserId) {
-        // Show loading overlay and initialize progress bar
-        const loadingOverlay = document.getElementById('leaderboard-loading-overlay');
-        const progressBar = document.getElementById('loading-progress-bar');
-        loadingOverlay.style.display = 'flex';
-        progressBar.style.width = '0%';
-        
         // Podium
         const podium = [ranking[0], ranking[1], ranking[2]];
         [1,2,3].forEach(i => {
             const user = podium[i-1];
             if (!user) return;
-            const usernameElement = document.getElementById(`podium-${i}-username`);
-            const avatarElement = document.getElementById(`podium-${i}-avatar`);
+            document.getElementById(`podium-${i}-username`).textContent = user.gameUsername || user.username || `User${i}`;
             
-            // Smooth update with fade
-            usernameElement.style.opacity = '0';
-            avatarElement.style.opacity = '0';
-            
-            usernameElement.textContent = user.gameUsername || user.username || `User${i}`;
+            // Ensure we use avatarSrc when available
             const avatarSrc = user.avatarSrc || 'avatars/avatar_default.jpg';
-            avatarElement.src = avatarSrc;
-            avatarElement.alt = user.gameUsername || user.username || `User${i}`;
+            document.getElementById(`podium-${i}-avatar`).src = avatarSrc;
+            document.getElementById(`podium-${i}-avatar`).alt = user.gameUsername || user.username || `User${i}`;
             
-            // Fade in after update
-            setTimeout(() => {
-                usernameElement.style.opacity = '1';
-                avatarElement.style.opacity = '1';
-            }, 100);
+            console.log(`[DEBUG] Podium ${i} avatar:`, avatarSrc);
         });
-        
         // Prize for 1st
         if (podium[0]) {
-            const prizeElement = document.getElementById('podium-1-prize');
-            prizeElement.style.opacity = '0';
-            prizeElement.textContent = podium[0].prize ? `$${podium[0].prize}` : '';
-            setTimeout(() => {
-                prizeElement.style.opacity = '1';
-            }, 100);
+            document.getElementById('podium-1-prize').textContent = podium[0].prize ? `$${podium[0].prize}` : '';
         }
-        
         // List
         const list = document.getElementById('leaderboard-list');
         list.innerHTML = '';
-        
-        // Create rows with fade-in effect
         ranking.forEach((user, idx) => {
+            // Debug: Log avatarSrc and username for each user
+            console.log('[AVATAR DEBUG]', {
+                idx,
+                username: user.gameUsername || user.username || 'Player',
+                avatarSrc: user.avatarSrc
+            });
             const row = document.createElement('div');
             row.className = 'leaderboard-row';
-            row.style.opacity = '0';
             
+            // Use avatarSrc when available, otherwise use default
             const avatarSrc = user.avatarSrc || 'avatars/avatar_default.jpg';
             
             row.innerHTML = `
@@ -156,27 +138,8 @@
                 <div class="leaderboard-username">${user.gameUsername || user.username || 'Player'}</div>
                 <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${user.score || 0}</div>
             `;
-            
-            // Add row with fade-in animation and update progress
             list.appendChild(row);
-            setTimeout(() => {
-                row.style.opacity = '1';
-                updateProgress();
-            }, 100 * (idx % 5)); // Staggered fade-in
         });
-        
-        // Hide loading overlay after all animations
-        setTimeout(() => {
-            loadingOverlay.style.display = 'none';
-        }, 1000);
-        
-        // Animate progress bar from 0 to 100% over 4 seconds, repeating continuously
-        let progress = 0;
-        const progressInterval = setInterval(() => {
-            progress += 0.25; // 100% / 4000ms * 10ms = 0.25
-            if (progress > 100) progress = 0;
-            progressBar.style.width = progress + '%';
-        }, 10);
         // Current user row (sticky)
         // --- Robust sticky user row rendering: always use server data ---
         async function renderStickyUserRow(ranking, currentUserId) {
@@ -266,7 +229,34 @@
         const loadingOverlay = document.getElementById('leaderboard-loading-overlay');
         try {
             // Show loading overlay at the start
-            if (loadingOverlay) loadingOverlay.style.display = 'flex';
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'flex';
+                // Start progress bar animation
+                const progressBar = loadingOverlay.querySelector('.progress');
+                progressBar.style.width = '0%';
+                progressBar.style.transition = 'width 4s linear';
+                
+                // Function to restart progress bar
+                function restartProgressBar() {
+                    progressBar.style.width = '0%';
+                    progressBar.style.transition = 'none';
+                    requestAnimationFrame(() => {
+                        progressBar.style.transition = 'width 4s linear';
+                        progressBar.style.width = '100%';
+                    });
+                }
+                
+                // Start initial progress
+                progressBar.style.width = '100%';
+                
+                // Set up interval to restart progress bar
+                const progressInterval = setInterval(restartProgressBar, 4000);
+                
+                // Clear interval when loading overlay is hidden
+                loadingOverlay.addEventListener('transitionend', () => {
+                    clearInterval(progressInterval);
+                });
+            }
 
             const season = await fetchActiveSeason();
             document.getElementById('leaderboard-season-title').textContent = `Season ${season.seasonNumber}`;
