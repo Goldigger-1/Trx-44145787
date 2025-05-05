@@ -40,9 +40,9 @@
         }
     }
 
-    // Fetch leaderboard for season
-    async function fetchSeasonRanking(seasonId) {
-        const res = await fetch(`/api/seasons/${seasonId}/ranking`);
+    // Fetch leaderboard for season with pagination
+    async function fetchSeasonRanking(seasonId, limit = 50, offset = 0) {
+        const res = await fetch(`/api/seasons/${seasonId}/ranking?limit=${limit}&offset=${offset}`);
         if (!res.ok) throw new Error('Failed to fetch season ranking');
         return res.json();
     }
@@ -96,8 +96,8 @@
         setInterval(update, 20000);
     }
 
-    // Render leaderboard
-    function renderLeaderboard(ranking, currentUserId) {
+    // Render leaderboard with append option for infinite scroll
+    function renderLeaderboard(ranking, currentUserId, {append = false, offset = 0} = {}) {
         // Podium
         const podium = [ranking[0], ranking[1], ranking[2]];
         [1,2,3].forEach(i => {
@@ -118,7 +118,7 @@
         }
         // List
         const list = document.getElementById('leaderboard-list');
-        list.innerHTML = '';
+        if (!append || offset === 0) list.innerHTML = '';
         ranking.forEach((user, idx) => {
             // Debug: Log avatarSrc and username for each user
             console.log('[AVATAR DEBUG]', {
@@ -132,8 +132,10 @@
             // Use avatarSrc when available, otherwise use default
             const avatarSrc = user.avatarSrc || 'avatars/avatar_default.jpg';
             
+            // Calcul du rang global
+            const globalRank = offset + idx + 1;
             row.innerHTML = `
-                <div class="leaderboard-rank">${idx+1}</div>
+                <div class="leaderboard-rank">${globalRank}</div>
                 <div class="leaderboard-avatar"><img src="${avatarSrc}" alt="${user.gameUsername || user.username || 'Player'}"></div>
                 <div class="leaderboard-username">${user.gameUsername || user.username || 'Player'}</div>
                 <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${user.score || 0}</div>
@@ -234,20 +236,76 @@
             const season = await fetchActiveSeason();
             document.getElementById('leaderboard-season-title').textContent = `Season ${season.seasonNumber}`;
             renderCountdown(season.endDate);
-            // Fetch ranking
-            let ranking = await fetchSeasonRanking(season.id);
-            
-            // Log the entire ranking data for debugging
-            console.log('[DEBUG] Full ranking data:', ranking);
-            
-            // Add prize to 1st place
-            if (ranking[0]) ranking[0].prize = season.prizeMoney;
-            // Get current user id robustly
-            let currentUserId = getCurrentUserId();
-            renderLeaderboard(ranking, currentUserId);
 
-            // Hide loading overlay when done
-            if (loadingOverlay) loadingOverlay.style.display = 'none';
+            // Infinite scroll state
+            let offset = 0;
+            const limit = 50;
+            let allLoaded = false;
+            let isLoading = false;
+            let currentUserId = getCurrentUserId();
+            let seasonId = season.id;
+            let loadedRanking = [];
+
+            // Podium: always load first 3 (top)
+            let podiumLoaded = false;
+
+            async function loadNextPage() {
+                if (isLoading || allLoaded) return;
+                isLoading = true;
+                if (loadingOverlay) loadingOverlay.style.display = 'flex';
+                try {
+                    let rankingPage = await fetchSeasonRanking(seasonId, limit, offset);
+                    if (!Array.isArray(rankingPage) || rankingPage.length === 0) {
+                        allLoaded = true;
+                        if (loadingOverlay) loadingOverlay.style.display = 'none';
+                        return;
+                    }
+                    // Podium: charger une seule fois les 3 premiers
+                    if (!podiumLoaded && rankingPage.length > 0) {
+                        // On passe la page complète pour le podium (au cas où il y a moins de 3)
+                        renderLeaderboard(rankingPage.slice(0, 3), currentUserId, {append: false, offset: 0});
+                        podiumLoaded = true;
+                    }
+                    // Ajouter les utilisateurs (hors podium) à la suite
+                    let startIdx = podiumLoaded ? 3 : 0;
+                    if (rankingPage.length > startIdx) {
+                        renderLeaderboard(rankingPage.slice(startIdx), currentUserId, {append: true, offset: offset + startIdx});
+                        loadedRanking = loadedRanking.concat(rankingPage);
+                    }
+                    offset += rankingPage.length;
+                    if (rankingPage.length < limit) allLoaded = true;
+                } catch (e) {
+                    allLoaded = true;
+                    alert('Failed to load leaderboard page.');
+                    console.error(e);
+                } finally {
+                    if (loadingOverlay) loadingOverlay.style.display = 'none';
+                    isLoading = false;
+                }
+            }
+
+            // Initial load
+            await loadNextPage();
+
+            // Infinite scroll handler
+            const list = document.getElementById('leaderboard-list');
+            let scrollContainer = list.parentElement; // suppose que le parent est scrollable
+            if (!scrollContainer) scrollContainer = window;
+            function onScroll() {
+                let scrollBottom;
+                if (scrollContainer === window) {
+                    scrollBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 100;
+                } else {
+                    scrollBottom = scrollContainer.scrollTop + scrollContainer.clientHeight >= scrollContainer.scrollHeight - 100;
+                }
+                if (scrollBottom) {
+                    loadNextPage();
+                }
+            }
+            scrollContainer.addEventListener('scroll', onScroll);
+
+            // Optionnel: retirer le listener à la fermeture du leaderboard (non destructif ici)
+
         } catch (e) {
             // Hide loading overlay on error as well
             if (loadingOverlay) loadingOverlay.style.display = 'none';
