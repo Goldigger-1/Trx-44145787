@@ -100,9 +100,16 @@
     function renderLeaderboard(ranking, currentUserId) {
         // Show loading overlay and initialize progress bar
         const loadingOverlay = document.getElementById('leaderboard-loading-overlay');
-        const progressBar = document.getElementById('loading-progress-bar');
+        const progressBar = document.getElementById('loading-progress');
+        
+        if (!loadingOverlay || !progressBar) {
+            console.error('Loading elements not found in DOM');
+            return;
+        }
+        
         loadingOverlay.style.display = 'flex';
         progressBar.style.width = '0%';
+        progressBar.style.transition = 'none';
         
         // Podium
         const podium = [ranking[0], ranking[1], ranking[2]];
@@ -168,6 +175,7 @@
                 // Update progress based on number of users loaded
                 const progress = (loadedUsers / totalUsers) * 100;
                 progressBar.style.width = progress + '%';
+                console.log('Progress:', progress + '%'); // Debug
             }, 100 * (idx % 5)); // Staggered fade-in
         });
         
