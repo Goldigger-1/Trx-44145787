@@ -165,20 +165,20 @@
             }, 100 * (idx % 5)); // Staggered fade-in
         });
         
-        // Animate progress bar while loading
-        const totalItems = ranking.length;
-        let loadedItems = 0;
-        
-        function updateProgress() {
-            loadedItems++;
-            const progress = (loadedItems / totalItems) * 100;
-            progressBar.style.width = progress + '%';
-        }
-        
         // Hide loading overlay after all animations
         setTimeout(() => {
             loadingOverlay.style.display = 'none';
         }, 1000);
+        
+        // Animate progress bar from 0 to 100% over 1 second
+        const progressInterval = setInterval(() => {
+            const currentWidth = parseFloat(progressBar.style.width.replace('%', ''));
+            if (currentWidth < 100) {
+                progressBar.style.width = (currentWidth + 1) + '%';
+            } else {
+                clearInterval(progressInterval);
+            }
+        }, 10);
         // Current user row (sticky)
         // --- Robust sticky user row rendering: always use server data ---
         async function renderStickyUserRow(ranking, currentUserId) {
