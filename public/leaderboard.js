@@ -142,7 +142,10 @@
         const list = document.getElementById('leaderboard-list');
         list.innerHTML = '';
         
-        // Create rows with fade-in effect
+        // Create rows with fade-in effect and update progress
+        const totalUsers = ranking.length;
+        let loadedUsers = 0;
+        
         ranking.forEach((user, idx) => {
             const row = document.createElement('div');
             row.className = 'leaderboard-row';
@@ -157,11 +160,14 @@
                 <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${user.score || 0}</div>
             `;
             
-            // Add row with fade-in animation and update progress
+            // Add row with fade-in animation
             list.appendChild(row);
             setTimeout(() => {
                 row.style.opacity = '1';
-                updateProgress();
+                loadedUsers++;
+                // Update progress based on number of users loaded
+                const progress = (loadedUsers / totalUsers) * 100;
+                progressBar.style.width = progress + '%';
             }, 100 * (idx % 5)); // Staggered fade-in
         });
         
