@@ -229,34 +229,7 @@
         const loadingOverlay = document.getElementById('leaderboard-loading-overlay');
         try {
             // Show loading overlay at the start
-            if (loadingOverlay) {
-                loadingOverlay.style.display = 'flex';
-                // Start progress bar animation
-                const progressBar = loadingOverlay.querySelector('.progress');
-                progressBar.style.width = '0%';
-                progressBar.style.transition = 'width 4s linear';
-                
-                // Function to restart progress bar
-                function restartProgressBar() {
-                    progressBar.style.width = '0%';
-                    progressBar.style.transition = 'none';
-                    requestAnimationFrame(() => {
-                        progressBar.style.transition = 'width 4s linear';
-                        progressBar.style.width = '100%';
-                    });
-                }
-                
-                // Start initial progress
-                progressBar.style.width = '100%';
-                
-                // Set up interval to restart progress bar
-                const progressInterval = setInterval(restartProgressBar, 4000);
-                
-                // Clear interval when loading overlay is hidden
-                loadingOverlay.addEventListener('transitionend', () => {
-                    clearInterval(progressInterval);
-                });
-            }
+            if (loadingOverlay) loadingOverlay.style.display = 'flex';
 
             const season = await fetchActiveSeason();
             document.getElementById('leaderboard-season-title').textContent = `Season ${season.seasonNumber}`;
