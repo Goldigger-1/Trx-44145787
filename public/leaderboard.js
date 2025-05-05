@@ -100,26 +100,9 @@
     function renderLeaderboard(ranking, currentUserId) {
         // Show loading overlay and initialize progress bar
         const loadingOverlay = document.getElementById('leaderboard-loading-overlay');
-        const progressBar = document.getElementById('loading-progress');
-        
-        if (!loadingOverlay || !progressBar) {
-            console.error('Loading elements not found in DOM');
-            return;
-        }
-        
+        const progressBar = document.getElementById('loading-progress-bar');
         loadingOverlay.style.display = 'flex';
         progressBar.style.width = '0%';
-        progressBar.style.transition = 'none';
-        
-        // Create loading animation
-        let currentWidth = 0;
-        const animationInterval = setInterval(() => {
-            if (currentWidth >= 100) {
-                currentWidth = 0;
-            }
-            currentWidth += 2; // Increase by 2% per frame
-            progressBar.style.width = currentWidth + '%';
-        }, 50); // Update every 50ms
         
         // Podium
         const podium = [ranking[0], ranking[1], ranking[2]];
@@ -159,10 +142,7 @@
         const list = document.getElementById('leaderboard-list');
         list.innerHTML = '';
         
-        // Create rows with fade-in effect and update progress
-        const totalUsers = ranking.length;
-        let loadedUsers = 0;
-        
+        // Create rows with fade-in effect
         ranking.forEach((user, idx) => {
             const row = document.createElement('div');
             row.className = 'leaderboard-row';
@@ -177,35 +157,25 @@
                 <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${user.score || 0}</div>
             `;
             
-            // Add row with fade-in animation
+            // Add row with fade-in animation and update progress
             list.appendChild(row);
             setTimeout(() => {
                 row.style.opacity = '1';
-                loadedUsers++;
-                // Update progress based on number of users loaded
-                const progress = (loadedUsers / totalUsers) * 100;
-                progressBar.style.width = progress + '%';
-                console.log('Progress:', progress + '%'); // Debug
+                updateProgress();
             }, 100 * (idx % 5)); // Staggered fade-in
         });
         
         // Hide loading overlay after all animations
-        const hideLoading = () => {
-            clearInterval(animationInterval);
+        setTimeout(() => {
             loadingOverlay.style.display = 'none';
-        };
+        }, 1000);
         
-        // Hide loading overlay after all animations
-        setTimeout(hideLoading, 1000);
-        
-        // Animate progress bar from 0 to 100% over 1 second
+        // Animate progress bar from 0 to 100% over 4 seconds, repeating continuously
+        let progress = 0;
         const progressInterval = setInterval(() => {
-            const currentWidth = parseFloat(progressBar.style.width.replace('%', ''));
-            if (currentWidth < 100) {
-                progressBar.style.width = (currentWidth + 1) + '%';
-            } else {
-                clearInterval(progressInterval);
-            }
+            progress += 0.25; // 100% / 4000ms * 10ms = 0.25
+            if (progress > 100) progress = 0;
+            progressBar.style.width = progress + '%';
         }, 10);
         // Current user row (sticky)
         // --- Robust sticky user row rendering: always use server data ---
