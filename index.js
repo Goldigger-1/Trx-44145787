@@ -1175,8 +1175,7 @@ app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
     // Get all scores for this season, ordered by score descending
     const scores = await SeasonScore.findAll({
       where: { seasonId: seasonId },
-      order: [['score', 'DESC']],
-      limit: 100 // Limit to top 100 scores
+      order: [['score', 'DESC']]
     });
     
     // Get user details for each score
@@ -1626,8 +1625,7 @@ app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
     // Get all scores for this season, ordered by score descending
     const scores = await SeasonScore.findAll({
       where: { seasonId: seasonId },
-      order: [['score', 'DESC']],
-      limit: 100 // Limit to top 100 scores
+      order: [['score', 'DESC']]
     });
     
     // Get user details for each score
@@ -1766,8 +1764,7 @@ app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
     // Get all scores for this season, ordered by score descending
     const scores = await SeasonScore.findAll({
       where: { seasonId: seasonId },
-      order: [['score', 'DESC']],
-      limit: 100 // Limit to top 100 scores
+      order: [['score', 'DESC']]
     });
     
     // Get user details for each score
