@@ -98,38 +98,56 @@
 
     // Render leaderboard
     function renderLeaderboard(ranking, currentUserId) {
+        // Show loading overlay and initialize progress bar
+        const loadingOverlay = document.getElementById('leaderboard-loading-overlay');
+        const progressBar = document.getElementById('loading-progress-bar');
+        loadingOverlay.style.display = 'flex';
+        progressBar.style.width = '0%';
+        
         // Podium
         const podium = [ranking[0], ranking[1], ranking[2]];
         [1,2,3].forEach(i => {
             const user = podium[i-1];
             if (!user) return;
-            document.getElementById(`podium-${i}-username`).textContent = user.gameUsername || user.username || `User${i}`;
+            const usernameElement = document.getElementById(`podium-${i}-username`);
+            const avatarElement = document.getElementById(`podium-${i}-avatar`);
             
-            // Ensure we use avatarSrc when available
+            // Smooth update with fade
+            usernameElement.style.opacity = '0';
+            avatarElement.style.opacity = '0';
+            
+            usernameElement.textContent = user.gameUsername || user.username || `User${i}`;
             const avatarSrc = user.avatarSrc || 'avatars/avatar_default.jpg';
-            document.getElementById(`podium-${i}-avatar`).src = avatarSrc;
-            document.getElementById(`podium-${i}-avatar`).alt = user.gameUsername || user.username || `User${i}`;
+            avatarElement.src = avatarSrc;
+            avatarElement.alt = user.gameUsername || user.username || `User${i}`;
             
-            console.log(`[DEBUG] Podium ${i} avatar:`, avatarSrc);
+            // Fade in after update
+            setTimeout(() => {
+                usernameElement.style.opacity = '1';
+                avatarElement.style.opacity = '1';
+            }, 100);
         });
+        
         // Prize for 1st
         if (podium[0]) {
-            document.getElementById('podium-1-prize').textContent = podium[0].prize ? `$${podium[0].prize}` : '';
+            const prizeElement = document.getElementById('podium-1-prize');
+            prizeElement.style.opacity = '0';
+            prizeElement.textContent = podium[0].prize ? `$${podium[0].prize}` : '';
+            setTimeout(() => {
+                prizeElement.style.opacity = '1';
+            }, 100);
         }
+        
         // List
         const list = document.getElementById('leaderboard-list');
         list.innerHTML = '';
+        
+        // Create rows with fade-in effect
         ranking.forEach((user, idx) => {
-            // Debug: Log avatarSrc and username for each user
-            console.log('[AVATAR DEBUG]', {
-                idx,
-                username: user.gameUsername || user.username || 'Player',
-                avatarSrc: user.avatarSrc
-            });
             const row = document.createElement('div');
             row.className = 'leaderboard-row';
+            row.style.opacity = '0';
             
-            // Use avatarSrc when available, otherwise use default
             const avatarSrc = user.avatarSrc || 'avatars/avatar_default.jpg';
             
             row.innerHTML = `
@@ -138,8 +156,29 @@
                 <div class="leaderboard-username">${user.gameUsername || user.username || 'Player'}</div>
                 <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${user.score || 0}</div>
             `;
+            
+            // Add row with fade-in animation and update progress
             list.appendChild(row);
+            setTimeout(() => {
+                row.style.opacity = '1';
+                updateProgress();
+            }, 100 * (idx % 5)); // Staggered fade-in
         });
+        
+        // Animate progress bar while loading
+        const totalItems = ranking.length;
+        let loadedItems = 0;
+        
+        function updateProgress() {
+            loadedItems++;
+            const progress = (loadedItems / totalItems) * 100;
+            progressBar.style.width = progress + '%';
+        }
+        
+        // Hide loading overlay after all animations
+        setTimeout(() => {
+            loadingOverlay.style.display = 'none';
+        }, 1000);
         // Current user row (sticky)
         // --- Robust sticky user row rendering: always use server data ---
         async function renderStickyUserRow(ranking, currentUserId) {
