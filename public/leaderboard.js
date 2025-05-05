@@ -111,6 +111,16 @@
         progressBar.style.width = '0%';
         progressBar.style.transition = 'none';
         
+        // Create loading animation
+        let currentWidth = 0;
+        const animationInterval = setInterval(() => {
+            if (currentWidth >= 100) {
+                currentWidth = 0;
+            }
+            currentWidth += 2; // Increase by 2% per frame
+            progressBar.style.width = currentWidth + '%';
+        }, 50); // Update every 50ms
+        
         // Podium
         const podium = [ranking[0], ranking[1], ranking[2]];
         [1,2,3].forEach(i => {
@@ -180,9 +190,13 @@
         });
         
         // Hide loading overlay after all animations
-        setTimeout(() => {
+        const hideLoading = () => {
+            clearInterval(animationInterval);
             loadingOverlay.style.display = 'none';
-        }, 1000);
+        };
+        
+        // Hide loading overlay after all animations
+        setTimeout(hideLoading, 1000);
         
         // Animate progress bar from 0 to 100% over 1 second
         const progressInterval = setInterval(() => {
