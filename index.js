@@ -361,7 +361,11 @@ bot.start((ctx) => {
   ctx.reply('Let’s see how long you last here 😏', {
     reply_markup: {
       inline_keyboard: [
-        [{ text: 'Start', web_app: { url: webAppUrl } }]
+        [
+          { text: 'Play', web_app: { url: webAppUrl } },
+          { text: 'TiDash Talk Hub', url: 'https://t.me/TiDash_Hub' },
+          { text: 'Help', callback_data: 'show_help' }
+        ]
       ]
     }
   }).then(() => {
@@ -369,6 +373,12 @@ bot.start((ctx) => {
   }).catch(err => {
     console.error('Erreur lors de l\'envoi de la réponse:', err);
   });
+});
+
+// Gestion du bouton Help
+bot.action('show_help', (ctx) => {
+  ctx.answerCbQuery(); // Ferme la bulle de chargement
+  ctx.reply('Voici la vidéo d\'aide : https://www.youtube.com/watch?v=t0fz4KVU7yw');
 });
 
 // Lancer le bot
