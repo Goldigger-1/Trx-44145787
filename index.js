@@ -378,7 +378,7 @@ bot.start((ctx) => {
 // Gestion du bouton Help
 bot.action('show_help', (ctx) => {
   ctx.answerCbQuery(); // Ferme la bulle de chargement
-  ctx.reply('Voici la vidéo d\'aide : https://www.youtube.com/watch?v=t0fz4KVU7yw');
+  ctx.reply('📺 Watch the tutorial video here: https://www.youtube.com/watch?v=t0fz4KVU7yw');
 });
 
 // Lancer le bot
