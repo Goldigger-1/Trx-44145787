@@ -1,40 +1,46 @@
-// Promotion banner logic for Game Over page
-// Fetches promo banner data from the server and renders it in the #promo-banner-area
-// Requirements: image, link, "Sponsored" label, visually appealing, clickable, open link in default browser
+// RichAds banner logic for Game Over page only
+// This script ensures a RichAds banner is shown ONLY on the Game Over page
+// and is regenerated every time that page is shown.
 
-async function renderGameOverPromoBanner() {
-    const bannerArea = document.getElementById('promo-banner-area');
-    const bannerImg = document.getElementById('promo-banner-img');
-    const sponsoredLabel = document.getElementById('promo-sponsored-label');
-    if (!bannerArea || !bannerImg || !sponsoredLabel) return;
+(function () {
+    const bannerAreaId = 'promo-banner-area';
+    const bannerContainerId = 'richads-banner-container';
 
-    try {
-        const res = await fetch('/api/promo-banner');
-        if (!res.ok) throw new Error('Could not fetch promo banner');
-        const data = await res.json();
-        if (data && data.imageUrl && data.link) {
-            bannerImg.src = data.imageUrl;
-            bannerImg.style.display = 'block';
-            bannerArea.style.display = 'flex';
-            sponsoredLabel.style.display = 'block';
-            bannerImg.onclick = function() {
-                // Try Telegram WebApp API if available
-                if (window.Telegram && Telegram.WebApp && Telegram.WebApp.openLink) {
-                    Telegram.WebApp.openLink(data.link);
-                } else {
-                    window.open(data.link, '_blank');
-                }
-            };
-        } else {
-            // Hide banner if no promo
-            bannerArea.style.display = 'none';
+    function showRichAdsBanner() {
+        const area = document.getElementById(bannerAreaId);
+        if (!area) return;
+
+        // Remove any previous ad container
+        let old = document.getElementById(bannerContainerId);
+        if (old) old.remove();
+
+        // Make sure the area is visible
+        area.style.display = 'flex';
+
+        // Create a new container for the ad
+        const adDiv = document.createElement('div');
+        adDiv.id = bannerContainerId;
+        adDiv.style.width = '100%';
+        adDiv.style.display = 'flex';
+        adDiv.style.justifyContent = 'center';
+        area.appendChild(adDiv);
+
+        // Show the RichAds banner inside the container
+        if (window.TelegramAdsController && typeof window.TelegramAdsController.showBanner === 'function') {
+            window.TelegramAdsController.showBanner({
+                container: '#' + bannerContainerId,
+                format: 'banner',
+                // Add other options if required by SDK/FAQ
+            });
         }
-    } catch (err) {
-        bannerArea.style.display = 'none';
     }
-}
 
-// Call this when showing the Game Over screen
-if (document.getElementById('promo-banner-area')) {
-    renderGameOverPromoBanner();
-}
+    // Listen for custom event to show Game Over page
+    // Replace 'showGameOver' with your actual event or call this function when you show Game Over
+    window.showRichAdsBanner = showRichAdsBanner;
+
+    // Optionally, if Game Over is shown on page load (for dev/debug)
+    if (document.getElementById(bannerAreaId) && document.getElementById('game-over')?.style.display !== 'none') {
+        showRichAdsBanner();
+    }
+})();
