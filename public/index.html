@@ -957,6 +957,12 @@
     <button id="home-button" class="game-button secondary">HOME</button>
     <button id="play-again" class="game-button">PLAY</button>
 </div>
+<button id="revive-button" class="game-button gold" style="margin-top:5px; background:linear-gradient(135deg, #FFD700 0%, #FFA500 70%, #FF8C00 100%); display:flex; align-items:center; justify-content:center; width:calc(100% - 24px); max-width:312px;">
+    <svg style="width:18px; height:18px; margin-right:8px;" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M8 5.14V19.14L19 12.14L8 5.14Z" fill="currentColor" stroke="#121212" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    REVIVE
+</button>
             </div>
             <!-- Sticky user group from leaderboard (season rank & best score) -->
             <div class="leaderboard-user-row" id="gameover-user-row"></div>
@@ -1030,6 +1036,10 @@
         const playAgainBtn = document.getElementById('play-again');
         const homeBtn = document.getElementById('home-button');
         const playBtn = document.getElementById('play-button');
+        const reviveBtn = document.getElementById('revive-button');
+
+        // Variable pour suivre si le joueur a déjà utilisé le bouton Revive
+        let hasUsedRevive = false;
 
         // Double-tap prevention
         document.addEventListener('touchend', function(event) {
@@ -1999,6 +2009,9 @@
             gameOverAnimation = false;
             gameOverAnimationComplete = false;
             score = 0;
+            
+            // Réinitialiser la variable hasUsedRevive quand on commence une nouvelle partie
+            hasUsedRevive = false;
             
             // Update game mode
             gameMode = 'game';
@@ -3545,6 +3558,41 @@
             playAgainBtn.addEventListener('click', resetGame);
             homeBtn.addEventListener('click', goToHome);
             
+            // Setup revive button
+            reviveBtn.addEventListener('click', function() {
+                console.log("💰 Revive button clicked, showing rewarded ad...");
+                
+                // Désactiver le bouton pendant le chargement de la pub
+                reviveBtn.disabled = true;
+                
+                // Afficher la publicité Monetag
+                if (typeof show_9302454 === 'function') {
+                    show_9302454().then(() => {
+                        console.log("✅ Ad viewed successfully, reviving player!");
+                        
+                        // Marquer que le joueur a utilisé Revive
+                        hasUsedRevive = true;
+                        
+                        // Cacher l'écran de game over
+                        hideGameOver();
+                        
+                        // Reprendre la partie avec le score actuel
+                        resumeGameAfterRevive();
+                        
+                        // Réactiver le bouton (pour la prochaine fois)
+                        reviveBtn.disabled = false;
+                    }).catch(error => {
+                        console.error("❌ Error showing ad:", error);
+                        // Réactiver le bouton en cas d'erreur
+                        reviveBtn.disabled = false;
+                    });
+                } else {
+                    console.error("❌ Monetag show_9302454 function not available");
+                    alert("Ad service not available. Please try again later.");
+                    reviveBtn.disabled = false;
+                }
+            });
+            
             // Setup profile button
             const profileButton = document.getElementById('profile-button');
             if (profileButton) {
@@ -3757,6 +3805,15 @@
             gameOverAnimation = true;
             gameOverAnimationComplete = false;
             
+            // Afficher ou masquer le bouton Revive selon l'utilisation précédente
+            if (hasUsedRevive) {
+                // Le joueur a déjà utilisé Revive, masquer le bouton
+                reviveBtn.style.display = 'none';
+            } else {
+                // Le joueur n'a pas encore utilisé Revive, afficher le bouton
+                reviveBtn.style.display = 'flex';
+            }
+            
             // CRITIQUE: Toujours récupérer le score de saison le plus récent depuis le serveur
             // avant d'afficher l'écran de game over
             fetchUserSeasonScore()
@@ -3769,6 +3826,80 @@
                     // Même en cas d'erreur, afficher l'écran
                     showGameOverScreen();
                 });
+        }
+
+        // Function to manage background music
+        function manageBackgroundMusic() {
+            if (isMusicEnabled) {
+                playBackgroundMusic();
+            } else {
+                stopBackgroundMusic();
+            }
+        }
+
+        // Fonction pour reprendre la partie après un Revive
+        function resumeGameAfterRevive() {
+            console.log("🔄 Resuming game after revive with score: " + score);
+            
+            // Masquer l'écran de game over
+            hideGameOver();
+            
+            // Annuler l'animation frame précédente pour éviter les doublons
+            if (window.gameLoopAnimationId) {
+                cancelAnimationFrame(window.gameLoopAnimationId);
+                window.gameLoopAnimationId = null;
+            }
+            
+            // Effacer complètement le canvas pour éviter les artefacts visuels
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Reset game state - vider complètement les tableaux pour éviter les fuites de mémoire
+            squares.length = 0;
+            fadingSquares.length = 0;
+            particles.length = 0;
+            
+            // Réinitialiser les variables d'animation de game over
+            gameOverAnimation = false;
+            gameOverAnimationComplete = false;
+            
+            // Garder le score actuel (ne pas réinitialiser)
+            
+            // Update game mode
+            gameMode = 'game';
+            
+            // Reset ball position and speed
+            ball.x = canvas.width / 2;
+            ball.y = canvas.height * 0.5;
+            ball.direction = Math.random() > 0.5 ? 1 : -1;
+            ball.speed = canvas.width * 0.0008;
+            
+            // Reset line position
+            line.x = (canvas.width - line.width) / 2;
+            line.y = ball.y - ball.radius;
+            
+            // Reset spawn interval
+            squareInterval = 1000; // Reset to initial spawn interval
+            lastSquareTime = Date.now();
+            
+            // Hide profile button during gameplay
+            document.getElementById("profile-button").style.display = 'none';
+            
+            // Manage background music for game mode
+            manageBackgroundMusic();
+            
+            // Réinitialiser le temps de frame pour éviter les sauts
+            lastFrameTime = null;
+            
+            // Ensure the game loop is properly reset and running
+            gameRunning = true;
+            
+            // Forcer un nouveau démarrage de la boucle de jeu
+            window.gameLoopAnimationId = requestAnimationFrame(gameLoop);
+            
+            // Play sound effect
+            playSound('success');
+            
+            console.log("🎮 Game resumed after revive with score: " + score);
         }
     </script>
     <!-- Leaderboard Page Integration -->
