@@ -3,6 +3,35 @@
 // This script must be called every time the Game Over page is shown.
 
 function showGameOverRichAdsBanner() {
+    // Supprime la bannière précédente si présente
+    const previous = document.getElementById('richads-banner-area');
+    if (previous) previous.remove();
+
+    const gameOverScreen = document.getElementById('game-over');
+    if (!gameOverScreen) return;
+
+    // Création du conteneur
+    const bannerContainer = document.createElement('div');
+    bannerContainer.id = 'richads-banner-area';
+    bannerContainer.style.width = '100%';
+    bannerContainer.style.display = 'flex';
+    bannerContainer.style.justifyContent = 'center';
+    bannerContainer.style.position = 'absolute';
+    bannerContainer.style.top = '0';
+    bannerContainer.style.left = '0';
+    bannerContainer.style.zIndex = '1001';
+
+    // Injection
+    gameOverScreen.insertBefore(bannerContainer, gameOverScreen.firstChild);
+
+    // Appel RichAds (Mybid.io)
+    if (window.TelegramAdsController && typeof window.TelegramAdsController.showBanner === 'function') {
+        window.TelegramAdsController.showBanner({
+            container: bannerContainer,
+            type: 'banner'
+        });
+    }
+}
     console.log('[RichAds] Tentative d\'affichage de la bannière Game Over...');
     // Remove any previous ad if present
     const previous = document.getElementById('richads-banner-area');
@@ -72,4 +101,4 @@ function tryShowRichAdsBannerWhenGameOverVisible() {
     }, 50);
 }
 // Pour debug immédiat (à déplacer dans showGameOverScreen)
-tryShowRichAdsBannerWhenGameOverVisible();
+
