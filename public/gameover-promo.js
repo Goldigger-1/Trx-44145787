@@ -34,17 +34,7 @@ async function renderGameOverPromoBanner() {
     }
 }
 
-// Show RichAds banner at the top and keep custom promo banner hidden
-function showRichAdsBannerAndHidePromo() {
-    const bannerArea = document.getElementById('promo-banner-area');
-    if (bannerArea) {
-        bannerArea.style.display = 'none'; // Always hide custom promo banner
-    }
-    if (window.TelegramAdsController && window.TelegramAdsController.showBanner) {
-        window.TelegramAdsController.showBanner({
-            position: 'top'
-        });
-    }
+// Call this when showing the Game Over screen
+if (document.getElementById('promo-banner-area')) {
+    renderGameOverPromoBanner();
 }
-
-document.addEventListener('DOMContentLoaded', showRichAdsBannerAndHidePromo);
