@@ -1,23 +1,3 @@
-// Rich Ads SDK management
-let telegramAdsController = null;
-
-function initializeRichAds() {
-    if (!telegramAdsController) {
-        telegramAdsController = new TelegramAdsController();
-        telegramAdsController.initialize({
-            pubId: "971984",
-            appId: "2269",
-        });
-    }
-}
-
-function hideRichAds() {
-    if (telegramAdsController) {
-        telegramAdsController.destroy();
-        telegramAdsController = null;
-    }
-}
-
 // Promotion banner logic for Game Over page
 // Fetches promo banner data from the server and renders it in the #promo-banner-area
 // Requirements: image, link, "Sponsored" label, visually appealing, clickable, open link in default browser
@@ -53,10 +33,6 @@ async function renderGameOverPromoBanner() {
         bannerArea.style.display = 'none';
     }
 }
-
-// Export functions for external use
-window.initializeRichAds = initializeRichAds;
-window.hideRichAds = hideRichAds;
 
 // Call this when showing the Game Over screen
 if (document.getElementById('promo-banner-area')) {
