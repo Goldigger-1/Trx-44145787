@@ -3813,7 +3813,12 @@
             <div class="leaderboard-list-container" style="position:relative;">
     <!-- Loading Overlay -->
     <div class="leaderboard-loading-overlay" id="leaderboard-loading-overlay" style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.7);z-index:10;">
-      <img src="ressources/Dual Ball@1x-1.0s-200px-200px.svg" alt="Loading..." style="width:80px;height:80px;" />
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;">
+        <img src="ressources/Dual Ball@1x-1.0s-200px-200px.svg" alt="Loading..." style="width:80px;height:80px;" />
+        <div class="leaderboard-loading-bar-container">
+          <div class="leaderboard-loading-bar"></div>
+        </div>
+      </div>
     </div>
     <div class="leaderboard-list" id="leaderboard-list">
         <!-- Ranking rows will be injected here -->

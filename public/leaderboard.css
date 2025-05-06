@@ -2,6 +2,31 @@
 html, body, #leaderboard-screen, * {
     box-sizing: border-box;
 }
+
+/* Loading bar animation for leaderboard overlay */
+.leaderboard-loading-bar-container {
+    width: 160px;
+    height: 10px;
+    margin-top: 24px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+}
+.leaderboard-loading-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #00FF9D 0%, #00FFF0 100%);
+    border-radius: 8px;
+    animation: leaderboard-loading-bar-grow 4s linear infinite;
+}
+@keyframes leaderboard-loading-bar-grow {
+    0% { width: 0%; }
+    100% { width: 100%; }
+}
+
 #leaderboard-screen {
     position: fixed;
     top: 0;
