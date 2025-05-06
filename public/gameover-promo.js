@@ -1,5 +1,5 @@
 // Promotion banner logic for Game Over page
-// Fetches promo banner data from the server and renders it in the #promo-banner-area
+// (Supprimé : gestion ancienne promo banner, remplacé par RichAds uniquement sur Game Over)
 // Requirements: image, link, "Sponsored" label, visually appealing, clickable, open link in default browser
 
 async function renderGameOverPromoBanner() {

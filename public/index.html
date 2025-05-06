@@ -951,11 +951,13 @@
             </div>
         </div>
         <div id="game-over">
-            <div id="promo-banner-area" style="position:absolute;width:100%;margin-top:0;padding-top:0;margin-bottom:10px;display:none;flex-direction:column;align-items:center;z-index:1000;">
+            <div id="promo-banner-area" style="position:absolute;width:100%;margin-top:0;padding-top:0;margin-bottom:10px;display:none;flex-direction:column;align-items:center;z-index:1000;opacity:0;">
                 <span id="promo-sponsored-label" style="font-size:11px;color:#aaa;margin-bottom:2px;letter-spacing:1px;opacity:0.7;">Sponsored</span>
                 <img id="promo-banner-img" src="" alt="Promotion" style="width:100%;max-width:480px;height:150px;object-fit:cover;border-radius:8px;cursor:pointer;display:block;border:1px solid #00FF9D;margin-left:10px;margin-right:10px;" />
             </div>
-            <div class="gameover-center-content" style="display:flex;flex-direction:column;justify-content:center;align-items:center;width:100%;height:100%;padding-top:175px;padding-bottom:120px;">
+            <!-- RichAds Banner: Rectangular, top absolute -->
+<div id="richads-banner-container" style="position:absolute;top:0;left:0;width:100%;z-index:9999;display:none;justify-content:center;align-items:center;"></div>
+<div class="gameover-center-content" style="display:flex;flex-direction:column;justify-content:center;align-items:center;width:100%;height:100%;padding-top:175px;padding-bottom:120px;">
                 <div id="score-display">0</div>
                 <div id="best-score">Best: 0</div>
                 <div id="season-score">Season Best: 0</div>
@@ -1888,10 +1890,6 @@
         
         // Function to show game over screen
         function showGameOverScreen() {
-    // Afficher la bannière RichAds rectangulaire (toujours en premier)
-    if (typeof createRichAdsBanner === 'function') {
-        createRichAdsBanner();
-    }
     // Render promo banner (fetch from server)
     if (typeof renderGameOverPromoBanner === 'function') {
         renderGameOverPromoBanner();
@@ -1974,19 +1972,15 @@
         
         // Function to hide game over screen
         function hideGameOver() {
-    // Masquer la bannière RichAds si présente
-    if (typeof removeRichAdsBanner === 'function') {
-        removeRichAdsBanner();
-    }
-    // Masquer immédiatement l'écran de game over sans animation
-    gameOverScreen.style.display = 'none';
-    // Réinitialiser la classe visible pour les futures utilisations
-    gameOverScreen.classList.remove('visible');
-    
-    // Réinitialiser l'état de l'animation de fin de jeu
-    gameOverAnimation = false;
-    gameOverAnimationComplete = false;
-}
+            // Masquer immédiatement l'écran de game over sans animation
+            gameOverScreen.style.display = 'none';
+            // Réinitialiser la classe visible pour les futures utilisations
+            gameOverScreen.classList.remove('visible');
+            
+            // Réinitialiser l'état de l'animation de fin de jeu
+            gameOverAnimation = false;
+            gameOverAnimationComplete = false;
+        }
 
         // Function to reset the game and start a new game
         function resetGame() {
@@ -3850,7 +3844,6 @@
     <!-- Sticky user row for Game Over page -->
     <script src="gameover-sticky.js"></script>
     <script src="gameover-promo.js"></script>
-    <script src="gameover-richads.js"></script>
     <script src="season-dynamic.js"></script>
     <script>
       // Ensure leaderboard opens when clicking the season container
@@ -3885,5 +3878,54 @@
         }
       });
     </script>
+<script>
+// Gestion dynamique de la bannière RichAds sur la page Game Over uniquement
+function showRichAdsBannerOnGameOver() {
+    const bannerContainer = document.getElementById('richads-banner-container');
+    if (!bannerContainer) return;
+    // Nettoyer l'ancien contenu
+    bannerContainer.innerHTML = '';
+    // Créer le script RichAds
+    var script = document.createElement('script');
+    script.src = "https://richinfo.co/richpartners/telegram/js/tg-ob.js";
+    script.onload = function() {
+        // Générer une nouvelle bannière rectangulaire à chaque affichage
+        if (window.TelegramAdsController) {
+            window.TelegramAdsController = new TelegramAdsController();
+            window.TelegramAdsController.initialize({
+                pubId: "971984",
+                appId: "2266",
+                type: "rect",
+                container: bannerContainer
+            });
+        }
+    };
+    bannerContainer.appendChild(script);
+    bannerContainer.style.display = 'flex';
+}
+function hideRichAdsBanner() {
+    const bannerContainer = document.getElementById('richads-banner-container');
+    if (bannerContainer) {
+        bannerContainer.innerHTML = '';
+        bannerContainer.style.display = 'none';
+    }
+}
+// Hook sur navigation Game Over
+function observeGameOverScreen() {
+    const gameOverScreen = document.getElementById('game-over');
+    if (!gameOverScreen) return;
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (gameOverScreen.style.display !== 'none') {
+                showRichAdsBannerOnGameOver();
+            } else {
+                hideRichAdsBanner();
+            }
+        });
+    });
+    observer.observe(gameOverScreen, { attributes: true, attributeFilter: ['style'] });
+}
+document.addEventListener('DOMContentLoaded', observeGameOverScreen);
+</script>
 </body>
 </html>
