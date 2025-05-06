@@ -361,11 +361,9 @@ bot.start((ctx) => {
   ctx.reply('Let’s see how long you last here 😏', {
     reply_markup: {
       inline_keyboard: [
-        [
-          [{ text: 'Play', web_app: { url: webAppUrl } }],
-          [{ text: 'TiDash Talk Hub', url: 'https://t.me/TiDash_Hub' }],
-          [{ text: 'Help', callback_data: 'show_help' }]
-        ]
+        [{ text: 'Play', web_app: { url: webAppUrl } }],
+        [{ text: 'TiDash Talk Hub', url: 'https://t.me/TiDash_Hub' }],
+        [{ text: 'Help', callback_data: 'show_help' }]
       ]
     }
   }).then(() => {
