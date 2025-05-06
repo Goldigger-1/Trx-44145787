@@ -16,9 +16,11 @@ function renderGameOverPromoBanner() {
         const adContainer = document.createElement('div');
         adContainer.id = 'richads-container';
         adContainer.style.width = '100%';
+        adContainer.style.height = '150px'; // Match the height of your promo-banner-img
         adContainer.style.display = 'flex';
         adContainer.style.justifyContent = 'center';
         adContainer.style.alignItems = 'center';
+        adContainer.style.margin = '0 10px'; // Match the margin of your promo-banner-img
         
         // Add the container to the banner area
         bannerArea.appendChild(adContainer);
@@ -26,28 +28,48 @@ function renderGameOverPromoBanner() {
         // Make the banner area visible
         bannerArea.style.display = 'flex';
         
-        // Generate a new Telegram interstitial banner ad
+        // Generate a new Telegram banner ad
         if (window.TelegramAdsController) {
-            window.TelegramAdsController.displayBanner({
-                containerId: 'richads-container',
-                type: 'interstitial',
-                onAdLoaded: () => {
-                    console.log('RichAds banner loaded successfully');
-                },
-                onAdFailed: (error) => {
-                    console.error('RichAds banner failed to load:', error);
-                    bannerArea.style.display = 'none'; // Hide if ad fails to load
+            try {
+                // Essayons d'abord de montrer une bannière standard
+                console.log('Tentative d\'affichage d\'une bannière RichAds');
+                
+                // Vérifiez si la méthode showBanner existe
+                if (typeof window.TelegramAdsController.showBanner === 'function') {
+                    window.TelegramAdsController.showBanner({
+                        containerId: 'richads-container'
+                    });
+                    console.log('Méthode showBanner appelée');
+                } 
+                // Si showBanner n'existe pas, essayons displayBanner
+                else if (typeof window.TelegramAdsController.displayBanner === 'function') {
+                    window.TelegramAdsController.displayBanner({
+                        containerId: 'richads-container'
+                    });
+                    console.log('Méthode displayBanner appelée');
                 }
-            });
+                // Si aucune des méthodes n'existe, essayons showInterstitial
+                else if (typeof window.TelegramAdsController.showInterstitial === 'function') {
+                    window.TelegramAdsController.showInterstitial();
+                    console.log('Méthode showInterstitial appelée');
+                }
+                else {
+                    console.error('Aucune méthode d\'affichage de bannière disponible');
+                    // Affichons les méthodes disponibles pour le débogage
+                    console.log('Méthodes disponibles:', Object.keys(window.TelegramAdsController));
+                }
+            } catch (e) {
+                console.error('Erreur lors de l\'affichage de la bannière:', e);
+            }
         } else {
-            console.error('TelegramAdsController not available');
+            console.error('TelegramAdsController n\'est pas disponible');
             bannerArea.style.display = 'none';
         }
     } catch (err) {
-        console.error('Error displaying RichAds banner:', err);
+        console.error('Erreur lors de l\'affichage de la bannière RichAds:', err);
         bannerArea.style.display = 'none';
     }
 }
 
-// This function will be called when showing the Game Over screen
-// The function is called from showGameOverScreen() in index.html
+// Cette fonction sera appelée lors de l'affichage de l'écran Game Over
+// La fonction est appelée depuis showGameOverScreen() dans index.html
