@@ -37,35 +37,25 @@ async function renderGameOverPromoBanner() {
 // Call this when showing the Game Over screen
 if (document.getElementById('promo-banner-area')) {
     renderGameOverPromoBanner();
-    showTelegramGameOverAd();
+    initializeTelegramAd();
 }
 
-// Dynamically load and show Telegram ad only on Game Over page
-function showTelegramGameOverAd() {
-    // Remove any existing ad container
-    var oldAd = document.getElementById('telegram-ad-container');
-    if (oldAd) oldAd.remove();
-
-    // Dynamically load the ad script
-    var script = document.createElement('script');
-    script.src = 'https://richinfo.co/richpartners/telegram/js/tg-ob.js';
-    script.onload = function() {
-        // Create ad container
-        var adContainer = document.createElement('div');
-        adContainer.id = 'telegram-ad-container';
-        document.body.appendChild(adContainer);
-        // Initialize ad in the new container
-        window.TelegramAdsController = new TelegramAdsController();
+// Initialize Telegram ad only on Game Over page
+function initializeTelegramAd() {
+    // Initialize ad only if it hasn't been initialized yet
+    if (!window.TelegramAdsController.isInitialized) {
         window.TelegramAdsController.initialize({
             pubId: "971984",
             appId: "2269"
         });
-    };
-    document.body.appendChild(script);
+        window.TelegramAdsController.isInitialized = true;
+    }
 }
 
-// Optionally, remove the ad when leaving Game Over page
-function hideTelegramGameOverAd() {
-    var oldAd = document.getElementById('telegram-ad-container');
-    if (oldAd) oldAd.remove();
+// Remove the ad when leaving Game Over page
+function hideTelegramAd() {
+    var adContainer = document.getElementById('telegram-ad-container');
+    if (adContainer) {
+        adContainer.remove();
+    }
 }
