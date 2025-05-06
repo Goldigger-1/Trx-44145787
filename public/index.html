@@ -951,14 +951,10 @@
             </div>
         </div>
         <div id="game-over">
-            <!-- RichAds Telegram Interstitial Banner -->
-            <div id="richads-banner-container" style="position:absolute;top:0;left:0;width:100%;display:flex;justify-content:center;z-index:1200;">
-              <div id="richads-banner-inner" style="width:100%;max-width:480px;height:150px;min-height:150px;background:transparent;"></div>
+            <div id="promo-banner-area" style="position:absolute;width:100%;margin-top:0;padding-top:0;margin-bottom:10px;display:none;flex-direction:column;align-items:center;z-index:1000;">
+                <span id="promo-sponsored-label" style="font-size:11px;color:#aaa;margin-bottom:2px;letter-spacing:1px;opacity:0.7;">Sponsored</span>
+                <img id="promo-banner-img" src="" alt="Promotion" style="width:100%;max-width:480px;height:150px;object-fit:cover;border-radius:8px;cursor:pointer;display:block;border:1px solid #00FF9D;margin-left:10px;margin-right:10px;" />
             </div>
-            <div id="promo-banner-area" style="position:absolute;width:100%;margin-top:0;padding-top:0;margin-bottom:10px;opacity:0;flex-direction:column;align-items:center;z-index:1000;">
-    <span id="promo-sponsored-label" style="font-size:11px;color:#aaa;margin-bottom:2px;letter-spacing:1px;opacity:0.7;">Sponsored</span>
-    <img id="promo-banner-img" src="" alt="Promotion" style="width:100%;max-width:480px;height:150px;object-fit:cover;border-radius:8px;cursor:pointer;display:block;border:1px solid #00FF9D;margin-left:10px;margin-right:10px;" />
-</div>
             <div class="gameover-center-content" style="display:flex;flex-direction:column;justify-content:center;align-items:center;width:100%;height:100%;padding-top:175px;padding-bottom:120px;">
                 <div id="score-display">0</div>
                 <div id="best-score">Best: 0</div>
@@ -1892,35 +1888,15 @@
         
         // Function to show game over screen
         function showGameOverScreen() {
-            // Affichage sécurisé de la bannière RichAds avec retry
-            function showRichAdsBanner(retries = 15) {
-                const richadsContainer = document.getElementById('richads-banner-inner');
-                if (!richadsContainer) {
-                    console.error('RichAds container not found');
-                    return;
-                }
-                // Toujours forcer la visibilité du container parent
-                if (richadsContainer.parentElement) {
-                    richadsContainer.parentElement.style.display = 'flex';
-                    richadsContainer.parentElement.style.opacity = '1';
-                }
-                richadsContainer.style.display = 'block';
-                richadsContainer.style.opacity = '1';
-                richadsContainer.innerHTML = '';
-                if (window.TelegramAdsController && typeof window.TelegramAdsController.showInterstitialBanner === 'function') {
-                    window.TelegramAdsController.showInterstitialBanner({
-                        container: 'richads-banner-inner',
-                        width: 480,
-                        height: 150
-                    });
-                    console.log('RichAds banner requested');
-                } else if (retries > 0) {
-                    setTimeout(() => showRichAdsBanner(retries - 1), 150);
-                } else {
-                    console.error('RichAds SDK not loaded after several attempts');
-                }
-            }
-            showRichAdsBanner();
+    // Render promo banner (fetch from server)
+    if (typeof renderGameOverPromoBanner === 'function') {
+        renderGameOverPromoBanner();
+    } else if (document.getElementById('promo-banner-area')) {
+        // Fallback: try to call if loaded late
+        setTimeout(() => {
+            if (typeof renderGameOverPromoBanner === 'function') renderGameOverPromoBanner();
+        }, 100);
+    }
             // Play sound when the score popup is displayed (do NOT play gameOver sound here)
             playSound('showScore');
             
