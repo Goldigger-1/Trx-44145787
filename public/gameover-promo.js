@@ -1,92 +1,43 @@
-// Promotion banner logic for Game Over page
-// Fetches promo banner data from the server and renders it in the #promo-banner-area
-// Requirements: image, link, "Sponsored" label, visually appealing, clickable, open link in default browser
+// RichAds Mybid.io banner logic for Game Over page
+// Shows an integrated banner ad at the top of the Game Over page using RichAds SDK.
+// This script must be called every time the Game Over page is shown.
 
-// --- RichAds dynamic SPA integration for Game Over only ---
+function showGameOverRichAdsBanner() {
+    // Remove any previous ad if present
+    const previous = document.getElementById('richads-banner-area');
+    if (previous) previous.remove();
 
-function loadRichAdsSdkAndShowBanner() {
-    const sdkId = 'richads-sdk-script';
-    const bannerArea = document.getElementById('richads-banner-area');
-    if (!bannerArea) return;
+    // Find the Game Over page root
+    const gameOverScreen = document.getElementById('game-over');
+    if (!gameOverScreen || !window.TelegramAdsController || typeof window.TelegramAdsController.showBanner !== 'function') return;
 
-    // Remove previous ad if any
-    bannerArea.innerHTML = '';
-    bannerArea.style.display = 'block';
+    // Create a container for the RichAds banner
+    const bannerContainer = document.createElement('div');
+    bannerContainer.id = 'richads-banner-area';
+    bannerContainer.style.width = '100%';
+    bannerContainer.style.display = 'flex';
+    bannerContainer.style.justifyContent = 'center';
+    bannerContainer.style.alignItems = 'center';
+    bannerContainer.style.position = 'absolute';
+    bannerContainer.style.top = '0';
+    bannerContainer.style.left = '0';
+    bannerContainer.style.zIndex = '1001';
+    // No extra custom styling to avoid blocking the ad
 
-    // Remove any previous SDK script
-    let prevScript = document.getElementById(sdkId);
-    if (prevScript) prevScript.remove();
-    // Remove any previous controller instance
-    if (window.TelegramAdsController) {
-        try { delete window.TelegramAdsController; } catch(e) {}
-        window.TelegramAdsController = undefined;
-    }
+    // Insert at the very top of the Game Over page
+    gameOverScreen.insertBefore(bannerContainer, gameOverScreen.firstChild);
 
-    // Dynamically load SDK
-    const script = document.createElement('script');
-    script.id = sdkId;
-    script.src = 'https://richinfo.co/richpartners/telegram/js/tg-ob.js';
-    script.onload = () => {
-        setTimeout(() => {
-            window.TelegramAdsController = new window.TelegramAdsController();
-            window.TelegramAdsController.initialize({
-                pubId: '971984',
-                appId: '2266',
-            });
-            // The SDK will inject the banner automatically at the top of the page
-        }, 0);
-    };
-    document.head.appendChild(script);
-}
-
-function unloadRichAdsSdkAndBanner() {
-    // Remove SDK script
-    let prevScript = document.getElementById('richads-sdk-script');
-    if (prevScript) prevScript.remove();
-    // Remove ad container
-    const bannerArea = document.getElementById('richads-banner-area');
-    if (bannerArea) {
-        bannerArea.innerHTML = '';
-        bannerArea.style.display = 'none';
-    }
-    // Remove controller
-    if (window.TelegramAdsController) {
-        try { delete window.TelegramAdsController; } catch(e) {}
-        window.TelegramAdsController = undefined;
-    }
-}
-
-// SPA: Listen for Game Over screen visibility
-function observeGameOverForRichAds() {
-    const gameOver = document.getElementById('game-over');
-    if (!gameOver) return;
-    let lastVisible = false;
-    setInterval(() => {
-        const isVisible = gameOver.style.display !== 'none' && gameOver.offsetParent !== null;
-        if (isVisible && !lastVisible) {
-            loadRichAdsSdkAndShowBanner();
-        } else if (!isVisible && lastVisible) {
-            unloadRichAdsSdkAndBanner();
-        }
-        lastVisible = isVisible;
-    }, 300);
-}
-
-// Start observer on DOMContentLoaded
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', observeGameOverForRichAds);
-} else {
-    observeGameOverForRichAds();
+    // Show the RichAds integrated banner (Mybid.io)
+    // According to RichAds docs, "banner" type is for integrated banners
+    window.TelegramAdsController.showBanner({
+        container: bannerContainer,
+        // type: 'banner' is default for integrated banners (Mybid.io)
+        // No extra parameters to avoid blocking or customizing the ad
+    });
 }
 
 
 // Call this when showing the Game Over screen
-if (document.getElementById('promo-banner-area')) {
-    renderGameOverPromoBanner();
-}
-
-
-// Call this when showing the Game Over screen
-if (document.getElementById('promo-banner-area')) {
-    renderGameOverPromoBanner();
+if (document.getElementById('game-over')) {
+    showGameOverRichAdsBanner();
 }
