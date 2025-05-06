@@ -1943,13 +1943,6 @@
             // Ajouter la classe visible pour déclencher l'animation
             gameOverScreen.classList.add('visible');
             console.log("Game over screen displayed");
-
-            // Afficher la bannière RichAds après affichage Game Over
-            setTimeout(() => {
-                if (typeof showGameOverRichAdsBanner === 'function') {
-                    showGameOverRichAdsBanner();
-                }
-            }, 50);
         }
         
         // Fonction utilitaire pour enregistrer le meilleur score de saison en arrière-plan
