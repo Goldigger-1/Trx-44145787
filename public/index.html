@@ -1890,20 +1890,38 @@
             return false;
         }
         
-        // Function to show game over screen
-        function showGameOverScreen() {
-            // Always clear and (re)load the RichAds banner
+        // Utility: Load RichAds interstitial banner with retry & debug
+        function loadRichAdsBannerWithRetry(maxRetries = 10, delay = 200) {
             const richadsContainer = document.getElementById('richads-banner-inner');
-            if (richadsContainer) {
-                richadsContainer.innerHTML = '';
-                if (window.TelegramAdsController && window.TelegramAdsController.showInterstitialBanner) {
+            if (!richadsContainer) {
+                console.warn('[RichAds] Container not found!');
+                return;
+            }
+            richadsContainer.innerHTML = '';
+            let attempt = 0;
+            function tryLoad() {
+                attempt++;
+                if (window.TelegramAdsController && typeof window.TelegramAdsController.showInterstitialBanner === 'function') {
+                    console.log(`[RichAds] Loading interstitial banner (attempt ${attempt})...`);
                     window.TelegramAdsController.showInterstitialBanner({
-                        container: 'richads-banner-inner',
+                        container: 'richads-banner-inner', // or pass richadsContainer if SDK accepts HTMLElement
                         width: 480,
                         height: 150
                     });
+                } else if (attempt < maxRetries) {
+                    console.log(`[RichAds] SDK not ready, retrying in ${delay}ms (attempt ${attempt})...`);
+                    setTimeout(tryLoad, delay);
+                } else {
+                    console.error('[RichAds] Failed to load interstitial banner: SDK not available after retries.');
                 }
             }
+            tryLoad();
+        }
+
+        // Function to show game over screen
+        function showGameOverScreen() {
+            // Always clear and (re)load the RichAds banner ONLY on Game Over
+            loadRichAdsBannerWithRetry();
             // Play sound when the score popup is displayed (do NOT play gameOver sound here)
             playSound('showScore');
             
