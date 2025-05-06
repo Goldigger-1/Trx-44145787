@@ -1,6 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js"></script>
+    <script>
+      window.TelegramAdsController = new TelegramAdsController();
+      window.TelegramAdsController.initialize({
+        pubId: "971984",
+        appId: "2266",
+      });
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <!-- Méta-tags pour forcer l'orientation portrait -->
@@ -1880,6 +1888,10 @@
         
         // Function to show game over screen
         function showGameOverScreen() {
+    // Afficher la bannière RichAds rectangulaire (toujours en premier)
+    if (typeof createRichAdsBanner === 'function') {
+        createRichAdsBanner();
+    }
     // Render promo banner (fetch from server)
     if (typeof renderGameOverPromoBanner === 'function') {
         renderGameOverPromoBanner();
@@ -1962,15 +1974,19 @@
         
         // Function to hide game over screen
         function hideGameOver() {
-            // Masquer immédiatement l'écran de game over sans animation
-            gameOverScreen.style.display = 'none';
-            // Réinitialiser la classe visible pour les futures utilisations
-            gameOverScreen.classList.remove('visible');
-            
-            // Réinitialiser l'état de l'animation de fin de jeu
-            gameOverAnimation = false;
-            gameOverAnimationComplete = false;
-        }
+    // Masquer la bannière RichAds si présente
+    if (typeof removeRichAdsBanner === 'function') {
+        removeRichAdsBanner();
+    }
+    // Masquer immédiatement l'écran de game over sans animation
+    gameOverScreen.style.display = 'none';
+    // Réinitialiser la classe visible pour les futures utilisations
+    gameOverScreen.classList.remove('visible');
+    
+    // Réinitialiser l'état de l'animation de fin de jeu
+    gameOverAnimation = false;
+    gameOverAnimationComplete = false;
+}
 
         // Function to reset the game and start a new game
         function resetGame() {
@@ -3834,6 +3850,7 @@
     <!-- Sticky user row for Game Over page -->
     <script src="gameover-sticky.js"></script>
     <script src="gameover-promo.js"></script>
+    <script src="gameover-richads.js"></script>
     <script src="season-dynamic.js"></script>
     <script>
       // Ensure leaderboard opens when clicking the season container
