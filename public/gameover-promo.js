@@ -4,8 +4,20 @@
 
 // Appeler cette fonction à chaque affichage de la page Game Over
 function showRichAdsBanner() {
-    if (window.TelegramAdsController && typeof window.TelegramAdsController.showBanner === 'function') {
+    console.log('[RichAds DEBUG] Appel showRichAdsBanner');
+    if (!window.TelegramAdsController) {
+        console.error('[RichAds DEBUG] TelegramAdsController est introuvable sur window');
+        return;
+    }
+    if (typeof window.TelegramAdsController.showBanner !== 'function') {
+        console.error('[RichAds DEBUG] showBanner n\'est pas une fonction sur TelegramAdsController', window.TelegramAdsController);
+        return;
+    }
+    try {
         window.TelegramAdsController.showBanner({format: 'banner'});
+        console.log('[RichAds DEBUG] showBanner appelé avec succès');
+    } catch (e) {
+        console.error('[RichAds DEBUG] Erreur lors de l\'appel à showBanner', e);
     }
 }
 
