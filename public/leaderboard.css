@@ -289,6 +289,7 @@ html, body, #leaderboard-screen, * {
     font-weight: bold;
     color: #00FF9D;
     font-size: 1.1rem;
+    margin-right: 5px;
 }
 .leaderboard-avatar {
     width: 40px;
