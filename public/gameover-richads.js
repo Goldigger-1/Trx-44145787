@@ -5,6 +5,7 @@ const RICHADS_BANNER_ID = 'richads-rect-banner';
 const RICHADS_CONTAINER_ID = 'richads-rect-banner-container';
 
 function createRichAdsBanner() {
+    console.log('[RichAds] createRichAdsBanner called');
     // Remove any existing banner (if present)
     const old = document.getElementById(RICHADS_CONTAINER_ID);
     if (old) old.remove();
@@ -33,26 +34,29 @@ function createRichAdsBanner() {
     adDiv.style.boxShadow = '0 4px 20px #00000022';
     adDiv.style.background = '#181818';
 
-    // RichAds embed script (rectangular banner)
-    adDiv.innerHTML = `
-      <script type="application/javascript">
-        if (window.TelegramAdsController && TelegramAdsController.createBanner) {
-          TelegramAdsController.createBanner({
-            containerId: '${RICHADS_BANNER_ID}',
-            format: 'rectangle',
-            width: 320,
-            height: 100
-          });
-        }
-      <\/script>
-    `;
-
     container.appendChild(adDiv);
 
     // Insert into #game-over (before all children)
     const gameOver = document.getElementById('game-over');
     if (gameOver) {
         gameOver.insertBefore(container, gameOver.firstChild);
+        // Fallback: assure l'initialisation du SDK avant d'appeler la création
+        setTimeout(() => {
+            if (window.TelegramAdsController && typeof TelegramAdsController.createBanner === 'function') {
+                console.log('[RichAds] SDK detected, creating banner');
+                TelegramAdsController.createBanner({
+                    containerId: RICHADS_BANNER_ID,
+                    format: 'rectangle',
+                    width: 320,
+                    height: 100
+                });
+            } else {
+                console.warn('[RichAds] SDK not loaded or createBanner unavailable');
+                adDiv.innerHTML = '<div style="color:#fff;background:#181818;padding:8px;border-radius:6px;font-size:13px;text-align:center;">Ad not available</div>';
+            }
+        }, 100);
+    } else {
+        console.warn('[RichAds] #game-over not found in DOM');
     }
 }
 
