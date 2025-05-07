@@ -158,8 +158,7 @@
         // Append new rows to the fragment
         for (let i = 0; i < maxItems; i++) {
             const user = ranking[i];
-            // Calculate rank based on page number and ITEMS_PER_PAGE
-            const actualIdx = (currentPage * ITEMS_PER_PAGE) + i;
+            const actualIdx = startIdx + i;
             const row = document.createElement('div');
             row.className = 'leaderboard-row';
             
