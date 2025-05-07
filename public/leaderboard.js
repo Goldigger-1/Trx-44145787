@@ -255,13 +255,13 @@
                 currentPage++;
             }
             
-            // Only render new items, don't re-render existing ones
-            const existingCount = document.querySelectorAll('.leaderboard-row').length;
-            const newItems = ranking.slice(existingCount);
+            // Correction: Ne pas filtrer les résultats puisque le serveur gère déjà la pagination
+            // const existingCount = document.querySelectorAll('.leaderboard-row').length;
+            // const newItems = ranking.slice(existingCount);
             
-            // If we have new items to render
-            if (newItems.length > 0) {
-                renderLeaderboard(newItems, getCurrentUserId(), false);
+            // Utiliser directement les résultats de l'API qui sont déjà paginés
+            if (ranking.length > 0) {
+                renderLeaderboard(ranking, getCurrentUserId(), false);
             } else {
                 console.log('No new items to render');
             }
