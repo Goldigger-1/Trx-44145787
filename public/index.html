@@ -3805,12 +3805,12 @@
             gameOverAnimation = true;
             gameOverAnimationComplete = false;
             
-            // Afficher ou masquer le bouton Revive selon l'utilisation précédente
-            if (hasUsedRevive) {
-                // Le joueur a déjà utilisé Revive, masquer le bouton
+            // Afficher ou masquer le bouton Revive selon l'utilisation précédente et le score
+            if (hasUsedRevive || score === 0) {
+                // Le joueur a déjà utilisé Revive ou le score est 0, masquer le bouton
                 reviveBtn.style.display = 'none';
             } else {
-                // Le joueur n'a pas encore utilisé Revive, afficher le bouton
+                // Le joueur n'a pas encore utilisé Revive et a un score > 0, afficher le bouton
                 reviveBtn.style.display = 'flex';
             }
             
