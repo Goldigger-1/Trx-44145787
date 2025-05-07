@@ -335,7 +335,7 @@
             let initialRanking = await fetchSeasonRanking(season.id, 0, ITEMS_PER_PAGE);
             
             // If we got fewer users than requested, we've reached the end
-            hasMoreUsers = initialRanking.length === USERS_PER_PAGE;
+            hasMoreUsers = initialRanking.length === ITEMS_PER_PAGE;
             
             // Add prize to 1st place
             if (initialRanking[0]) initialRanking[0].prize = season.prizeMoney;
