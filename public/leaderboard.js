@@ -49,7 +49,7 @@
 
     // Utility: Robustly get and validate current user ID
     function getCurrentUserId() {
-        let userId = window.userId || localStorage.getItem('tidashUserId') || '';
+        let userId = window.userId || localStorage.getItem('userId') || '';
         // If it's a DOM element or object, return empty string
         if (typeof userId !== 'string') {
             if (userId && userId.textContent) {
@@ -69,29 +69,16 @@
 
     // Get current user info (assume available globally or from localStorage)
     function getCurrentUser() {
-        // First check window variables set by the game
-        if (window.userId && window.username) {
-            let avatar = window.avatarSrc || '';
-            if (!avatar) {
-                // Check if there's an avatar in the DOM
-                const avatarImg = document.getElementById('avatarImg');
-                if (avatarImg && avatarImg.src) {
-                    avatar = avatarImg.src;
-                } else {
-                    avatar = 'avatars/avatar_default.jpg';
-                }
-            }
+        if (window.userId && window.username && window.avatarUrl) {
             return {
                 gameId: window.userId,
                 gameUsername: window.username,
-                avatar: avatar
+                avatar: window.avatarUrl,
             };
         }
-        
-        // Then try localStorage with the correct keys used by the game
         return {
-            gameId: localStorage.getItem('tidashUserId') || '',
-            gameUsername: localStorage.getItem('tidashUsername') || 'MainUser',
+            gameId: localStorage.getItem('userId') || '',
+            gameUsername: localStorage.getItem('username') || 'MainUser',
             avatar: localStorage.getItem('avatarUrl') || 'avatars/avatar_default.jpg',
         };
     }
@@ -163,34 +150,28 @@
             }
             
             try {
-                // Get user's rank directly from the endpoint
-                let rank = '-';
-                let bestScore = 0;
+                // Optimized: Get user data and rank in parallel
+                const [userPromise, rankPromise] = await Promise.allSettled([
+                    fetch(`/api/users/${encodeURIComponent(currentUserId)}`).then(r => r.ok ? r.json() : null),
+                    fetch(`/api/seasons/${seasonId}/users/${encodeURIComponent(currentUserId)}/rank`).then(r => r.ok ? r.json() : { rank: '-' })
+                ]);
                 
-                try {
-                    const rankRes = await fetch(`/api/seasons/${seasonId}/users/${encodeURIComponent(currentUserId)}/rank`);
-                    if (rankRes.ok) {
-                        const rankData = await rankRes.json();
-                        rank = rankData.rank || '-';
-                        
-                        // Use score from rank API if available
-                        if (rankData.score !== undefined) {
-                            bestScore = rankData.score;
-                        }
-                    }
-                } catch (error) {
-                    console.error('Error fetching rank:', error);
-                    // Continue with default values
+                // Extract user data
+                let user = userPromise.status === 'fulfilled' ? userPromise.value : null;
+                let rank = rankPromise.status === 'fulfilled' ? rankPromise.value?.rank : '-';
+                
+                // Fallback for user data if needed
+                if (!user) {
+                    // Try to find user in ranking as fallback
+                    user = ranking.find(u => String(u.gameId ?? u.id ?? u.userId) === String(currentUserId)) || {};
                 }
                 
-                // Get user data from local variables first
-                const currentUser = getCurrentUser();
+                // Set data with fallbacks
+                let bestScore = user?.bestScore || user?.score || 0;
+                let username = user?.gameUsername || user?.username || 'You';
+                let avatar = user?.avatarSrc || 'avatars/avatar_default.jpg';
                 
-                // Extract user data with fallbacks to local values
-                let username = currentUser.gameUsername || 'You';
-                let avatar = currentUser.avatar || 'avatars/avatar_default.jpg';
-                
-                // Add cache buster to avatar if needed
+                // Add cache buster to avatar
                 if (avatar && !avatar.includes('?')) {
                     avatar += '?t=' + new Date().getTime();
                 }

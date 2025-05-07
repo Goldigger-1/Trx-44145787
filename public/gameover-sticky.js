@@ -4,7 +4,7 @@
 
 async function renderGameOverStickyUserRow() {
     // Get current user ID (robust)
-    let userId = window.userId || localStorage.getItem('tidashUserId') || '';
+    let userId = window.userId || localStorage.getItem('userId') || '';
     if (typeof userId !== 'string') {
         if (userId && userId.textContent) {
             userId = userId.textContent;
@@ -40,44 +40,37 @@ async function renderGameOverStickyUserRow() {
             return;
         }
 
-        // Get user's rank in the season
+        // New optimized approach: Fetch user rank directly
         let rank = '-';
-        let bestScore = 0;
+        let user;
         
         try {
-            // Get user's rank in the season directly
+            // First, get user data
+            const userRes = await fetch(`/api/users/${encodeURIComponent(userId)}`);
+            if (!userRes.ok) throw new Error('Failed to fetch user data');
+            user = await userRes.json();
+            
+            // Then, get user's rank in the season
             const rankRes = await fetch(`/api/seasons/${season.id}/users/${encodeURIComponent(userId)}/rank`);
             if (rankRes.ok) {
                 const rankData = await rankRes.json();
                 rank = rankData.rank || '-';
-                
-                // Use score from rank response if available (avoids additional requests)
-                if (rankData.score !== undefined) {
-                    bestScore = rankData.score;
-                }
+            } else {
+                // Fallback if rank endpoint doesn't exist - use existing season score
+                // This still avoids loading the entire leaderboard
+                rank = '-';
             }
         } catch (err) {
             console.error('Error fetching user rank:', err);
-            // Continue with default values
-        }
-        
-        // Use local storage or window variables for username and avatar when available
-        // This avoids an unnecessary fetch to get user data we likely already have
-        let username = window.username || localStorage.getItem('tidashUsername') || 'You';
-        
-        // For avatar, use the global variable or find it in the DOM as a last resort
-        let avatar = window.avatarSrc || '';
-        if (!avatar) {
-            // Try to get the avatar from the existing avatar element in the DOM
-            const avatarImg = document.getElementById('avatarImg');
-            if (avatarImg && avatarImg.src) {
-                avatar = avatarImg.src;
-            } else {
-                avatar = 'avatars/avatar_default.jpg';
-            }
+            // Continue with user data if we have it, or use default values
         }
 
-        // Add cache buster to avatar if needed
+        // Set default values if user data is missing
+        let bestScore = user?.bestScore || user?.seasonScore || 0;
+        let username = user?.gameUsername || user?.username || 'You';
+        let avatar = user?.avatarSrc || 'avatars/avatar_default.jpg';
+
+        // Add cache buster to avatar
         if (avatar && !avatar.includes('?')) {
             avatar += '?t=' + new Date().getTime();
         }
