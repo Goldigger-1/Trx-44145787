@@ -42,9 +42,19 @@
 
     // Fetch leaderboard for season with pagination
     async function fetchSeasonRanking(seasonId, page = 0, limit = 10) {
+        // Fetch only the requested batch of data
         const res = await fetch(`/api/seasons/${seasonId}/ranking?page=${page}&limit=${limit}`);
         if (!res.ok) throw new Error('Failed to fetch season ranking');
-        return res.json();
+        const data = await res.json();
+        
+        // Cache the data we received
+        window.fullRankingCache = window.fullRankingCache || {};
+        if (!window.fullRankingCache[seasonId]) {
+            window.fullRankingCache[seasonId] = [];
+        }
+        window.fullRankingCache[seasonId].push(...data);
+        
+        return data;
     }
 
     // Utility: Robustly get and validate current user ID
@@ -220,8 +230,14 @@
             const USERS_PER_PAGE = 10;
             const newUsers = await fetchSeasonRanking(seasonId, currentPage, USERS_PER_PAGE);
             
-            // If we received fewer users than requested, we've reached the end
-            hasMoreUsers = newUsers.length === USERS_PER_PAGE;
+            // Check if we've loaded all users
+            if (window.fullRankingCache && window.fullRankingCache[seasonId]) {
+                const fullLength = window.fullRankingCache[seasonId].length;
+                hasMoreUsers = (currentPage + 1) * USERS_PER_PAGE < fullLength;
+            } else if (newUsers.length < USERS_PER_PAGE) {
+                // If we received fewer users than requested, we've reached the end
+                hasMoreUsers = false;
+            }
             
             // If we got some users, render them
             if (newUsers.length > 0) {
@@ -254,31 +270,73 @@
             return;
         }
 
-        try {
-            // Fetch user's rank and info directly from server
-            const res = await fetch(`/api/users/${encodeURIComponent(currentUserId)}/rank`);
-            if (!res.ok) throw new Error('Failed to fetch user rank');
-            const userData = await res.json();
-            
-            const rank = userData.rank || '-';
-            const bestScore = userData.bestScore || userData.score || 0;
-            const username = userData.gameUsername || userData.username || 'You';
-            const avatar = userData.avatarSrc || 'avatars/avatar_default.jpg';
-
-            // Add cache buster to avatar
-            const avatarWithCacheBuster = avatar + (avatar.includes('?') ? '&' : '?') + 't=' + new Date().getTime();
-
-            // Render sticky row
-            const userRow = `
-                <div class="leaderboard-rank">${rank}</div>
-                <div class="leaderboard-avatar"><img src="${avatarWithCacheBuster}" alt="${username}"></div>
-                <div class="leaderboard-username">${username} <span style="color:#00FF9D;">(You)</span></div>
-                <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${bestScore}</div>
-            `;
-            document.getElementById('leaderboard-user-row').innerHTML = userRow;
-        } catch (err) {
-            document.getElementById('leaderboard-user-row').innerHTML = '<div style="color:orange;">Could not load your rank. ⚠️</div>';
+        // Use cached ranking if available, otherwise fetch from server
+        let fullRanking;
+        if (window.fullRankingCache && window.fullRankingCache[seasonId]) {
+            fullRanking = window.fullRankingCache[seasonId];
+        } else {
+            try {
+                const res = await fetch(`/api/seasons/${seasonId}/ranking`);
+                if (!res.ok) throw new Error('Failed to fetch season ranking');
+                fullRanking = await res.json();
+                // Cache the result for future use
+                window.fullRankingCache = window.fullRankingCache || {};
+                window.fullRankingCache[seasonId] = fullRanking;
+            } catch (e) {
+                document.getElementById('leaderboard-user-row').innerHTML = '<div style="color:orange;">Could not load ranking. ⚠️</div>';
+                return;
+            }
         }
+
+        // Sort and find user in ranking (exact game over logic)
+        let sortedRanking = [...fullRanking].sort((a, b) => (b.bestScore ?? b.score ?? 0) - (a.bestScore ?? a.score ?? 0));
+        let userIndex = sortedRanking.findIndex(u => String(u.gameId ?? u.id ?? u.userId) === String(currentUserId));
+        let rank = userIndex !== -1 ? userIndex + 1 : '-';
+        let user = sortedRanking[userIndex];
+        let bestScore = 0;
+        let username = '';
+        let avatar = 'avatars/avatar_default.jpg';
+
+        if (user) {
+            // User is ranked
+            bestScore = user.bestScore || user.score || 0;
+            username = user.gameUsername || user.username || 'You';
+            avatar = user.avatarSrc || 'avatars/avatar_default.jpg';
+        } else {
+            // Not ranked: fetch from server
+            try {
+                const res = await fetch(`/api/users/${encodeURIComponent(currentUserId)}`);
+                if (res.ok) {
+                    user = await res.json();
+                    bestScore = user.bestScore || user.score || 0;
+                    username = user.gameUsername || user.username || 'You';
+                    avatar = user.avatarSrc || 'avatars/avatar_default.jpg';
+                } else {
+                    // User not found on server
+                    username = 'You';
+                    bestScore = 0;
+                    avatar = 'avatars/avatar_default.jpg';
+                }
+            } catch (err) {
+                username = 'You';
+                bestScore = 0;
+                avatar = 'avatars/avatar_default.jpg';
+            }
+        }
+
+        // Add cache buster to avatar
+        if (avatar && !avatar.includes('?')) {
+            avatar += '?t=' + new Date().getTime();
+        }
+
+        // Render sticky row (exact same format as game over)
+        const userRow = `
+            <div class="leaderboard-rank">${rank}</div>
+            <div class="leaderboard-avatar"><img src="${avatar}" alt="${username}"></div>
+            <div class="leaderboard-username">${username} <span style="color:#00FF9D;">(You)</span></div>
+            <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${bestScore}</div>
+        `;
+        document.getElementById('leaderboard-user-row').innerHTML = userRow;
     }
 
     // Show leaderboard page
