@@ -167,8 +167,9 @@
             // Use avatarSrc when available, otherwise use default
             const avatarSrc = user.avatarSrc || 'avatars/avatar_default.jpg';
             
-            // Calculate rank properly by adding 1 to the index (0-based to 1-based)
-            const rank = (startIdx + i) + 1;
+            // Calculate rank: (currentPage * ITEMS_PER_PAGE) + (i + 1)
+            // This ensures proper ranking across pages
+            const rank = (currentPage * ITEMS_PER_PAGE) + (i + 1);
             row.innerHTML = `
                 <div class="leaderboard-rank">${rank}</div>
                 <div class="leaderboard-avatar"><img src="${avatarSrc}" alt="${user.gameUsername || user.username || 'Player'}"></div>
