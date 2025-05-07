@@ -138,7 +138,14 @@
             
             // Prize for 1st
             if (podium[0]) {
-                document.getElementById('podium-1-prize').textContent = podium[0].prize ? `$${podium[0].prize}` : '';
+                const prize = podium[0].prize;
+                if (prize !== null && prize !== undefined) {
+                    // Format the prize as a whole number
+                    const formattedPrize = typeof prize === 'number' ? `$${Math.round(prize)}` : `$${prize}`;
+                    document.getElementById('podium-1-prize').textContent = formattedPrize;
+                } else {
+                    document.getElementById('podium-1-prize').textContent = '';
+                }
             }
         }
         

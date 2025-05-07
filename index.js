@@ -1207,7 +1207,7 @@ app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
             username: user.gameUsername || 'Unknown User',
             avatarSrc: avatarSrc,
             score: score.score || 0,
-            prize: ranking.length === 1 ? season.prizeMoney : null
+            prize: ranking.length === 1 ? parseFloat(season.prizeMoney) || 0 : null
           });
           
           console.log("[AVATAR DEBUG] Added user to ranking:", user.gameId, user.gameUsername, avatarSrc);
@@ -1748,7 +1748,7 @@ app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
             username: user.gameUsername || 'Unknown User',
             avatarSrc: avatarSrc,
             score: score.score || 0,
-            prize: ranking.length === 1 ? season.prizeMoney : null
+            prize: ranking.length === 1 ? parseFloat(season.prizeMoney) || 0 : null
           });
           
           console.log("[AVATAR DEBUG] Added user to ranking:", user.gameId, user.gameUsername, avatarSrc);
