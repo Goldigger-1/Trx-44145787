@@ -1,19 +1,10 @@
-// Sticky user row for Game Over page - Optimized to load independently
-// Injects user's season rank and best score into the sticky group on Game Over screen.
+// Sticky user row for Game Over page
+// Optimized implementation that fetches user rank directly from server
 // Expects <div class="leaderboard-user-row" id="gameover-user-row"></div> inside #game-over.
 
 async function renderGameOverStickyUserRow() {
-    console.log("📊 Rendering game over sticky user row (optimized)");
-    const userRowElement = document.getElementById('gameover-user-row');
-    
-    // Early return if element doesn't exist
-    if (!userRowElement) return;
-    
-    // Show loading state
-    userRowElement.innerHTML = '<div style="text-align:center;width:100%;"><img src="ressources/loading.svg" alt="Loading..." width="20" style="margin-right:8px;vertical-align:middle;">Loading your rank...</div>';
-    
-    // Get current user ID
-    let userId = window.userId || localStorage.getItem('tidashUserId') || localStorage.getItem('userId') || '';
+    // Get current user ID (robust)
+    let userId = window.userId || localStorage.getItem('tidashUserId') || '';
     if (typeof userId !== 'string') {
         if (userId && userId.textContent) {
             userId = userId.textContent;
@@ -21,77 +12,87 @@ async function renderGameOverStickyUserRow() {
             userId = '';
         }
     }
-    
     userId = userId.trim();
-    if (!userId) {
-        userRowElement.innerHTML = '<div style="color:orange;">Could not determine your user ID. Please log in again. ⚠️</div>';
+    if (!/^[\w-]{6,}$/.test(userId)) {
+        document.getElementById('gameover-user-row').innerHTML = '<div style="color:orange;">Could not determine your user ID. Please log in again. ⚠️</div>';
         return;
     }
-    
+
     try {
         // Fetch active season
-        const seasonRes = await fetch('/api/seasons/active');
-        if (!seasonRes.ok) {
-            throw new Error('Failed to fetch active season');
+        let season;
+        try {
+            // Try the newer endpoint first
+            let res = await fetch('/api/seasons/active');
+            if (res.ok) {
+                season = await res.json();
+            } else {
+                // Fallback
+                res = await fetch('/api/active-season');
+                if (res.ok) {
+                    season = await res.json();
+                } else {
+                    throw new Error('Failed to fetch active season');
+                }
+            }
+        } catch (e) {
+            document.getElementById('gameover-user-row').innerHTML = '<div style="color:orange;">Could not load season info. ⚠️</div>';
+            return;
         }
-        const season = await seasonRes.json();
+
+        // Get user's rank in the season
+        let rank = '-';
+        let bestScore = 0;
         
-        // Get user info and ranking with a direct API call
-        const userInfoPromise = fetch(`/api/users/${encodeURIComponent(userId)}`).then(r => r.ok ? r.json() : null);
-        const userRankPromise = fetch(`/api/seasons/${season.id}/scores/${encodeURIComponent(userId)}/rank`).then(r => r.ok ? r.json() : null);
-        
-        // Use Promise.all to run both requests in parallel
-        const [userInfo, userRank] = await Promise.all([userInfoPromise, userRankPromise]);
-        
-        if (!userInfo) {
-            throw new Error('User not found');
+        try {
+            // Get user's rank in the season directly
+            const rankRes = await fetch(`/api/seasons/${season.id}/users/${encodeURIComponent(userId)}/rank`);
+            if (rankRes.ok) {
+                const rankData = await rankRes.json();
+                rank = rankData.rank || '-';
+                
+                // Use score from rank response if available (avoids additional requests)
+                if (rankData.score !== undefined) {
+                    bestScore = rankData.score;
+                }
+            }
+        } catch (err) {
+            console.error('Error fetching user rank:', err);
+            // Continue with default values
         }
         
-        // Get user's info
-        const username = userInfo.gameUsername || userInfo.username || 'You';
-        let bestScore = userInfo.seasonScore || userInfo.bestScore || 0;
-        let avatar = userInfo.avatarSrc || 'avatars/avatar_default.jpg';
-        let rank = userRank ? userRank.rank : '-';
+        // Use local storage or window variables for username and avatar when available
+        // This avoids an unnecessary fetch to get user data we likely already have
+        let username = window.username || localStorage.getItem('tidashUsername') || 'You';
         
-        // Correct avatar path if needed
-        if (avatar && !avatar.includes('/')) {
-            avatar = `avatars/${avatar}`;
+        // For avatar, use the global variable or find it in the DOM as a last resort
+        let avatar = window.avatarSrc || '';
+        if (!avatar) {
+            // Try to get the avatar from the existing avatar element in the DOM
+            const avatarImg = document.getElementById('avatarImg');
+            if (avatarImg && avatarImg.src) {
+                avatar = avatarImg.src;
+            } else {
+                avatar = 'avatars/avatar_default.jpg';
+            }
         }
-        
-        // Add cache buster to avatar
+
+        // Add cache buster to avatar if needed
         if (avatar && !avatar.includes('?')) {
             avatar += '?t=' + new Date().getTime();
         }
-        
-        // If the user rank API failed but we have user's season score
-        if (rank === '-' && userInfo.seasonScore) {
-            // Try to get rank by checking the user's object directly
-            try {
-                const seasonScoreRes = await fetch(`/api/seasons/${season.id}/scores/${encodeURIComponent(userId)}`);
-                if (seasonScoreRes.ok) {
-                    const scoreData = await seasonScoreRes.json();
-                    if (scoreData && scoreData.score !== undefined) {
-                        bestScore = scoreData.score;
-                    }
-                }
-            } catch (err) {
-                console.warn("Failed to get user's score from season scores:", err);
-            }
-        }
-        
-        // Render the sticky row
+
+        // Render sticky row (Game Over: with rank)
         const userRow = `
             <div class="leaderboard-rank">${rank}</div>
             <div class="leaderboard-avatar"><img src="${avatar}" alt="${username}"></div>
             <div class="leaderboard-username">${username} <span style="color:#00FF9D;">(You)</span></div>
             <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${bestScore}</div>
         `;
-        userRowElement.innerHTML = userRow;
-        console.log("✅ Game over sticky user row rendered successfully");
-        
+        document.getElementById('gameover-user-row').innerHTML = userRow;
     } catch (error) {
-        console.error("❌ Error rendering game over sticky user row:", error);
-        userRowElement.innerHTML = '<div style="color:orange;">Could not load your ranking data. ⚠️</div>';
+        console.error('Error rendering game over sticky row:', error);
+        document.getElementById('gameover-user-row').innerHTML = '<div style="color:orange;">Could not load your rank. Please try again. ⚠️</div>';
     }
 }
 

@@ -2023,45 +2023,53 @@ app.post('/api/promo-banner', upload.single('image'), async (req, res) => {
   }
 });
 
-// API endpoint to get a user's rank in a season efficiently
-app.get('/api/seasons/:seasonId/scores/:userId/rank', async (req, res) => {
+// Endpoint to get a user's rank directly - optimized for sticky user row
+app.get('/api/seasons/:seasonId/users/:userId/rank', async (req, res) => {
   try {
     const { seasonId, userId } = req.params;
-    console.log(`🔍 Getting rank for user ${userId} in season ${seasonId}`);
     
-    // Verify the season exists
+    console.log(`🏆 Getting rank for user ${userId} in season ${seasonId}`);
+    
+    // Check if the season exists
     const season = await Season.findByPk(seasonId);
     if (!season) {
       return res.status(404).json({ error: 'Season not found' });
     }
     
-    // First check if the user has a score in this season
-    const userScore = await SeasonScore.findOne({
-      where: { seasonId, userId }
-    });
-    
-    if (!userScore) {
-      console.log(`⚠️ No score found for user ${userId} in season ${seasonId}`);
-      return res.json({ rank: '-', score: 0 });
+    // Check if the user exists
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
     }
     
-    // Count how many users have a higher score than this user
-    const higherScores = await SeasonScore.count({
-      where: {
-        seasonId,
-        score: { [Op.gt]: userScore.score }
+    // First, get the user's score
+    const userScore = await SeasonScore.findOne({
+      where: { 
+        userId: userId,
+        seasonId: seasonId
       }
     });
     
-    // User's rank is the number of higher scores + 1
-    const rank = higherScores + 1;
+    // If user has no score, rank is last place or "not ranked"
+    if (!userScore) {
+      return res.status(200).json({ rank: '-' });
+    }
     
-    console.log(`✅ User ${userId} has rank ${rank} in season ${seasonId} with score ${userScore.score}`);
+    // Count how many users have a higher score to determine rank
+    // Using the exact SQL query: SELECT COUNT(*) + 1 AS rank FROM SeasonScores WHERE seasonId = ? AND score > ?
+    const result = await sequelize.query(
+      'SELECT COUNT(*) + 1 AS rank FROM "SeasonScores" WHERE "seasonId" = ? AND "score" > ?',
+      { 
+        replacements: [seasonId, userScore.score],
+        type: sequelize.QueryTypes.SELECT 
+      }
+    );
     
-    res.json({
-      rank,
-      score: userScore.score
-    });
+    const rank = result[0]?.rank || 1;
+    
+    console.log(`✅ User ${userId} has rank ${rank} in season ${seasonId}`);
+    
+    res.status(200).json({ rank, score: userScore.score });
   } catch (error) {
     console.error('❌ Error getting user rank:', error);
     res.status(500).json({ 
