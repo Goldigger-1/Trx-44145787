@@ -186,6 +186,10 @@ const SeasonScore = sequelize.define('SeasonScore', {
   }
 });
 
+// Ajout des associations Sequelize pour la jointure
+SeasonScore.belongsTo(User, { foreignKey: 'userId', targetKey: 'gameId' });
+User.hasMany(SeasonScore, { foreignKey: 'userId', sourceKey: 'gameId' });
+
 // Synchroniser les modèles avec la base de données de manière robuste
 (async () => {
   let syncRetries = 0;
@@ -2008,56 +2012,47 @@ app.get('/api/seasons/:seasonId/user-rank/:userId', async (req, res) => {
 app.get('/api/seasons/:seasonId/paged-ranking', async (req, res) => {
   try {
     const { seasonId } = req.params;
-    
-    // Support pour pagination - toujours avec limite
-    const page = parseInt(req.query.page) || 0;
+    // Correction pagination : page commence à 1
+    const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 15;
-    const offset = page * limit;
-    
-    console.log(`🔍 [PAGED] Fetching ranking for season ${seasonId} (page: ${page}, limit: ${limit})`);
-    
-    // Find the season
+    const offset = (page - 1) * limit;
+
+    console.log(`🔍 [PAGED] Fetching ranking for season ${seasonId} (page: ${page}, limit: ${limit}, offset: ${offset})`);
+
+    // Vérifier la saison
     const season = await Season.findByPk(seasonId);
     if (!season) {
       return res.status(404).json({ error: 'Season not found' });
     }
-    
-    // Get scores with pagination
+
+    // Récupérer les scores avec jointure utilisateur
     const scores = await SeasonScore.findAll({
       where: { seasonId: seasonId },
       order: [['score', 'DESC']],
       limit: limit,
-      offset: offset
+      offset: offset,
+      include: [{
+        model: User,
+        attributes: ['gameId', 'gameUsername', 'avatarSrc']
+      }]
     });
-    
-    // Get user details for each score
-    const ranking = [];
-    for (const score of scores) {
-      try {
-        const user = await User.findByPk(score.userId);
-        if (user) {
-          let avatarSrc = user.avatarSrc;
-          if (!avatarSrc) {
-            avatarSrc = '/avatars/avatar_default.jpg';
-          } else if (!avatarSrc.startsWith('/') && !avatarSrc.startsWith('http')) {
-            avatarSrc = `/avatars/${avatarSrc}`;
-          }
-          
-          ranking.push({
-            userId: user.gameId,
-            username: user.gameUsername || 'Unknown User',
-            avatarSrc: avatarSrc,
-            score: score.score || 0
-          });
-        }
-      } catch (userError) {
-        console.error(`❌ Error fetching user ${score.userId}:`, userError);
+
+    // Construction du ranking optimisé
+    const ranking = scores.map(score => {
+      const user = score.User;
+      let avatarSrc = user && user.avatarSrc ? user.avatarSrc : '/avatars/avatar_default.jpg';
+      if (user && user.avatarSrc && !user.avatarSrc.startsWith('/') && !user.avatarSrc.startsWith('http')) {
+        avatarSrc = `/avatars/${user.avatarSrc}`;
       }
-    }
-    
+      return {
+        userId: user ? user.gameId : 'unknown',
+        username: user ? user.gameUsername : 'Unknown User',
+        avatarSrc: avatarSrc,
+        score: score.score || 0
+      };
+    });
+
     console.log(`✅ [PAGED] Found ${ranking.length} users for page ${page}`);
-    
-    // Return as array
     res.status(200).json(ranking);
   } catch (error) {
     console.error('❌ Error fetching paged ranking:', error);
