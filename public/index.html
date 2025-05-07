@@ -3002,9 +3002,23 @@
                             console.log(`📊 Score de saison récupéré: ${serverSeasonScore}`);
                             
                             // Récupérer également la position (rang) de l'utilisateur pour l'affichage
-                            const baseUrl = window.location.origin; // Utilise le protocole (http/https) et le domaine de la page courante
-                            console.log(`🌐 URL de base pour requête de rang: ${baseUrl}`);
+                            // Déterminer la base de l'URL avec le bon chemin
+                            let baseUrl = window.location.origin;
                             
+                            // Vérifier si nous sommes dans le chemin /test
+                            const pathname = window.location.pathname;
+                            const basePathMatch = pathname.match(/^\/([^\/]+)/);
+                            const basePath = basePathMatch ? basePathMatch[1] : '';
+                            
+                            if (basePath) {
+                                console.log(`🌐 Détection d'un chemin de base: /${basePath}`);
+                                // Ajouter le chemin de base à l'URL
+                                baseUrl = `${baseUrl}/${basePath}`;
+                            }
+                            
+                            console.log(`🌐 URL de base déterminée pour requête de rang: ${baseUrl}`);
+                            
+                            // URL complète avec le chemin de base correct
                             const rankApiUrl = `${baseUrl}/api/seasons/${season.id}/user-position?userId=${encodeURIComponent(userId)}`;
                             console.log(`🔗 URL complète de l'API de rang: ${rankApiUrl}`);
                             

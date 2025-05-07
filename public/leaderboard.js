@@ -129,11 +129,23 @@ async function renderLeaderboardUserRow() {
             try {
                 console.log(`🔍 Tentative de récupération du rang pour ${userId} dans la saison ${season.id}...`);
                 
-                // URL simple pour récupérer le rang - en utilisant l'URL de la page courante comme base
-                const baseUrl = window.location.origin; // Utilise le protocole (http/https) et le domaine de la page courante
-                console.log(`🌐 URL de base: ${baseUrl}`);
+                // Déterminer la base de l'URL avec le bon chemin
+                let baseUrl = window.location.origin;
                 
-                // URL complète avec le port actuel de l'application
+                // Vérifier si nous sommes dans le chemin /test
+                const pathname = window.location.pathname;
+                const basePathMatch = pathname.match(/^\/([^\/]+)/);
+                const basePath = basePathMatch ? basePathMatch[1] : '';
+                
+                if (basePath) {
+                    console.log(`🌐 Détection d'un chemin de base: /${basePath}`);
+                    // Ajouter le chemin de base à l'URL
+                    baseUrl = `${baseUrl}/${basePath}`;
+                }
+                
+                console.log(`🌐 URL de base déterminée: ${baseUrl}`);
+                
+                // URL complète avec le chemin de base correct
                 const apiUrl = `${baseUrl}/api/seasons/${season.id}/user-position?userId=${encodeURIComponent(userId)}`;
                 console.log(`🔗 URL complète de l'API: ${apiUrl}`);
                 
