@@ -255,16 +255,10 @@
                 currentPage++;
             }
             
-            // Correction: Ne pas filtrer les résultats puisque le serveur gère déjà la pagination
-            // const existingCount = document.querySelectorAll('.leaderboard-row').length;
-            // const newItems = ranking.slice(existingCount);
-            
-            // Utiliser directement les résultats de l'API qui sont déjà paginés
-            if (ranking.length > 0) {
-                renderLeaderboard(ranking, getCurrentUserId(), false);
-            } else {
-                console.log('No new items to render');
-            }
+            // Ne pas filtrer les nouveaux éléments - rendre directement tous les éléments du nouveau lot
+            // Le problème était ici - on filtrait à partir de existingCount, mais cela causait un décalage
+            // car on recevait 15 éléments mais n'en rendait que quelques-uns
+            renderLeaderboard(ranking, getCurrentUserId(), false);
         } catch (error) {
             console.error('Error loading more users:', error);
             // Show error in loading indicator
