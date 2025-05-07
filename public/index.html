@@ -1912,13 +1912,6 @@
             const seasonScoreElement = document.getElementById('season-score');
             seasonScoreElement.style.display = 'block';
             
-            // Always update the sticky user row with latest info
-            if (window.renderGameOverStickyUserRow) {
-                window.renderGameOverStickyUserRow();
-            } else if (typeof renderGameOverStickyUserRow === 'function') {
-                renderGameOverStickyUserRow();
-            }
-            
             // Essayer d'utiliser d'abord le score de saison connu, qui a été actualisé juste avant
             if (score > seasonScore) {
                 // Si le score actuel est meilleur, l'afficher immédiatement
@@ -3962,10 +3955,20 @@
         var seasonInfoContainer = document.getElementById('season-info-container');
         if (seasonInfoContainer) {
           seasonInfoContainer.addEventListener('click', function() {
-            if (typeof showLeaderboard === 'function') showLeaderboard();
-            if (typeof initLeaderboard === 'function') initLeaderboard();
+            // Les appels aux fonctions du leaderboard ont été supprimés
+            console.log("Season container clicked - leaderboard functionality removed");
           });
         }
+        
+        // Ajout d'un gestionnaire d'événement basique pour le bouton de fermeture du leaderboard
+        var closeLeaderboardBtn = document.getElementById('close-leaderboard');
+        if (closeLeaderboardBtn) {
+          closeLeaderboardBtn.addEventListener('click', function() {
+            // Masquer simplement l'écran du leaderboard
+            document.getElementById('leaderboard-screen').style.display = 'none';
+          });
+        }
+        
         // Help button logic
         var helpBtn = document.getElementById('help-button');
         if (helpBtn) {
