@@ -158,7 +158,7 @@
         // Append new rows to the fragment
         for (let i = 0; i < maxItems; i++) {
             const user = ranking[i];
-            const actualIdx = startIdx + i;
+            const actualIdx = startIdx + i - 1;
             const row = document.createElement('div');
             row.className = 'leaderboard-row';
             
@@ -257,7 +257,7 @@
             
             // Only render new items, don't re-render existing ones
             const existingCount = document.querySelectorAll('.leaderboard-row').length;
-            const newItems = ranking.slice(existingCount);
+            const newItems = ranking.slice(existingCount - 1);
             
             // If we have new items to render
             if (newItems.length > 0) {
