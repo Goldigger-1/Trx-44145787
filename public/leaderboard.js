@@ -339,9 +339,15 @@
     }
 
     // Show leaderboard page
-    function showLeaderboard() {
-        document.getElementById('leaderboard-screen').style.display = 'flex';
-        document.body.style.overflow = 'hidden';
+    async function showLeaderboard() {
+        try {
+            await initLeaderboard();
+            document.getElementById('leaderboard-screen').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        } catch (error) {
+            console.error('Error initializing leaderboard:', error);
+            alert('Failed to load leaderboard. Please try again.');
+        }
     }
     // Hide leaderboard page
     function hideLeaderboard() {
@@ -396,7 +402,7 @@
             setupIntersectionObserver();
             
             // Render initial data
-            renderLeaderboard(ranking, getCurrentUserId(), true);
+            await renderLeaderboard(ranking, getCurrentUserId(), true);
             
             // If we got fewer users than requested, we've reached the end
             hasMoreUsers = initialRanking.length === 15;
