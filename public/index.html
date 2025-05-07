@@ -2974,8 +2974,14 @@
                 return Promise.resolve(0);
             }
             
+            // Récupérer l'hôte actuel sans le port pour construire les URLs d'API
+            const currentHost = window.location.hostname;
+            
             // DIRECT IMPLEMENTATION of leaderboard approach - fetch season ranking and find user's score
-            return fetch('/api/seasons/active')
+            const activeSeasonUrl = `http://${currentHost}:3001/api/seasons/active`;
+            console.log(`🔗 URL de l'API seasons/active: ${activeSeasonUrl}`);
+            
+            return fetch(activeSeasonUrl)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error('Error retrieving active season');
@@ -2986,7 +2992,10 @@
                     console.log(`✅ Active season found: ${season.id}, Season ${season.seasonNumber}`);
                     
                     // Récupérer le score de l'utilisateur directement
-                    return fetch(`/api/seasons/${season.id}/scores/${encodeURIComponent(userId)}`)
+                    const scoreUrl = `http://${currentHost}:3001/api/seasons/${season.id}/scores/${encodeURIComponent(userId)}`;
+                    console.log(`🔗 URL de l'API scores: ${scoreUrl}`);
+                    
+                    return fetch(scoreUrl)
                         .then(response => {
                             if (response.ok) {
                                 return response.json();
@@ -3002,7 +3011,11 @@
                             console.log(`📊 Score de saison récupéré: ${serverSeasonScore}`);
                             
                             // Récupérer également la position (rang) de l'utilisateur pour l'affichage
-                            return fetch(`/api/seasons/${season.id}/user-position?userId=${encodeURIComponent(userId)}`)
+                            const currentHost = window.location.hostname;
+                            const userPositionUrl = `http://${currentHost}:3001/api/seasons/${season.id}/user-position?userId=${encodeURIComponent(userId)}`;
+                            console.log(`🔗 URL de l'API user-position: ${userPositionUrl}`);
+                            
+                            return fetch(userPositionUrl)
                                 .then(rankResponse => {
                                     // Même si la requête de position échoue, on a déjà le score
                                     if (rankResponse.ok) {

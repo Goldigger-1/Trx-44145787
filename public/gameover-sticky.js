@@ -100,9 +100,21 @@ async function renderGameOverStickyUserRow() {
             try {
                 console.log(`🔍 Tentative de récupération du rang pour ${userId} dans la saison ${season.id}...`);
                 
-                // URL simple pour récupérer le rang - sans port codé en dur
-                const apiUrl = `/api/seasons/${season.id}/user-position?userId=${encodeURIComponent(userId)}`;
-                console.log(`🔗 URL de l'API: ${apiUrl}`);
+                // Utiliser explicitement le port 3001 (serveur de production) pour l'API
+                // Récupérer l'hôte actuel sans le port
+                const currentHost = window.location.hostname;
+                
+                // URL avec port explicite pour garantir l'accès à l'API correcte
+                const apiUrl = `http://${currentHost}:3001/api/seasons/${season.id}/user-position?userId=${encodeURIComponent(userId)}`;
+                console.log(`🔗 URL de l'API avec port explicite: ${apiUrl}`);
+                
+                // Afficher un message temporaire pendant le chargement
+                userRowElement.innerHTML = `
+                    <div class="leaderboard-rank">...</div>
+                    <div class="leaderboard-avatar"><img src="${avatarImgSrc}" alt="${username}"></div>
+                    <div class="leaderboard-username">${username} <span style="color:#00FF9D;">(You)</span></div>
+                    <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${userSeasonScore}</div>
+                `;
                 
                 const userPositionRes = await fetch(apiUrl);
                 console.log(`📊 Statut de la réponse: ${userPositionRes.status}`);
@@ -132,6 +144,10 @@ async function renderGameOverStickyUserRow() {
                 }
             } catch (positionError) {
                 console.error('❌ Erreur lors de la récupération de la position utilisateur:', positionError);
+                // Ajouter une trace visible de l'erreur dans l'interface (sera remplacée par la ligne utilisateur complète après)
+                userRowElement.innerHTML = `<div style="color:orange;">Erreur API: ${positionError.message}</div>`;
+                // Attendre 2 secondes pour que l'utilisateur puisse voir l'erreur
+                await new Promise(resolve => setTimeout(resolve, 2000));
             }
             
             // S'assurer que userRank est toujours une valeur valide pour l'affichage
