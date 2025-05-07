@@ -82,123 +82,85 @@ async function renderLeaderboardUserRow() {
             return;
         }
         
-        // 3. Calculer le rang de l'utilisateur et récupérer son score de saison
+        // 3. Récupérer à la fois le score et le rang de l'utilisateur dans la saison active
+        let userData = null;
+        let userRank = null;
+        let userSeasonScore = 0;
+        let username = '';
+        
         try {
-            console.log(`📊 Récupération du rang et score pour l'utilisateur ${userId} dans la saison ${season.id}...`);
-            
-            // Requête optimisée pour obtenir le score de saison pour l'utilisateur
+            // Récupérer d'abord le score de l'utilisateur dans la saison
+            console.log(`📊 Récupération du score pour l'utilisateur ${userId} dans la saison ${season.id}...`);
             const scoreRes = await fetch(`/api/seasons/${season.id}/scores/${encodeURIComponent(userId)}`);
-            if (!scoreRes.ok) {
-                throw new Error('Impossible de récupérer le score de saison');
-            }
             
-            const scoreData = await scoreRes.json();
-            const userScore = scoreData.score || 0;
-            
-            // Requête optimisée pour calculer le rang (nombre d'utilisateurs avec un score supérieur + 1)
-            const rankRes = await fetch(`/api/seasons/${season.id}/rank?score=${userScore}&userId=${encodeURIComponent(userId)}`);
-            let rank = 0;
-            
-            if (rankRes.ok) {
-                const rankData = await rankRes.json();
-                rank = rankData.rank || 0;
-            } else {
-                // Méthode alternative pour calculer le rang si l'endpoint n'existe pas
-                // Cette requête devrait être implémentée côté serveur, mais nous pouvons fournir une solution frontend
-                // qui peut fonctionner avec l'API existante
-                console.log('⚠️ Endpoint de rang non disponible, tentative de calcul alternatif...');
+            if (scoreRes.ok) {
+                const scoreData = await scoreRes.json();
+                userSeasonScore = scoreData.score || 0;
+                console.log(`✅ Score de saison récupéré: ${userSeasonScore}`);
                 
-                // Récupérer le score de l'utilisateur
-                const userScoreResponse = await fetch(`/api/seasons/${season.id}/scores/count?greaterThan=${userScore}`);
-                if (userScoreResponse.ok) {
-                    const countData = await userScoreResponse.json();
-                    rank = (countData.count || 0) + 1;
+                // Maintenant, calculer le rang de l'utilisateur en fonction de son score
+                // On utilise un endpoint spécifique qui calcule le rang côté serveur sans charger toute la liste
+                console.log(`🔢 Calcul du rang pour le score ${userSeasonScore} dans la saison ${season.id}...`);
+                const rankRes = await fetch(`/api/seasons/${season.id}/rank-for-score/${userSeasonScore}`);
+                
+                if (rankRes.ok) {
+                    const rankData = await rankRes.json();
+                    userRank = rankData.rank || '-';
+                    console.log(`✅ Rang calculé: ${userRank}`);
                 } else {
-                    // Dernier recours - utiliser un endpoint qui renvoie une liste paginée des scores
-                    // et compter les scores supérieurs à celui de l'utilisateur
-                    console.log('⚠️ Méthode alternative 1 échoue, essai dernière méthode...');
+                    // Méthode alternative si l'endpoint de rang n'existe pas
+                    console.log(`⚠️ Endpoint de rang non disponible, calcul alternatif...`);
+                    const countRes = await fetch(`/api/seasons/${season.id}/count-above-score/${userSeasonScore}`);
                     
-                    // Définir un rang par défaut si tout échoue
-                    rank = '-';
-                }
-            }
-            
-            // 4. Utiliser l'avatar global déjà chargé pour la page d'accueil
-            // Récupérer l'avatar directement de la variable globale ou de l'élément d'image du profil
-            let avatarImgSrc;
-            if (window.avatarSrc) {
-                avatarImgSrc = window.avatarSrc;
-                console.log('✅ Utilisation de l\'avatar global:', avatarImgSrc);
-            } else {
-                const profileAvatarImg = document.getElementById('avatarImg');
-                if (profileAvatarImg && profileAvatarImg.src) {
-                    avatarImgSrc = profileAvatarImg.src;
-                    console.log('✅ Utilisation de l\'avatar du profil:', avatarImgSrc);
-                } else {
-                    // Fallback si aucun avatar n'est disponible
-                    avatarImgSrc = 'avatars/avatar_default.jpg';
-                    console.log('⚠️ Fallback sur l\'avatar par défaut');
-                }
-            }
-            
-            // 5. Récupérer le nom d'utilisateur (réutiliser la variable globale)
-            const username = window.username || document.getElementById('username')?.textContent || 'You';
-            
-            // 6. Construire la rangée HTML avec le score de la saison et le rang calculé
-            const userRow = `
-                <div class="leaderboard-rank">${rank}</div>
-                <div class="leaderboard-avatar"><img src="${avatarImgSrc}" alt="${username}"></div>
-                <div class="leaderboard-username">${username} <span style="color:#00FF9D;">(You)</span></div>
-                <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${userScore}</div>
-            `;
-            
-            // 7. Insérer dans le DOM
-            userRowElement.innerHTML = userRow;
-        } catch (error) {
-            console.error('❌ Erreur lors du calcul du rang utilisateur:', error);
-            
-            // Fallback: afficher une rangée utilisateur simplifiée sans rang
-            try {
-                // Récupérer le score de saison directement
-                const seasonScoreRes = await fetch(`/api/seasons/${season.id}/scores/${encodeURIComponent(userId)}`);
-                let seasonScore = 0;
-                
-                if (seasonScoreRes.ok) {
-                    const seasonScoreData = await seasonScoreRes.json();
-                    seasonScore = seasonScoreData.score || 0;
-                }
-                
-                // Utiliser l'avatar global déjà chargé pour la page d'accueil
-                let avatarImgSrc;
-                if (window.avatarSrc) {
-                    avatarImgSrc = window.avatarSrc;
-                } else {
-                    const profileAvatarImg = document.getElementById('avatarImg');
-                    if (profileAvatarImg && profileAvatarImg.src) {
-                        avatarImgSrc = profileAvatarImg.src;
-                    } else {
-                        // Fallback si aucun avatar n'est disponible
-                        avatarImgSrc = 'avatars/avatar_default.jpg';
+                    if (countRes.ok) {
+                        const countData = await countRes.json();
+                        userRank = (countData.count + 1) || '-';
+                        console.log(`✅ Rang calculé (méthode alternative): ${userRank}`);
                     }
                 }
-                
-                // Récupérer le nom d'utilisateur (réutiliser la variable globale)
-                const username = window.username || document.getElementById('username')?.textContent || 'You';
-                
-                // Construire la rangée sans le rang mais avec le score de saison spécifique
-                const userRow = `
-                    <div class="leaderboard-rank">-</div>
-                    <div class="leaderboard-avatar"><img src="${avatarImgSrc}" alt="${username}"></div>
-                    <div class="leaderboard-username">${username} <span style="color:#00FF9D;">(You)</span></div>
-                    <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${seasonScore}</div>
-                `;
-                
-                userRowElement.innerHTML = userRow;
-            } catch (fallbackError) {
-                console.error('❌ Erreur lors de la récupération des données utilisateur:', fallbackError);
-                userRowElement.innerHTML = '<div style="color:orange;">Impossible de charger votre classement. ⚠️</div>';
+            }
+            
+            // Récupérer les informations de profil de l'utilisateur
+            const userDataRes = await fetch(`/api/users/${encodeURIComponent(userId)}`);
+            if (userDataRes.ok) {
+                userData = await userDataRes.json();
+                username = userData.gameUsername || 'You';
+            }
+            
+        } catch (error) {
+            console.error('❌ Erreur lors du calcul du rang:', error);
+            userRank = '-';
+        }
+            
+        // 4. Utiliser l'avatar global déjà chargé pour la page d'accueil
+        // Récupérer l'avatar directement de la variable globale ou de l'élément d'image du profil
+        let avatarImgSrc;
+        if (window.avatarSrc) {
+            avatarImgSrc = window.avatarSrc;
+            console.log('✅ Utilisation de l\'avatar global:', avatarImgSrc);
+        } else {
+            const profileAvatarImg = document.getElementById('avatarImg');
+            if (profileAvatarImg && profileAvatarImg.src) {
+                avatarImgSrc = profileAvatarImg.src;
+                console.log('✅ Utilisation de l\'avatar du profil:', avatarImgSrc);
+            } else {
+                // Fallback si aucun avatar n'est disponible
+                avatarImgSrc = 'avatars/avatar_default.jpg';
+                console.log('⚠️ Fallback sur l\'avatar par défaut');
             }
         }
+        
+        // 5. Construire la rangée HTML avec le rang et le score de saison
+        const userRow = `
+            <div class="leaderboard-rank">${userRank}</div>
+            <div class="leaderboard-avatar"><img src="${avatarImgSrc}" alt="${username}"></div>
+            <div class="leaderboard-username">${username} <span style="color:#00FF9D;">(You)</span></div>
+            <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${userSeasonScore}</div>
+        `;
+        
+        // 6. Insérer dans le DOM
+        userRowElement.innerHTML = userRow;
+        
     } catch (error) {
         console.error('❌ Erreur globale dans renderLeaderboardUserRow:', error);
         userRowElement.innerHTML = '<div style="color:orange;">Une erreur s\'est produite. ⚠️</div>';
