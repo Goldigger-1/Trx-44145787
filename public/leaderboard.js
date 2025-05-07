@@ -140,61 +140,67 @@
             `;
             list.appendChild(row);
         });
-        
-        // Current user row (sticky) - Optimized implementation
-        async function renderStickyUserRow(seasonId, currentUserId) {
+        // Current user row (sticky)
+        // --- Robust sticky user row rendering: always use server data ---
+        async function renderStickyUserRow(ranking, currentUserId) {
             // If user ID is missing or invalid, show error
             if (!currentUserId) {
                 document.getElementById('leaderboard-user-row').innerHTML = '<div style="color:orange;">Could not determine your user ID. Please log in again. ⚠️</div>';
                 return;
             }
-            
-            try {
-                // Optimized: Get user data and rank in parallel
-                const [userPromise, rankPromise] = await Promise.allSettled([
-                    fetch(`/api/users/${encodeURIComponent(currentUserId)}`).then(r => r.ok ? r.json() : null),
-                    fetch(`/api/seasons/${seasonId}/users/${encodeURIComponent(currentUserId)}/rank`).then(r => r.ok ? r.json() : { rank: '-' })
-                ]);
-                
-                // Extract user data
-                let user = userPromise.status === 'fulfilled' ? userPromise.value : null;
-                let rank = rankPromise.status === 'fulfilled' ? rankPromise.value?.rank : '-';
-                
-                // Fallback for user data if needed
-                if (!user) {
-                    // Try to find user in ranking as fallback
-                    user = ranking.find(u => String(u.gameId ?? u.id ?? u.userId) === String(currentUserId)) || {};
+            // Deep fix: Always sort the ranking array by bestScore (or score) descending before finding the user's position
+            let sortedRanking = [...ranking].sort((a, b) => (b.bestScore ?? b.score ?? 0) - (a.bestScore ?? a.score ?? 0));
+            let userIndex = sortedRanking.findIndex(u => String(u.gameId ?? u.id ?? u.userId) === String(currentUserId));
+            let rank = userIndex !== -1 ? userIndex + 1 : '-';
+            let user = sortedRanking[userIndex];
+            let bestScore = 0;
+            let username = '';
+            let avatar = 'avatars/avatar_default.jpg';
+            if (user) {
+                // User is ranked
+                bestScore = user.bestScore || user.score || 0;
+                username = user.gameUsername || user.username || 'You';
+                avatar = user.avatarSrc || 'avatars/avatar_default.jpg';
+            } else {
+                // Not ranked: fetch from server
+                try {
+                    const res = await fetch(`/api/users/${encodeURIComponent(currentUserId)}`);
+                    if (res.ok) {
+                        user = await res.json();
+                        bestScore = user.bestScore || user.score || 0;
+                        username = user.gameUsername || user.username || 'You';
+                        avatar = user.avatarSrc || 'avatars/avatar_default.jpg';
+                    } else {
+                        // User not found on server
+                        username = 'You';
+                        bestScore = 0;
+                        avatar = 'avatars/avatar_default.jpg';
+                    }
+                } catch (err) {
+                    username = 'You';
+                    bestScore = 0;
+                    avatar = 'avatars/avatar_default.jpg';
                 }
-                
-                // Set data with fallbacks
-                let bestScore = user?.bestScore || user?.score || 0;
-                let username = user?.gameUsername || user?.username || 'You';
-                let avatar = user?.avatarSrc || 'avatars/avatar_default.jpg';
-                
-                // Add cache buster to avatar
-                if (avatar && !avatar.includes('?')) {
-                    avatar += '?t=' + new Date().getTime();
-                }
-                
-                console.log('[DEBUG] Current user avatar:', avatar);
-                
-                // Render sticky row
-                const userRow = `
-                    <div class="leaderboard-rank">${rank}</div>
-                    <div class="leaderboard-avatar"><img src="${avatar}" alt="${username}"></div>
-                    <div class="leaderboard-username">${username} <span style="color:#00FF9D;">(You)</span></div>
-                    <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${bestScore}</div>
-                `;
-                console.log('[DEBUG sticky row]', {rank, bestScore, username, avatar, userRow});
-                document.getElementById('leaderboard-user-row').innerHTML = userRow;
-            } catch (e) {
-                console.error('Error rendering sticky user row:', e);
-                document.getElementById('leaderboard-user-row').innerHTML = '<div style="color:red;">Failed to load your info. Please refresh. ❌</div>';
             }
+            // Add cache buster to avatar
+            if (avatar && !avatar.includes('?')) {
+                avatar += '?t=' + new Date().getTime();
+            }
+            
+            console.log('[DEBUG] Current user avatar:', avatar);
+            
+            // Render sticky row
+            const userRow = `
+                <div class="leaderboard-rank">${rank}</div>
+                <div class="leaderboard-avatar"><img src="${avatar}" alt="${username}"></div>
+                <div class="leaderboard-username">${username} <span style=\"color:#00FF9D;\">(You)</span></div>
+                <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${bestScore}</div>
+            `;
+            console.log('[DEBUG sticky row]', {rank, bestScore, username, avatar, userRow});
+            document.getElementById('leaderboard-user-row').innerHTML = userRow;
         }
-        
-        // Call the async function to render sticky user row
-        renderStickyUserRow(season.id, currentUserId).catch(e => {
+        // Call the async function and handle errors
+        renderStickyUserRow(ranking, currentUserId).catch(e => {
             document.getElementById('leaderboard-user-row').innerHTML = '<div style="color:red;">Failed to load your info. Please refresh. ❌</div>';
         });
     }
@@ -242,26 +248,18 @@
 
             // Hide loading overlay when done
             if (loadingOverlay) loadingOverlay.style.display = 'none';
-        } catch (error) {
-            console.error('Error initializing leaderboard:', error);
-            // Hide loading overlay on error
+        } catch (e) {
+            // Hide loading overlay on error as well
             if (loadingOverlay) loadingOverlay.style.display = 'none';
-            
-            // Show error in leaderboard container
-            const leaderboardList = document.getElementById('leaderboard-list');
-            if (leaderboardList) {
-                leaderboardList.innerHTML = `
-                    <div style="text-align:center;padding:40px 20px;color:#FF3B30;">
-                        <p>Error loading leaderboard data.</p>
-                        <p>Please try again later.</p>
-                    </div>
-                `;
-            }
+            alert('Failed to load leaderboard. Please try again later.');
+            console.error(e);
         }
     }
 
-    // Make functions available globally
+    // Expose showLeaderboard globally for integration
     window.showLeaderboard = showLeaderboard;
-    window.hideLeaderboard = hideLeaderboard;
+    // Initialize leaderboard on page load (or call when opening)
+    // initLeaderboard(); // Uncomment if you want auto-load
     window.initLeaderboard = initLeaderboard;
+
 })();

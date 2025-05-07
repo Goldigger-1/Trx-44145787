@@ -358,7 +358,7 @@ bot.help((ctx) => {
 
 bot.start((ctx) => {
   console.log('Commande /start reçue de:', ctx.from.id, ctx.from.username);
-  ctx.reply('Let\'s see how long you last here 😏', {
+  ctx.reply('Let’s see how long you last here 😏', {
     reply_markup: {
       inline_keyboard: [
         [{ text: 'Play', web_app: { url: webAppUrl } }],
@@ -2020,62 +2020,6 @@ app.post('/api/promo-banner', upload.single('image'), async (req, res) => {
     res.json({ success: true, imageUrl: imageFilename ? `/promo-images/${imageFilename}` : '', link });
   } catch (err) {
     res.status(500).json({ error: 'Could not save promo banner' });
-  }
-});
-
-// Endpoint to get a user's rank directly - optimized for sticky user row
-app.get('/api/seasons/:seasonId/users/:userId/rank', async (req, res) => {
-  try {
-    const { seasonId, userId } = req.params;
-    
-    console.log(`🏆 Getting rank for user ${userId} in season ${seasonId}`);
-    
-    // Check if the season exists
-    const season = await Season.findByPk(seasonId);
-    if (!season) {
-      return res.status(404).json({ error: 'Season not found' });
-    }
-    
-    // Check if the user exists
-    const user = await User.findByPk(userId);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    
-    // First, get the user's score
-    const userScore = await SeasonScore.findOne({
-      where: { 
-        userId: userId,
-        seasonId: seasonId
-      }
-    });
-    
-    // If user has no score, rank is last place or "not ranked"
-    if (!userScore) {
-      return res.status(200).json({ rank: '-' });
-    }
-    
-    // Count how many users have a higher score to determine rank
-    // Using the exact SQL query: SELECT COUNT(*) + 1 AS rank FROM SeasonScores WHERE seasonId = ? AND score > ?
-    const result = await sequelize.query(
-      'SELECT COUNT(*) + 1 AS rank FROM "SeasonScores" WHERE "seasonId" = ? AND "score" > ?',
-      { 
-        replacements: [seasonId, userScore.score],
-        type: sequelize.QueryTypes.SELECT 
-      }
-    );
-    
-    const rank = result[0]?.rank || 1;
-    
-    console.log(`✅ User ${userId} has rank ${rank} in season ${seasonId}`);
-    
-    res.status(200).json({ rank, score: userScore.score });
-  } catch (error) {
-    console.error('❌ Error getting user rank:', error);
-    res.status(500).json({ 
-      error: 'Error getting user rank', 
-      details: error.message 
-    });
   }
 });
 
