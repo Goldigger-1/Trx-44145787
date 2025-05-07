@@ -83,19 +83,9 @@
         }
     }
 
-    // Cache pour les requêtes récentes
-    const rankingCache = {};
-
     // Fetch leaderboard for season with pagination
     async function fetchSeasonRanking(seasonId, page = 0) {
         try {
-            // Vérifier dans le cache d'abord
-            const cacheKey = `${seasonId}_${page}`;
-            if (rankingCache[cacheKey]) {
-                console.log(`🧠 Using cached data for season ${seasonId}, page ${page}`);
-                return rankingCache[cacheKey];
-            }
-            
             // Fetch only the requested batch of data
             const ITEMS_PER_PAGE = 15;
             console.log(`🔍 Fetching ranking page ${page} for season ${seasonId} with limit ${ITEMS_PER_PAGE}`);
@@ -106,24 +96,23 @@
                 throw new Error(`Invalid season ID: ${seasonId}`);
             }
             
-            // ESSAYER L'ENDPOINT ORIGINAL POUR VOIR SI C'EST LE PROBLÈME
+            // Utiliser l'endpoint avec des paramètres de pagination clairs
             const url = `/api/seasons/${seasonId}/ranking?page=${page}&limit=${ITEMS_PER_PAGE}`;
             console.log(`🌐 Request URL: ${url}`);
             
-            // Ajouter un timeout pour éviter que la requête ne reste bloquée (réduit à 5 secondes)
+            // Ajouter un cache buster pour éviter les problèmes de cache
+            const cacheBuster = new Date().getTime();
+            const finalUrl = `${url}&_=${cacheBuster}`;
+            
+            // Ajouter un timeout pour éviter que la requête ne reste bloquée
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 secondes timeout
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 secondes timeout
             
             try {
-                const res = await fetch(url, { 
+                const res = await fetch(finalUrl, { 
                     signal: controller.signal,
-                    // Désactiver le cache du navigateur
-                    headers: {
-                        'Cache-Control': 'no-cache',
-                        'Pragma': 'no-cache'
-                    }
+                    headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
                 });
-                
                 // Effacer le timeout
                 clearTimeout(timeoutId);
                 
@@ -147,16 +136,10 @@
                 }
                 
                 console.log(`📦 Received ${data.length} items for page ${page}`);
-                
-                // Mettre en cache les résultats (uniquement si nous avons reçu des données)
-                if (data.length > 0) {
-                    rankingCache[cacheKey] = data;
-                }
-                
                 return data;
             } catch (fetchError) {
                 if (fetchError.name === 'AbortError') {
-                    console.error('🕒 Fetch request timed out after 5 seconds');
+                    console.error('🕒 Fetch request timed out after 10 seconds');
                     throw new Error('Request timed out. Please try again later.');
                 }
                 throw fetchError;
@@ -217,11 +200,10 @@
     }
 
     // Global variables for progressive loading
-    let currentPage = 0;  // La page 0 est la première page
+    let currentPage = 0;
     let isLoading = false;
     let hasMoreUsers = true;
     let seasonId = null;
-    let lastLoadedUsers = []; // Pour stocker les derniers utilisateurs chargés et éviter les doublons
     
     // Render leaderboard with progressive loading
     async function renderLeaderboard(ranking, currentUserId, isInitialLoad = true) {
@@ -239,8 +221,16 @@
         if (isInitialLoad) {
             console.log('🧹 Initial load - clearing list');
             
-            // Clear list completely
-            list.innerHTML = '';
+            // Clear list but keep loading indicator if present
+            const loadingIndicator = document.getElementById('leaderboard-loading-indicator');
+            if (loadingIndicator) {
+                // Store loading indicator temporarily
+                const tempIndicator = loadingIndicator.cloneNode(true);
+                list.innerHTML = '';
+                list.appendChild(tempIndicator);
+            } else {
+                list.innerHTML = '';
+            }
             
             // Si aucune donnée, afficher un message
             if (ranking.length === 0) {
@@ -301,36 +291,34 @@
         }
         
         // Calculate starting index based on initial load or append
-        let startRank;
-        if (isInitialLoad) {
-            startRank = 1; // Initial load, start at rank 1
-        } else {
-            // Non-initial load, get rank from existing rows count
-            const existingRows = document.querySelectorAll('.leaderboard-row').length;
-            startRank = existingRows + 1;
-        }
+        // Pour le chargement initial, on commence à l'index 0
+        // Pour les chargements suivants, on calcule en fonction de la page actuelle
+        const startIdx = isInitialLoad ? 0 : (currentPage * 15);
+        console.log(`📊 Starting index for new items: ${startIdx}`);
         
-        console.log(`📊 Starting rank for new items: ${startRank}`);
+        // Always render a maximum of 15 items at a time
+        const maxItems = Math.min(ranking.length, 15);
+        console.log(`📋 Rendering ${maxItems} items`);
         
         // Create new fragment to append all items at once
         const fragment = document.createDocumentFragment();
         
         // Append new rows to the fragment
-        for (let i = 0; i < ranking.length; i++) {
+        for (let i = 0; i < maxItems; i++) {
             const user = ranking[i];
             if (!user) {
                 console.warn(`⚠️ Missing user data at index ${i}`);
                 continue;
             }
             
-            // Calculate rank for this item
-            const actualRank = startRank + i;
-            console.log(`�� Adding user ${user.username || 'Unknown'} at rank ${actualRank}`);
+            // Dans la première page, on affiche les rangs 1-15
+            // Dans la deuxième page (page=1), on affiche les rangs 16-30, etc.
+            const actualRank = startIdx + i + 1;
+            console.log(`👤 Adding user ${user.username || 'Unknown'} at rank ${actualRank}`);
             
             const row = document.createElement('div');
             row.className = 'leaderboard-row';
-            // Ajouter un data-attribute pour éviter les doublons
-            row.setAttribute('data-user-id', user.userId || user.id || '');
+            row.dataset.rank = actualRank; // Stocker le rang dans l'attribut data
             
             // Use avatarSrc when available, otherwise use default
             const avatarSrc = user.avatarSrc || 'avatars/avatar_default.jpg';
@@ -346,7 +334,7 @@
         
         // Append all items at once
         list.appendChild(fragment);
-        console.log(`✅ Appended ${ranking.length} items to the list`);
+        console.log(`✅ Appended ${maxItems} items to the list`);
         
         // Add loading indicator at the end if there might be more users
         if (hasMoreUsers && ranking.length >= 15) {
@@ -421,53 +409,59 @@
         if (isLoading || !hasMoreUsers) return;
         
         isLoading = true;
-        const nextPage = currentPage + 1; // Page suivante à charger
-        console.log(`⏬ Loading next page: ${nextPage}`);
+        console.log(`⏬ Loading more users, current page: ${currentPage}`);
         
         try {
-            // Charger la page suivante
+            // Utiliser la page suivante pour charger de nouvelles données
+            const nextPage = currentPage + 1;
+            console.log(`📊 Fetching page ${nextPage}`);
+            
+            // Vérifier le nombre actuel d'éléments pour détecter les doublons
+            const currentRowCount = document.querySelectorAll('.leaderboard-row').length;
+            console.log(`📏 Current row count before loading more: ${currentRowCount}`);
+            
             const ranking = await fetchSeasonRanking(seasonId, nextPage);
             
-            // Vérifier si nous avons obtenu de nouvelles données
+            // Detailed log of what we received
             console.log(`📋 Received ${ranking.length} items for page ${nextPage}`);
             
-            // Si aucune donnée ou même données que précédemment, arrêter le chargement
-            if (ranking.length === 0) {
-                console.log('🛑 No more users to fetch (empty response)');
+            // Si on a reçu des données
+            if (ranking.length > 0) {
+                // Mettre à jour currentPage uniquement si on a reçu des données
+                currentPage = nextPage;
+                console.log(`📊 Page actuelle mise à jour: ${currentPage}`);
+                
+                // Afficher les nouveaux éléments
+                console.log(`🧩 Rendering ${ranking.length} new items`);
+                renderLeaderboard(ranking, getCurrentUserId(), false);
+                
+                // Vérifier si le nombre d'éléments a réellement augmenté
+                const newRowCount = document.querySelectorAll('.leaderboard-row').length;
+                console.log(`📏 New row count after loading more: ${newRowCount}`);
+                
+                if (newRowCount <= currentRowCount) {
+                    console.warn(`⚠️ Row count did not increase (${currentRowCount} → ${newRowCount}), may have loaded duplicates`);
+                    hasMoreUsers = false;
+                }
+                
+                // Check if we have more users
+                if (ranking.length < 15) {
+                    console.log(`🛑 No more users to fetch (received < 15 items)`);
+                    hasMoreUsers = false;
+                }
+            } else {
+                console.log('❌ No items to render, all users may have been fetched');
                 hasMoreUsers = false;
-                removeLoadingIndicator();
-                return;
+                
+                // Remove loading indicator if no more users
+                const loadingIndicator = document.getElementById('leaderboard-loading-indicator');
+                if (loadingIndicator) {
+                    loadingIndicator.remove();
+                }
             }
-            
-            // Vérifier si nous avons reçu les mêmes données que la dernière fois
-            const firstUserId = ranking[0]?.userId || ranking[0]?.id;
-            const isDuplicate = lastLoadedUsers.includes(firstUserId);
-            
-            if (isDuplicate) {
-                console.log('🔄 Received duplicate data, stopping pagination');
-                hasMoreUsers = false;
-                removeLoadingIndicator();
-                return;
-            }
-            
-            // Stocker les IDs des utilisateurs chargés pour vérification ultérieure
-            lastLoadedUsers = ranking.map(user => user.userId || user.id);
-            
-            // Si moins de 15 items, c'est probablement la dernière page
-            if (ranking.length < 15) {
-                console.log('🛑 Last page reached (less than 15 items)');
-                hasMoreUsers = false;
-            }
-            
-            // Mettre à jour currentPage UNIQUEMENT si nous avons bien chargé de nouvelles données
-            currentPage = nextPage;
-            console.log(`✅ Page ${currentPage} loaded successfully`);
-            
-            // Rendre les nouvelles données
-            renderLeaderboard(ranking, getCurrentUserId(), false);
         } catch (error) {
-            console.error('❌ Error loading more users:', error);
-            // Afficher l'erreur dans l'indicateur de chargement
+            console.error('Error loading more users:', error);
+            // Show error in loading indicator
             const loadingIndicator = document.getElementById('leaderboard-loading-indicator');
             if (loadingIndicator) {
                 loadingIndicator.innerHTML = '<div style="color:orange;">Failed to load more users. Tap to retry.</div>';
@@ -476,14 +470,6 @@
             }
         } finally {
             isLoading = false;
-        }
-    }
-    
-    // Helper function to remove loading indicator
-    function removeLoadingIndicator() {
-        const loadingIndicator = document.getElementById('leaderboard-loading-indicator');
-        if (loadingIndicator) {
-            loadingIndicator.remove();
         }
     }
     
@@ -593,11 +579,18 @@
         try {
             console.log('🚀 Initializing leaderboard...');
             
-            // Reset pagination variables
+            // Reset pagination variables - IMPORTANT
             currentPage = 0;
             isLoading = false;
             hasMoreUsers = true;
-            lastLoadedUsers = [];
+            seasonId = null;
+            
+            // Supprimer toutes les lignes existantes pour éviter les doublons
+            const listElement = document.getElementById('leaderboard-list');
+            if (listElement) {
+                console.log('🧹 Clearing existing list');
+                listElement.innerHTML = '';
+            }
             
             // Show loading overlay
             if (loadingOverlay) {
@@ -637,13 +630,11 @@
             // Fetch first page
             const rankingData = await fetchSeasonRanking(seasonId, 0);
             
-            if (rankingData && rankingData.length > 0) {
-                // Stocker les IDs pour la vérification des doublons
-                lastLoadedUsers = rankingData.map(user => user.userId || user.id);
-                console.log(`✅ Step 2 complete: Received ${rankingData.length} items`);
-            } else {
+            // Si on reçoit un tableau vide, ce n'est pas forcément une erreur (peut-être pas de participants)
+            if (!rankingData || rankingData.length === 0) {
                 console.log('⚠️ No ranking data found for this season');
-                hasMoreUsers = false;
+            } else {
+                console.log(`✅ Step 2 complete: Received ${rankingData.length} items`);
             }
             
             console.log(`🔍 Step 3: Rendering leaderboard...`);
