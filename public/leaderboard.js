@@ -136,8 +136,8 @@
         // Calculate starting index based on initial load or append
         const startIdx = isInitialLoad ? 0 : list.children.length;
         
-        // If we're not loading the initial batch, only render up to ITEMS_PER_PAGE new items
-        const maxItems = isInitialLoad ? ranking.length : Math.min(ranking.length, 15);
+        // Always render exactly ITEMS_PER_PAGE items (15) when not initial load
+        const maxItems = isInitialLoad ? ranking.length : 15;
         
         // Append new rows to the list
         for (let i = 0; i < maxItems; i++) {
