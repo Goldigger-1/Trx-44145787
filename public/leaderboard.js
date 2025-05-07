@@ -158,15 +158,19 @@
         // Append new rows to the fragment
         for (let i = 0; i < maxItems; i++) {
             const user = ranking[i];
-            const actualIdx = startIdx + i - 1;
+            const actualIdx = startIdx + i;
             const row = document.createElement('div');
             row.className = 'leaderboard-row';
             
             // Use avatarSrc when available, otherwise use default
             const avatarSrc = user.avatarSrc || 'avatars/avatar_default.jpg';
             
+            // Calculate the correct rank based on the user's position in the full ranking
+            const userId = user.gameId ?? user.id ?? user.userId;
+            const correctRank = userRanks.get(userId) || (actualIdx + 1);
+            
             row.innerHTML = `
-                <div class="leaderboard-rank">${actualIdx+1}</div>
+                <div class="leaderboard-rank">${correctRank}</div>
                 <div class="leaderboard-avatar"><img src="${avatarSrc}" alt="${user.gameUsername || user.username || 'Player'}"></div>
                 <div class="leaderboard-username">${user.gameUsername || user.username || 'Player'}</div>
                 <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${user.score || 0}</div>
@@ -255,9 +259,20 @@
                 currentPage++;
             }
             
+            // Get the total number of items already rendered
+            const totalExisting = document.querySelectorAll('.leaderboard-row').length;
+            
+            // Calculate the offset for this page
+            const pageOffset = currentPage * 15;
+            
+            // Create a mapping of user IDs to their correct ranks
+            const userRanks = new Map();
+            ranking.forEach((user, idx) => {
+                userRanks.set(user.gameId ?? user.id ?? user.userId, pageOffset + idx + 1);
+            });
+            
             // Only render new items, don't re-render existing ones
-            const existingCount = document.querySelectorAll('.leaderboard-row').length;
-            const newItems = ranking.slice(existingCount - 1);
+            const newItems = ranking.slice(totalExisting);
             
             // If we have new items to render
             if (newItems.length > 0) {
