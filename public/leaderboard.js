@@ -149,9 +149,6 @@
             if (podium[0]) {
                 document.getElementById('podium-1-prize').textContent = podium[0].prize ? `$${podium[0].prize}` : '';
             }
-            
-            // Use the game over sticky row renderer
-            renderGameOverStickyUserRow();
         } else {
             // For subsequent loads, append the new ranking data to our stored array
             allRanking = [...allRanking, ...ranking];
@@ -177,6 +174,9 @@
             `;
             list.appendChild(row);
         });
+        
+        // Always update the sticky user row
+        renderGameOverStickyUserRow();
         
         // Add loading indicator at the end if there might be more users
         if (hasMoreUsers) {
