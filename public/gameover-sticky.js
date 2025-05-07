@@ -97,39 +97,18 @@ async function renderGameOverStickyUserRow() {
             // Maintenant, récupérer directement la position de l'utilisateur dans le classement
             let userRank = 1; // Valeur par défaut si aucun calcul n'est possible
             
-            // Essayer d'abord l'API standard
-            const userRankRes = await fetch(`/api/users/${encodeURIComponent(userId)}/rank?seasonId=${season.id}`);
+            // Utiliser l'API correcte qui existe sur le serveur
+            console.log(`🔍 Récupération du rang utilisateur via l'API correcte...`);
+            const userRankRes = await fetch(`/api/seasons/${season.id}/user-rank/${encodeURIComponent(userId)}`);
             
             if (userRankRes.ok) {
                 const rankData = await userRankRes.json();
                 userRank = rankData.rank || 1;
                 console.log(`✅ Rang récupéré depuis l'API: ${userRank}`);
             } else {
-                // Si l'API standard ne fonctionne pas, essayer une autre API
-                console.log("⚠️ Impossible d'utiliser l'API standard pour le rang, utilisation d'une autre API...");
-                const alternativeRankRes = await fetch(`/api/seasons/${season.id}/user-position/${encodeURIComponent(userId)}`);
-                
-                if (alternativeRankRes.ok) {
-                    const altRankData = await alternativeRankRes.json();
-                    userRank = altRankData.position || 1;
-                    console.log(`✅ Rang récupéré depuis l'API alternative: ${userRank}`);
-                } else {
-                    // Dernière tentative: utiliser une API qui retourne les classements et trouver l'utilisateur
-                    console.log("⚠️ Impossible d'utiliser l'API alternative pour le rang, calcul manuel...");
-                    
-                    // Sur les petits jeux, cette approche reste performante
-                    const rankingsRes = await fetch(`/api/seasons/${season.id}/rankings`);
-                    
-                    if (rankingsRes.ok) {
-                        const rankings = await rankingsRes.json();
-                        // Chercher l'utilisateur dans les classements
-                        const userIndex = rankings.findIndex(item => item.userId === userId);
-                        if (userIndex !== -1) {
-                            userRank = userIndex + 1;
-                            console.log(`✅ Rang calculé manuellement: ${userRank}`);
-                        }
-                    }
-                }
+                console.log(`⚠️ Impossible de récupérer le rang utilisateur: ${await userRankRes.text()}`);
+                // Si l'API échoue, utiliser la valeur par défaut (1)
+                console.log(`⚠️ Utilisation de la valeur par défaut pour le rang: ${userRank}`);
             }
             
             // 4. Construire la rangée HTML avec le rang et le score

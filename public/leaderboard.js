@@ -6,7 +6,7 @@ function showLeaderboard() {
     const leaderboardScreen = document.getElementById('leaderboard-screen');
     if (leaderboardScreen) {
         leaderboardScreen.style.display = 'flex';
-        
+                
         // Mettre à jour la rangée utilisateur
         renderLeaderboardUserRow();
     }
@@ -21,14 +21,14 @@ function hideLeaderboard() {
 }
 
 // Fonction pour obtenir l'ID utilisateur actuel
-function getCurrentUserId() {
+    function getCurrentUserId() {
     // Essayer d'abord la variable globale
     let userId = window.userId || '';
     
     // Si userId n'est pas une chaîne, essayer d'autres méthodes
-    if (typeof userId !== 'string') {
+        if (typeof userId !== 'string') {
         userId = '';
-    }
+            }
     
     // Essayer de récupérer du localStorage
     if (!userId) {
@@ -36,7 +36,7 @@ function getCurrentUserId() {
     }
     
     return userId.trim();
-}
+    }
 
 // Fonction principale pour mettre à jour la rangée utilisateur dans le leaderboard
 async function renderLeaderboardUserRow() {
@@ -66,14 +66,14 @@ async function renderLeaderboardUserRow() {
             const titleElement = document.getElementById('leaderboard-season-title');
             if (titleElement) {
                 titleElement.textContent = `Season ${season.seasonNumber}`;
-            }
-            
+                }
+                
         } catch (error) {
             console.error('❌ Erreur lors de la récupération de la saison active:', error);
             userRowElement.innerHTML = '<div style="color:orange;">Impossible de charger les informations de saison. ⚠️</div>';
             return;
-        }
-        
+                }
+            
         // 2. Récupérer l'ID utilisateur
         const userId = getCurrentUserId();
         if (!userId) {
@@ -101,18 +101,18 @@ async function renderLeaderboardUserRow() {
                     avatarImgSrc = userData.avatarSrc || 'avatars/avatar_default.jpg';
                     if (!avatarImgSrc.startsWith('http') && !avatarImgSrc.startsWith('/')) {
                         avatarImgSrc = 'avatars/' + avatarImgSrc;
-                    }
+                            }
                 }
             } else {
                 // Fallback pour l'avatar si les données utilisateur ne sont pas disponibles
                 const profileAvatarImg = document.getElementById('avatarImg');
                 if (profileAvatarImg && profileAvatarImg.src) {
                     avatarImgSrc = profileAvatarImg.src;
-                } else {
+        } else {
                     avatarImgSrc = 'avatars/avatar_default.jpg';
                 }
-            }
-            
+                }
+                
             // Récupérer le score de saison de l'utilisateur avec l'endpoint existant
             const seasonScoreRes = await fetch(`/api/seasons/${season.id}/scores/${encodeURIComponent(userId)}`);
             let userSeasonScore = 0;
@@ -121,44 +121,23 @@ async function renderLeaderboardUserRow() {
                 const scoreData = await seasonScoreRes.json();
                 userSeasonScore = scoreData.score || 0;
                 console.log(`✅ Score de saison récupéré: ${userSeasonScore}`);
-            }
-            
+    }
+
             // Maintenant, récupérer directement la position de l'utilisateur dans le classement
             let userRank = 1; // Valeur par défaut si aucun calcul n'est possible
             
-            // Essayer d'abord l'API standard
-            const userRankRes = await fetch(`/api/users/${encodeURIComponent(userId)}/rank?seasonId=${season.id}`);
+            // Utiliser l'API correcte qui existe sur le serveur
+            console.log(`🔍 Récupération du rang utilisateur via l'API correcte...`);
+            const userRankRes = await fetch(`/api/seasons/${season.id}/user-rank/${encodeURIComponent(userId)}`);
             
             if (userRankRes.ok) {
                 const rankData = await userRankRes.json();
                 userRank = rankData.rank || 1;
                 console.log(`✅ Rang récupéré depuis l'API: ${userRank}`);
             } else {
-                // Si l'API standard ne fonctionne pas, essayer une autre API
-                console.log("⚠️ Impossible d'utiliser l'API standard pour le rang, utilisation d'une autre API...");
-                const alternativeRankRes = await fetch(`/api/seasons/${season.id}/user-position/${encodeURIComponent(userId)}`);
-                
-                if (alternativeRankRes.ok) {
-                    const altRankData = await alternativeRankRes.json();
-                    userRank = altRankData.position || 1;
-                    console.log(`✅ Rang récupéré depuis l'API alternative: ${userRank}`);
-                } else {
-                    // Dernière tentative: utiliser une API qui retourne les classements et trouver l'utilisateur
-                    console.log("⚠️ Impossible d'utiliser l'API alternative pour le rang, calcul manuel...");
-                    
-                    // Sur les petits jeux, cette approche reste performante
-                    const rankingsRes = await fetch(`/api/seasons/${season.id}/rankings`);
-                    
-                    if (rankingsRes.ok) {
-                        const rankings = await rankingsRes.json();
-                        // Chercher l'utilisateur dans les classements
-                        const userIndex = rankings.findIndex(item => item.userId === userId);
-                        if (userIndex !== -1) {
-                            userRank = userIndex + 1;
-                            console.log(`✅ Rang calculé manuellement: ${userRank}`);
-                        }
-                    }
-                }
+                console.log(`⚠️ Impossible de récupérer le rang utilisateur: ${await userRankRes.text()}`);
+                // Si l'API échoue, utiliser la valeur par défaut (1)
+                console.log(`⚠️ Utilisation de la valeur par défaut pour le rang: ${userRank}`);
             }
             
             // 4. Construire la rangée HTML avec le rang et le score
@@ -175,14 +154,14 @@ async function renderLeaderboardUserRow() {
         } catch (error) {
             console.error('❌ Erreur lors de la récupération des données utilisateur:', error);
             userRowElement.innerHTML = '<div style="color:orange;">Impossible de charger votre classement. ⚠️</div>';
-        }
-        
+            }
+            
     } catch (error) {
         console.error('❌ Erreur globale dans renderLeaderboardUserRow:', error);
         userRowElement.innerHTML = '<div style="color:orange;">Une erreur s\'est produite. ⚠️</div>';
+        }
     }
-}
 
 // Exposer les fonctions nécessaires globalement
-window.showLeaderboard = showLeaderboard;
+    window.showLeaderboard = showLeaderboard;
 window.hideLeaderboard = hideLeaderboard;
