@@ -339,15 +339,9 @@
     }
 
     // Show leaderboard page
-    async function showLeaderboard() {
-        try {
-            await initLeaderboard();
-            document.getElementById('leaderboard-screen').style.display = 'flex';
-            document.body.style.overflow = 'hidden';
-        } catch (error) {
-            console.error('Error initializing leaderboard:', error);
-            alert('Failed to load leaderboard. Please try again.');
-        }
+    function showLeaderboard() {
+        document.getElementById('leaderboard-screen').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
     }
     // Hide leaderboard page
     function hideLeaderboard() {
@@ -395,24 +389,18 @@
                 currentPage++;
             }
             
-            // Add loading indicator before rendering
+            // Add loading indicator and setup observer
             addLoadingIndicator();
-            
-            // Setup intersection observer before rendering
             setupIntersectionObserver();
             
-            // Render initial data
-            await renderLeaderboard(ranking, getCurrentUserId(), true);
+            // Get current user id
+            const currentUserId = getCurrentUserId();
             
-            // If we got fewer users than requested, we've reached the end
-            hasMoreUsers = initialRanking.length === 15;
-            
-            // Add prize to 1st place
-            if (initialRanking[0]) initialRanking[0].prize = season.prizeMoney;
-            
-            // Get current user id robustly
-            let currentUserId = getCurrentUserId();
-            renderLeaderboard(initialRanking, currentUserId, true);
+            // Render initial data with prize for 1st place
+            if (ranking[0]) {
+                ranking[0].prize = season.prizeMoney;
+            }
+            renderLeaderboard(ranking, currentUserId, true);
 
             // Hide loading overlay when done
             if (loadingOverlay) loadingOverlay.style.display = 'none';
