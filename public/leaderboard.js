@@ -41,7 +41,7 @@
     }
 
     // Fetch leaderboard for season with pagination
-    async function fetchSeasonRanking(seasonId, page = 0, limit = 25) {
+    async function fetchSeasonRanking(seasonId, page = 0, limit = 10) {
         // First fetch all data (server might not support pagination)
         if (!window.fullRankingCache || !window.fullRankingCache[seasonId]) {
             // If we don't have the data cached for this season, fetch it all
@@ -235,7 +235,7 @@
         currentPage++;
         
         try {
-            const USERS_PER_PAGE = 25;
+            const USERS_PER_PAGE = 10;
             const newUsers = await fetchSeasonRanking(seasonId, currentPage, USERS_PER_PAGE);
             
             // Check if we've loaded all users
@@ -366,7 +366,7 @@
             renderCountdown(season.endDate);
             
             // Fetch first page of ranking
-            const USERS_PER_PAGE = 25;
+            const USERS_PER_PAGE = 10;
             let initialRanking = await fetchSeasonRanking(season.id, 0, USERS_PER_PAGE);
             
             // If we have the full data cached, check if there are more users
