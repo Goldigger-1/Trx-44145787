@@ -42,28 +42,9 @@
 
     // Fetch leaderboard for season with pagination
     async function fetchSeasonRanking(seasonId, page = 0, limit = 10) {
-        try {
-            // Fetch only the requested page of data
-            const res = await fetch(`/api/seasons/${seasonId}/ranking?page=${page}&limit=${limit}`);
-            if (!res.ok) throw new Error('Failed to fetch season ranking');
-            const data = await res.json();
-            
-            // If this is the first page, initialize the cache
-            if (page === 0) {
-                window.fullRankingCache = window.fullRankingCache || {};
-                window.fullRankingCache[seasonId] = [];
-            }
-            
-            // Append the new data to our cache
-            if (window.fullRankingCache[seasonId]) {
-                window.fullRankingCache[seasonId] = [...window.fullRankingCache[seasonId], ...data];
-            }
-            
-            return data;
-        } catch (error) {
-            console.error('Error fetching season ranking:', error);
-            throw error;
-        }
+        const res = await fetch(`/api/seasons/${seasonId}/ranking?page=${page}&limit=${limit}`);
+        if (!res.ok) throw new Error('Failed to fetch season ranking');
+        return res.json();
     }
 
     // Utility: Robustly get and validate current user ID
@@ -123,18 +104,18 @@
     let allRanking = [];
     
     // Render leaderboard with progressive loading
-    async function renderLeaderboard(ranking, currentUserId, isInitialLoad = true) {
+    function renderLeaderboard(ranking, currentUserId, isInitialLoad = true) {
         const list = document.getElementById('leaderboard-list');
-        if (!list) return;
         
-        // If this is the initial load, clear the list
+        // If this is the initial load, clear the list and render the podium
         if (isInitialLoad) {
             list.innerHTML = '';
+            
             // Store the ranking data for the sticky user row
-            allRanking = [...ranking.data];
+            allRanking = [...ranking];
             
             // Podium
-            const podium = [ranking.data[0], ranking.data[1], ranking.data[2]];
+            const podium = [ranking[0], ranking[1], ranking[2]];
             [1,2,3].forEach(i => {
                 const user = podium[i-1];
                 if (!user) return;
@@ -152,14 +133,14 @@
             }
         } else {
             // For subsequent loads, append the new ranking data to our stored array
-            allRanking = [...allRanking, ...ranking.data];
+            allRanking = [...allRanking, ...ranking];
         }
         
         // Calculate starting index based on initial load or append
         const startIdx = isInitialLoad ? 0 : list.children.length;
         
         // Append new rows to the list
-        ranking.data.forEach((user, idx) => {
+        ranking.forEach((user, idx) => {
             const actualIdx = startIdx + idx;
             const row = document.createElement('div');
             row.className = 'leaderboard-row';
@@ -177,7 +158,7 @@
         });
         
         // Add loading indicator at the end if there might be more users
-        if (ranking.hasMore) {
+        if (hasMoreUsers) {
             addLoadingIndicator();
         }
         
@@ -228,22 +209,22 @@
         observer.observe(loadingIndicator);
     }
     
-    // Load more users when scrolling
+    // Load more users when user scrolls to bottom
     async function loadMoreUsers() {
-        if (isLoading || !hasMoreUsers) return;
+        if (isLoading || !hasMoreUsers || !seasonId) return;
         
         isLoading = true;
         currentPage++;
         
         try {
-            // Fetch next page of users
-            const newUsers = await fetchSeasonRanking(seasonId, currentPage, 10);
+            const USERS_PER_PAGE = 10;
+            const newUsers = await fetchSeasonRanking(seasonId, currentPage, USERS_PER_PAGE);
             
-            // Update hasMoreUsers based on server response
-            hasMoreUsers = newUsers.hasMore;
+            // If we received fewer users than requested, we've reached the end
+            hasMoreUsers = newUsers.length === USERS_PER_PAGE;
             
             // If we got some users, render them
-            if (newUsers.data.length > 0) {
+            if (newUsers.length > 0) {
                 renderLeaderboard(newUsers, getCurrentUserId(), false);
             } else {
                 // No more users, remove loading indicator
@@ -273,73 +254,31 @@
             return;
         }
 
-        // Use cached ranking if available, otherwise fetch from server
-        let fullRanking;
-        if (window.fullRankingCache && window.fullRankingCache[seasonId]) {
-            fullRanking = window.fullRankingCache[seasonId];
-        } else {
-            try {
-                const res = await fetch(`/api/seasons/${seasonId}/ranking`);
-                if (!res.ok) throw new Error('Failed to fetch season ranking');
-                fullRanking = await res.json();
-                // Cache the result for future use
-                window.fullRankingCache = window.fullRankingCache || {};
-                window.fullRankingCache[seasonId] = fullRanking;
-            } catch (e) {
-                document.getElementById('leaderboard-user-row').innerHTML = '<div style="color:orange;">Could not load ranking. ⚠️</div>';
-                return;
-            }
+        try {
+            // Fetch user's rank and info directly from server
+            const res = await fetch(`/api/users/${encodeURIComponent(currentUserId)}/rank`);
+            if (!res.ok) throw new Error('Failed to fetch user rank');
+            const userData = await res.json();
+            
+            const rank = userData.rank || '-';
+            const bestScore = userData.bestScore || userData.score || 0;
+            const username = userData.gameUsername || userData.username || 'You';
+            const avatar = userData.avatarSrc || 'avatars/avatar_default.jpg';
+
+            // Add cache buster to avatar
+            const avatarWithCacheBuster = avatar + (avatar.includes('?') ? '&' : '?') + 't=' + new Date().getTime();
+
+            // Render sticky row
+            const userRow = `
+                <div class="leaderboard-rank">${rank}</div>
+                <div class="leaderboard-avatar"><img src="${avatarWithCacheBuster}" alt="${username}"></div>
+                <div class="leaderboard-username">${username} <span style="color:#00FF9D;">(You)</span></div>
+                <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${bestScore}</div>
+            `;
+            document.getElementById('leaderboard-user-row').innerHTML = userRow;
+        } catch (err) {
+            document.getElementById('leaderboard-user-row').innerHTML = '<div style="color:orange;">Could not load your rank. ⚠️</div>';
         }
-
-        // Sort and find user in ranking (exact game over logic)
-        let sortedRanking = [...fullRanking].sort((a, b) => (b.bestScore ?? b.score ?? 0) - (a.bestScore ?? a.score ?? 0));
-        let userIndex = sortedRanking.findIndex(u => String(u.gameId ?? u.id ?? u.userId) === String(currentUserId));
-        let rank = userIndex !== -1 ? userIndex + 1 : '-';
-        let user = sortedRanking[userIndex];
-        let bestScore = 0;
-        let username = '';
-        let avatar = 'avatars/avatar_default.jpg';
-
-        if (user) {
-            // User is ranked
-            bestScore = user.bestScore || user.score || 0;
-            username = user.gameUsername || user.username || 'You';
-            avatar = user.avatarSrc || 'avatars/avatar_default.jpg';
-        } else {
-            // Not ranked: fetch from server
-            try {
-                const res = await fetch(`/api/users/${encodeURIComponent(currentUserId)}`);
-                if (res.ok) {
-                    user = await res.json();
-                    bestScore = user.bestScore || user.score || 0;
-                    username = user.gameUsername || user.username || 'You';
-                    avatar = user.avatarSrc || 'avatars/avatar_default.jpg';
-                } else {
-                    // User not found on server
-                    username = 'You';
-                    bestScore = 0;
-                    avatar = 'avatars/avatar_default.jpg';
-                }
-            } catch (err) {
-                username = 'You';
-                bestScore = 0;
-                avatar = 'avatars/avatar_default.jpg';
-            }
-        }
-
-        // Add cache buster to avatar
-        if (avatar && !avatar.includes('?')) {
-            avatar += '?t=' + new Date().getTime();
-        }
-
-        // Render sticky row (exact same format as game over)
-        const userRow = `
-            <div class="leaderboard-rank">${rank}</div>
-            <div class="leaderboard-avatar"><img src="${avatar}" alt="${username}"></div>
-            <div class="leaderboard-username">${username} <span style="color:#00FF9D;">(You)</span></div>
-            <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${bestScore}</div>
-        `;
-        document.getElementById('leaderboard-user-row').innerHTML = userRow;
     }
 
     // Show leaderboard page
