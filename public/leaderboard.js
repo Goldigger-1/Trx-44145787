@@ -43,6 +43,7 @@
     // Fetch leaderboard for season with pagination
     async function fetchSeasonRanking(seasonId, page = 0) {
         // Fetch only the requested batch of data
+        const ITEMS_PER_PAGE = 15;
         const res = await fetch(`/api/seasons/${seasonId}/ranking?page=${page}&limit=${ITEMS_PER_PAGE}`);
         if (!res.ok) throw new Error('Failed to fetch season ranking');
         const data = await res.json();
@@ -100,7 +101,6 @@
     }
 
     // Global variables for progressive loading
-    const ITEMS_PER_PAGE = 15;
     let currentPage = 0;
     let isLoading = false;
     let hasMoreUsers = true;
@@ -212,8 +212,9 @@
         
         isLoading = true;
         try {
+            const ITEMS_PER_PAGE = 15;
             const ranking = await fetchSeasonRanking(seasonId, currentPage);
-            if (ranking.length < ITEMS_PER_PAGE) {
+            if (ranking.length < 15) {
                 hasMoreUsers = false;
             } else {
                 currentPage++;
@@ -332,10 +333,11 @@
             renderCountdown(season.endDate);
             
             // Fetch first page of ranking
+            const ITEMS_PER_PAGE = 15;
             let initialRanking = await fetchSeasonRanking(season.id, 0, ITEMS_PER_PAGE);
             
             // If we got fewer users than requested, we've reached the end
-            hasMoreUsers = initialRanking.length === ITEMS_PER_PAGE;
+            hasMoreUsers = initialRanking.length === 15;
             
             // Add prize to 1st place
             if (initialRanking[0]) initialRanking[0].prize = season.prizeMoney;
