@@ -7,7 +7,7 @@ function showLeaderboard() {
     if (leaderboardScreen) {
         leaderboardScreen.style.display = 'flex';
                 
-        // Mettre à jour la rangée utilisateur et initialiser le compte à rebours
+        // Mettre à jour la rangée utilisateur, le podium, et le compte à rebours
         renderLeaderboardUserRow();
     }
 }
@@ -111,6 +111,50 @@ function updateCountdown(endDateStr) {
     }
 }
 
+// Fonction pour mettre à jour le prix du podium pour le premier joueur
+function updatePrizeMoney(prizeMoney) {
+    // Récupérer l'élément qui affiche le prix du gagnant
+    const prizeElement = document.getElementById('podium-1-prize');
+    
+    if (!prizeElement) {
+        console.error('❌ Élément de prix du podium non trouvé dans le DOM');
+        return;
+    }
+    
+    try {
+        // Valider le prix
+        if (prizeMoney === undefined || prizeMoney === null) {
+            console.warn('⚠️ Montant du prix non défini, utilisation de la valeur par défaut');
+            prizeElement.textContent = '-';
+            return;
+        }
+        
+        // Convertir en nombre si nécessaire
+        let prizeValue = prizeMoney;
+        if (typeof prizeMoney === 'string') {
+            prizeValue = parseFloat(prizeMoney);
+        }
+        
+        // Vérifier si le montant est valide
+        if (isNaN(prizeValue)) {
+            console.error('❌ Montant du prix invalide:', prizeMoney);
+            prizeElement.textContent = '-';
+            return;
+        }
+        
+        // Formater le prix avec le symbole $ et 2 décimales
+        const formattedPrize = `$${prizeValue.toFixed(2)}`;
+        console.log(`💰 Prix du gagnant: ${formattedPrize}`);
+        
+        // Mettre à jour l'élément dans le DOM
+        prizeElement.textContent = formattedPrize;
+        
+    } catch (error) {
+        console.error('❌ Erreur lors de la mise à jour du prix:', error);
+        prizeElement.textContent = '-';
+    }
+}
+
 // Fonction principale pour mettre à jour la rangée utilisateur dans le leaderboard
 async function renderLeaderboardUserRow() {
     const userRowElement = document.getElementById('leaderboard-user-row');
@@ -135,6 +179,7 @@ async function renderLeaderboardUserRow() {
             
             console.log(`✅ Saison active trouvée: ${season.id} (Saison ${season.seasonNumber})`);
             console.log(`📅 Date de fin de saison: ${season.endDate}`);
+            console.log(`💰 Prix de la saison: ${season.prizeMoney}`);
             
             // Mettre à jour le titre de la saison
             const titleElement = document.getElementById('leaderboard-season-title');
@@ -144,6 +189,9 @@ async function renderLeaderboardUserRow() {
             
             // Initialiser le compte à rebours avec la date de fin
             updateCountdown(season.endDate);
+            
+            // Afficher le prix du gagnant
+            updatePrizeMoney(season.prizeMoney);
                 
         } catch (error) {
             console.error('❌ Erreur lors de la récupération de la saison active:', error);
