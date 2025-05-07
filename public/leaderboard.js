@@ -49,7 +49,15 @@
 
     // Utility: Robustly get and validate current user ID
     function getCurrentUserId() {
-        let userId = window.userId || localStorage.getItem('userId') || '';
+        // Check global variables first (from index.html)
+        if (window.userId) {
+            return window.userId;
+        }
+        
+        // Then try localStorage with multiple possible keys
+        let userId = localStorage.getItem('tidashUserId') || 
+                     localStorage.getItem('userId') || '';
+        
         // If it's a DOM element or object, return empty string
         if (typeof userId !== 'string') {
             if (userId && userId.textContent) {
@@ -60,8 +68,8 @@
         }
         // Remove whitespace and validate
         userId = userId.trim();
-        // Accept only non-empty strings of digits/letters (adjust regex as needed)
-        if (/^[\w-]{6,}$/.test(userId)) {
+        // Accept only non-empty strings of digits/letters
+        if (/^[\w-]{1,}$/.test(userId)) {
             return userId;
         }
         return '';
@@ -77,8 +85,8 @@
             };
         }
         return {
-            gameId: localStorage.getItem('userId') || '',
-            gameUsername: localStorage.getItem('username') || 'MainUser',
+            gameId: localStorage.getItem('tidashUserId') || '',
+            gameUsername: localStorage.getItem('tidashUsername') || 'MainUser',
             avatar: localStorage.getItem('avatarUrl') || 'avatars/avatar_default.jpg',
         };
     }
@@ -140,49 +148,40 @@
             `;
             list.appendChild(row);
         });
-        // Current user row (sticky)
-        // --- Robust sticky user row rendering: always use server data ---
-        async function renderStickyUserRow(ranking, currentUserId) {
+        
+        // Current user row (sticky) - Optimized with direct API call
+        renderStickyUserRow(currentUserId);
+    }
+    
+    // Optimized: Render sticky user row with direct API call
+    async function renderStickyUserRow(currentUserId) {
+        try {
             // If user ID is missing or invalid, show error
             if (!currentUserId) {
                 document.getElementById('leaderboard-user-row').innerHTML = '<div style="color:orange;">Could not determine your user ID. Please log in again. ⚠️</div>';
                 return;
             }
-            // Deep fix: Always sort the ranking array by bestScore (or score) descending before finding the user's position
-            let sortedRanking = [...ranking].sort((a, b) => (b.bestScore ?? b.score ?? 0) - (a.bestScore ?? a.score ?? 0));
-            let userIndex = sortedRanking.findIndex(u => String(u.gameId ?? u.id ?? u.userId) === String(currentUserId));
-            let rank = userIndex !== -1 ? userIndex + 1 : '-';
-            let user = sortedRanking[userIndex];
-            let bestScore = 0;
-            let username = '';
-            let avatar = 'avatars/avatar_default.jpg';
-            if (user) {
-                // User is ranked
-                bestScore = user.bestScore || user.score || 0;
-                username = user.gameUsername || user.username || 'You';
-                avatar = user.avatarSrc || 'avatars/avatar_default.jpg';
-            } else {
-                // Not ranked: fetch from server
-                try {
-                    const res = await fetch(`/api/users/${encodeURIComponent(currentUserId)}`);
-                    if (res.ok) {
-                        user = await res.json();
-                        bestScore = user.bestScore || user.score || 0;
-                        username = user.gameUsername || user.username || 'You';
-                        avatar = user.avatarSrc || 'avatars/avatar_default.jpg';
-                    } else {
-                        // User not found on server
-                        username = 'You';
-                        bestScore = 0;
-                        avatar = 'avatars/avatar_default.jpg';
-                    }
-                } catch (err) {
-                    username = 'You';
-                    bestScore = 0;
-                    avatar = 'avatars/avatar_default.jpg';
-                }
+            
+            // Show loading state on the user row
+            document.getElementById('leaderboard-user-row').innerHTML = '<div style="text-align:center;"><img src="ressources/Dual Ball@1x-1.0s-200px-200px.svg" alt="Loading..." style="width:30px;height:30px;" /></div>';
+            
+            // Get the active season
+            const season = await fetchActiveSeason();
+            
+            // Get user rank data directly from API
+            const res = await fetch(`/api/seasons/${season.id}/userRank/${currentUserId}`);
+            if (!res.ok) {
+                throw new Error('Failed to fetch user rank information');
             }
-            // Add cache buster to avatar
+            const userInfo = await res.json();
+            
+            // Extract user data
+            const rank = userInfo.rank || '-';
+            const bestScore = userInfo.score || 0;
+            const username = userInfo.username || 'You';
+            
+            // Add cache buster to avatar URL
+            let avatar = userInfo.avatarSrc || 'avatars/avatar_default.jpg';
             if (avatar && !avatar.includes('?')) {
                 avatar += '?t=' + new Date().getTime();
             }
@@ -193,16 +192,14 @@
             const userRow = `
                 <div class="leaderboard-rank">${rank}</div>
                 <div class="leaderboard-avatar"><img src="${avatar}" alt="${username}"></div>
-                <div class="leaderboard-username">${username} <span style=\"color:#00FF9D;\">(You)</span></div>
+                <div class="leaderboard-username">${username} <span style="color:#00FF9D;">(You)</span></div>
                 <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${bestScore}</div>
             `;
-            console.log('[DEBUG sticky row]', {rank, bestScore, username, avatar, userRow});
             document.getElementById('leaderboard-user-row').innerHTML = userRow;
-        }
-        // Call the async function and handle errors
-        renderStickyUserRow(ranking, currentUserId).catch(e => {
+        } catch (error) {
+            console.error('Error rendering sticky user row:', error);
             document.getElementById('leaderboard-user-row').innerHTML = '<div style="color:red;">Failed to load your info. Please refresh. ❌</div>';
-        });
+        }
     }
 
     // Show leaderboard page
@@ -220,9 +217,6 @@
 
     // Attach close button event
     document.getElementById('close-leaderboard').onclick = hideLeaderboard;
-
-    // Integration: Open leaderboard from home page (group element click)
-    // Example: document.getElementById('season-container').onclick = showLeaderboard;
 
     // Main init
     async function initLeaderboard() {
@@ -248,18 +242,15 @@
 
             // Hide loading overlay when done
             if (loadingOverlay) loadingOverlay.style.display = 'none';
-        } catch (e) {
-            // Hide loading overlay on error as well
+        } catch (error) {
+            console.error('Error initializing leaderboard:', error);
             if (loadingOverlay) loadingOverlay.style.display = 'none';
-            alert('Failed to load leaderboard. Please try again later.');
-            console.error(e);
+            document.getElementById('leaderboard-list').innerHTML = '<div style="text-align:center;padding:20px;color:red;">Failed to load leaderboard. Please try again later.</div>';
         }
     }
 
-    // Expose showLeaderboard globally for integration
+    // Expose functions to global scope for external access
     window.showLeaderboard = showLeaderboard;
-    // Initialize leaderboard on page load (or call when opening)
-    // initLeaderboard(); // Uncomment if you want auto-load
+    window.hideLeaderboard = hideLeaderboard;
     window.initLeaderboard = initLeaderboard;
-
 })();

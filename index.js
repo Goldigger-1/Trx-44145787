@@ -356,9 +356,10 @@ bot.help((ctx) => {
   ctx.reply('📺 Watch the tutorial video here: https://www.youtube.com/watch?v=t0fz4KVU7yw');
 });
 
+// API for /start command
 bot.start((ctx) => {
   console.log('Commande /start reçue de:', ctx.from.id, ctx.from.username);
-  ctx.reply('Let’s see how long you last here 😏', {
+  ctx.reply('Let\'s see how long you last here 😏', {
     reply_markup: {
       inline_keyboard: [
         [{ text: 'Play', web_app: { url: webAppUrl } }],
@@ -366,10 +367,6 @@ bot.start((ctx) => {
         [{ text: 'Help', callback_data: 'show_help' }]
       ]
     }
-  }).then(() => {
-    console.log('Réponse envoyée avec succès');
-  }).catch(err => {
-    console.error('Erreur lors de l\'envoi de la réponse:', err);
   });
 });
 
@@ -2022,6 +2019,101 @@ app.post('/api/promo-banner', upload.single('image'), async (req, res) => {
     res.status(500).json({ error: 'Could not save promo banner' });
   }
 });
+
+// New API endpoint to get a user's rank in a season efficiently
+app.get('/api/seasons/:seasonId/userRank/:userId', async (req, res) => {
+  try {
+    const { seasonId, userId } = req.params;
+    
+    console.log(`🔍 Efficiently fetching rank for user ${userId} in season ${seasonId}`);
+    
+    // Find the season
+    const season = await Season.findByPk(seasonId);
+    if (!season) {
+      return res.status(404).json({ error: 'Season not found' });
+    }
+    
+    // First, fetch the user's score for this season
+    const userScore = await SeasonScore.findOne({
+      where: {
+        userId: userId,
+        seasonId: seasonId
+      }
+    });
+    
+    // If user has no score in this season, return default data
+    if (!userScore) {
+      console.log(`⚠️ No score found for user ${userId} in season ${seasonId}`);
+      
+      // Get user info for basics
+      const user = await User.findOne({ where: { gameId: userId } });
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      
+      // Process avatar path
+      let avatarSrc = user.avatarSrc;
+      if (!avatarSrc) {
+        avatarSrc = '/avatars/avatar_default.jpg';
+      } else if (!avatarSrc.startsWith('/') && !avatarSrc.startsWith('http')) {
+        avatarSrc = `/avatars/${avatarSrc}`;
+      }
+      
+      return res.status(200).json({
+        rank: '-',
+        score: 0,
+        username: user.gameUsername || 'You',
+        avatarSrc: avatarSrc
+      });
+    }
+    
+    // Count how many scores are higher than this user's score
+    const higherScoresCount = await SeasonScore.count({
+      where: {
+        seasonId: seasonId,
+        score: { [Op.gt]: userScore.score }
+      }
+    });
+    
+    // User's rank is higher scores count + 1
+    const rank = higherScoresCount + 1;
+    
+    // Get user info
+    const user = await User.findOne({ where: { gameId: userId } });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    // Process avatar path
+    let avatarSrc = user.avatarSrc;
+    if (!avatarSrc) {
+      avatarSrc = '/avatars/avatar_default.jpg';
+    } else if (!avatarSrc.startsWith('/') && !avatarSrc.startsWith('http')) {
+      avatarSrc = `/avatars/${avatarSrc}`;
+    }
+    
+    console.log(`✅ Rank calculated for user ${userId} in season ${seasonId}: ${rank}`);
+    
+    res.status(200).json({
+      rank: rank,
+      score: userScore.score,
+      username: user.gameUsername || 'You',
+      avatarSrc: avatarSrc
+    });
+  } catch (error) {
+    console.error('❌ Error calculating user rank:', error);
+    res.status(500).json({ 
+      error: 'Error calculating user rank', 
+      details: error.message 
+    });
+  }
+});
+
+// This endpoint is significantly more efficient than the previous approach of:
+// 1. Fetching the entire ranking list with all users
+// 2. Sorting the full list in memory
+// 3. Finding the user's position in the sorted list
+// Instead, it uses a database count operation to determine rank in a single query
 
 // Démarrer le serveur
 app.listen(port, '0.0.0.0', () => {
