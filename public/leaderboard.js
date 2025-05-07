@@ -114,7 +114,14 @@
         if (isInitialLoad) {
             // Clear list but keep loading indicator if present
             const loadingIndicator = document.getElementById('leaderboard-loading-indicator');
-            list.innerHTML = loadingIndicator ? '' : 'loading-indicator';
+            if (loadingIndicator) {
+                // Store loading indicator temporarily
+                const tempIndicator = loadingIndicator.cloneNode(true);
+                list.innerHTML = '';
+                list.appendChild(tempIndicator);
+            } else {
+                list.innerHTML = '';
+            }
             
             // Podium
             const podium = [ranking[0], ranking[1], ranking[2]];
@@ -207,15 +214,26 @@
         const loadingIndicator = document.getElementById('leaderboard-loading-indicator');
         if (!loadingIndicator) return;
         
+        // Remove any existing observer
+        if (window.leaderboardObserver) {
+            window.leaderboardObserver.disconnect();
+        }
+        
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting && !isLoading && hasMoreUsers) {
-                    loadMoreUsers();
+                    // Add a small delay to prevent multiple triggers
+                    setTimeout(() => {
+                        if (!isLoading && hasMoreUsers) {
+                            loadMoreUsers();
+                        }
+                    }, 100);
                 }
             });
         }, { threshold: 0.1 });
         
         observer.observe(loadingIndicator);
+        window.leaderboardObserver = observer;
     }
     
     // Load more users when user scrolls to bottom
@@ -226,12 +244,16 @@
         try {
             const ITEMS_PER_PAGE = 15;
             const ranking = await fetchSeasonRanking(seasonId, currentPage);
-            if (ranking.length < 15) {
+            if (ranking.length < ITEMS_PER_PAGE) {
                 hasMoreUsers = false;
             } else {
                 currentPage++;
             }
-            renderLeaderboard(ranking, getCurrentUserId(), false);
+            
+            // Only render new items, don't re-render existing ones
+            const existingCount = document.querySelectorAll('.leaderboard-row').length;
+            const newItems = ranking.slice(existingCount);
+            renderLeaderboard(newItems, getCurrentUserId(), false);
         } catch (error) {
             console.error('Error loading more users:', error);
             // Show error in loading indicator
