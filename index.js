@@ -1173,18 +1173,29 @@ app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
   try {
     const { seasonId } = req.params;
     
+    console.log(`🔍 Fetching ranking for season ${seasonId}`);
+    
+    // Validation de l'ID de saison
+    if (!seasonId || isNaN(parseInt(seasonId))) {
+      console.error(`❌ Invalid season ID: ${seasonId}`);
+      return res.status(400).json({ error: 'Invalid season ID' });
+    }
+    
     // Support pour pagination - FORCE une limite même si non spécifiée
     const page = parseInt(req.query.page) || 0;
     const limit = Math.min(parseInt(req.query.limit) || 15, 15); // Force une limite max de 15
     const offset = page * limit;
     
-    console.log(`🔍 Fetching ranking for season ${seasonId} (page: ${page}, limit: ${limit}, offset: ${offset})`);
+    console.log(`🔍 Pagination: page=${page}, limit=${limit}, offset=${offset}`);
     
     // Find the season
     const season = await Season.findByPk(seasonId);
     if (!season) {
+      console.error(`❌ Season not found: ${seasonId}`);
       return res.status(404).json({ error: 'Season not found' });
     }
+    
+    console.log(`✅ Found season: ${season.id} (Season ${season.seasonNumber})`);
     
     // Get all scores for this season, ordered by score descending WITH PAGINATION
     const scores = await SeasonScore.findAll({
@@ -1193,6 +1204,8 @@ app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
       limit: limit,
       offset: offset
     });
+    
+    console.log(`✅ Found ${scores.length} scores for season ${seasonId}`);
     
     // Get user details for each score
     const ranking = [];

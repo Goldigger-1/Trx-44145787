@@ -21,41 +21,126 @@
     // Fetch active season info
     async function fetchActiveSeason() {
         try {
-            // Try the newer endpoint first
-            const res = await fetch('/api/seasons/active');
-            if (res.ok) {
-                return res.json();
-            }
+            console.log('🔍 Fetching active season info...');
             
-            // Fall back to the older endpoint if the new one fails
-            const fallbackRes = await fetch('/api/active-season');
-            if (fallbackRes.ok) {
-                return fallbackRes.json();
-            }
+            // Ajouter un timeout pour éviter que la requête ne reste bloquée
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 secondes timeout
             
-            throw new Error('Failed to fetch active season');
+            try {
+                // Try the newer endpoint first
+                console.log('🌐 Trying primary endpoint: /api/seasons/active');
+                const res = await fetch('/api/seasons/active', { 
+                    signal: controller.signal,
+                    headers: { 'Cache-Control': 'no-cache' } // Éviter le cache
+                });
+                
+                console.log(`🔄 Primary endpoint response: ${res.status} - ${res.statusText}`);
+                
+                if (res.ok) {
+                    // Effacer le timeout
+                    clearTimeout(timeoutId);
+                    
+                    const data = await res.json();
+                    console.log(`✅ Active season found: ${data.id} (Season ${data.seasonNumber})`);
+                    return data;
+                }
+                
+                // Fall back to the older endpoint if the new one fails
+                console.log('⚠️ Primary endpoint failed, trying fallback: /api/active-season');
+                const fallbackRes = await fetch('/api/active-season', { 
+                    signal: controller.signal,
+                    headers: { 'Cache-Control': 'no-cache' } // Éviter le cache
+                });
+                
+                console.log(`🔄 Fallback endpoint response: ${fallbackRes.status} - ${fallbackRes.statusText}`);
+                
+                // Effacer le timeout
+                clearTimeout(timeoutId);
+                
+                if (fallbackRes.ok) {
+                    const data = await fallbackRes.json();
+                    console.log(`✅ Active season found from fallback: ${data.id} (Season ${data.seasonNumber})`);
+                    return data;
+                }
+                
+                // If we get here, both endpoints failed
+                console.error('❌ Both endpoints failed to fetch active season');
+                throw new Error('Failed to fetch active season - both endpoints failed');
+            } catch (fetchError) {
+                // Effacer le timeout
+                clearTimeout(timeoutId);
+                
+                if (fetchError.name === 'AbortError') {
+                    console.error('🕒 Fetch request timed out after 10 seconds');
+                    throw new Error('Request for active season timed out. Please try again later.');
+                }
+                throw fetchError;
+            }
         } catch (error) {
-            console.error('Error fetching active season:', error);
+            console.error('❌ Error fetching active season:', error);
             throw error;
         }
     }
 
     // Fetch leaderboard for season with pagination
     async function fetchSeasonRanking(seasonId, page = 0) {
-        // Fetch only the requested batch of data
-        const ITEMS_PER_PAGE = 15;
-        console.log(`🔍 Fetching ranking page ${page} for season ${seasonId} with limit ${ITEMS_PER_PAGE}`);
-        
-        // Utiliser le nouvel endpoint dédié à la pagination
-        const url = `/api/seasons/${seasonId}/paged-ranking?page=${page}&limit=${ITEMS_PER_PAGE}`;
-        console.log(`🌐 Request URL: ${url}`);
-        
-        const res = await fetch(url);
-        if (!res.ok) throw new Error('Failed to fetch season ranking');
-        const data = await res.json();
-        
-        console.log(`📦 Received ${data.length} items for page ${page}`);
-        return data;
+        try {
+            // Fetch only the requested batch of data
+            const ITEMS_PER_PAGE = 15;
+            console.log(`🔍 Fetching ranking page ${page} for season ${seasonId} with limit ${ITEMS_PER_PAGE}`);
+            
+            // Vérification de l'ID de saison
+            if (!seasonId || seasonId <= 0) {
+                console.error(`❌ Invalid season ID: ${seasonId}`);
+                throw new Error(`Invalid season ID: ${seasonId}`);
+            }
+            
+            // ESSAYER L'ENDPOINT ORIGINAL POUR VOIR SI C'EST LE PROBLÈME
+            const url = `/api/seasons/${seasonId}/ranking?page=${page}&limit=${ITEMS_PER_PAGE}`;
+            console.log(`🌐 Request URL: ${url}`);
+            
+            // Ajouter un timeout pour éviter que la requête ne reste bloquée
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 secondes timeout
+            
+            try {
+                const res = await fetch(url, { signal: controller.signal });
+                // Effacer le timeout
+                clearTimeout(timeoutId);
+                
+                console.log(`🔄 Response status: ${res.status} - ${res.statusText}`);
+                
+                if (!res.ok) {
+                    console.error(`❌ Fetch failed with status: ${res.status} - ${res.statusText}`);
+                    if (res.status === 404) {
+                        // Si la saison n'est pas trouvée (404), retourner un tableau vide plutôt que de lancer une erreur
+                        console.log('⚠️ Season not found, returning empty array');
+                        return [];
+                    }
+                    throw new Error(`Failed to fetch season ranking: ${res.status} ${res.statusText}`);
+                }
+                
+                const data = await res.json();
+                if (!Array.isArray(data)) {
+                    console.error('❌ API response is not an array:', data);
+                    // Retourner un tableau vide en cas de réponse mal formée
+                    return [];
+                }
+                
+                console.log(`📦 Received ${data.length} items for page ${page}`);
+                return data;
+            } catch (fetchError) {
+                if (fetchError.name === 'AbortError') {
+                    console.error('🕒 Fetch request timed out after 10 seconds');
+                    throw new Error('Request timed out. Please try again later.');
+                }
+                throw fetchError;
+            }
+        } catch (error) {
+            console.error('💥 Error in fetchSeasonRanking:', error);
+            throw error;
+        }
     }
 
     // Utility: Robustly get and validate current user ID
@@ -117,6 +202,12 @@
     async function renderLeaderboard(ranking, currentUserId, isInitialLoad = true) {
         const list = document.getElementById('leaderboard-list');
         
+        // Vérifier que ranking est un tableau
+        if (!ranking || !Array.isArray(ranking)) {
+            console.error('❌ Invalid ranking data provided:', ranking);
+            ranking = [];
+        }
+        
         console.log(`🎬 Rendering leaderboard (initialLoad: ${isInitialLoad}, items: ${ranking.length})`);
         
         // If this is the initial load, clear the list and render the podium
@@ -132,6 +223,23 @@
                 list.appendChild(tempIndicator);
             } else {
                 list.innerHTML = '';
+            }
+            
+            // Si aucune donnée, afficher un message
+            if (ranking.length === 0) {
+                const emptyMessage = document.createElement('div');
+                emptyMessage.className = 'leaderboard-empty-message';
+                emptyMessage.innerHTML = `
+                    <div style="text-align: center; padding: 30px; color: #888;">
+                        <img src="ressources/trophy.png" style="width: 40px; opacity: 0.5; margin-bottom: 15px;">
+                        <p>Aucun participant dans ce classement pour le moment.</p>
+                        <p>Soyez le premier à jouer !</p>
+                    </div>
+                `;
+                list.appendChild(emptyMessage);
+                
+                // Ne pas continuer le rendu du podium
+                return;
             }
             
             // Podium
@@ -166,6 +274,13 @@
                     }
                 }
             }
+        }
+        
+        // Si aucune donnée et ce n'est pas le chargement initial, on ne fait rien
+        if (ranking.length === 0 && !isInitialLoad) {
+            console.log('📋 No items to render for additional page');
+            hasMoreUsers = false;
+            return;
         }
         
         // Calculate starting index based on initial load or append
@@ -212,11 +327,12 @@
         console.log(`✅ Appended ${maxItems} items to the list`);
         
         // Add loading indicator at the end if there might be more users
-        if (hasMoreUsers) {
+        if (hasMoreUsers && ranking.length >= 15) {
             console.log('🔄 Adding loading indicator for more users');
             addLoadingIndicator();
         } else {
             console.log('🛑 No more users available, not adding loading indicator');
+            hasMoreUsers = false;
         }
         
         // Only render the sticky user row on initial load
@@ -428,7 +544,7 @@
     // Integration: Open leaderboard from home page (group element click)
     // Example: document.getElementById('season-container').onclick = showLeaderboard;
 
-    // Main init
+    // Main init - simplifier pour isoler le problème
     async function initLeaderboard() {
         const loadingOverlay = document.getElementById('leaderboard-loading-overlay');
         try {
@@ -439,79 +555,69 @@
             isLoading = false;
             hasMoreUsers = true;
             
-            console.log('🧹 Reset pagination - currentPage: 0');
-            
-            // Clear existing content
-            const listElement = document.getElementById('leaderboard-list');
-            if (listElement) {
-                listElement.innerHTML = '';
-                console.log('🧹 Cleared leaderboard list');
-            }
-            
-            // Show loading overlay at the start
+            // Show loading overlay
             if (loadingOverlay) {
                 loadingOverlay.style.display = 'flex';
-                console.log('🔄 Showing loading overlay');
             }
 
+            console.log('🔍 Step 1: Fetching active season...');
             // Get active season FIRST
-            console.log('🔍 Fetching active season...');
-            const season = await fetchActiveSeason();
-            if (!season) {
+            const activeSeason = await fetchActiveSeason();
+            if (!activeSeason) {
                 throw new Error('No active season found');
             }
-            console.log(`✅ Active season found: ${season.id} (Season ${season.seasonNumber})`);
+            console.log(`✅ Active season found: ${activeSeason.id} (Season ${activeSeason.seasonNumber})`);
             
-            // Set season ID and update title
-            seasonId = season.id;
+            // Vérifier que l'ID de saison est valide
+            if (!activeSeason.id || isNaN(parseInt(activeSeason.id)) || parseInt(activeSeason.id) <= 0) {
+                console.error(`❌ Invalid season ID: ${activeSeason.id}`);
+                throw new Error(`Invalid season ID: ${activeSeason.id}`);
+            }
+            
+            // Set season ID
+            seasonId = parseInt(activeSeason.id);
+            
+            // Update title if element exists
             const titleElement = document.getElementById('leaderboard-season-title');
             if (titleElement) {
-                titleElement.textContent = `Season ${season.seasonNumber}`;
+                titleElement.textContent = `Season ${activeSeason.seasonNumber}`;
             }
             
-            // Initialize countdown
-            renderCountdown(season.endDate);
+            console.log(`🔍 Step 2: Fetching first page of ranking for season ${seasonId}...`);
+            // Fetch first page
+            const rankingData = await fetchSeasonRanking(seasonId, 0);
             
-            // Fetch first page of ranking (page 0)
-            console.log(`📋 Fetching first page of ranking for season ${seasonId} (page 0)...`);
-            const ranking = await fetchSeasonRanking(seasonId, 0);
-            console.log(`✅ Received ${ranking.length} items for first page`);
-            
-            // Check if we have more pages
-            if (ranking.length < 15) {
-                console.log('🛑 No more pages available (received < 15 items)');
-                hasMoreUsers = false;
+            // Si on reçoit un tableau vide, ce n'est pas forcément une erreur (peut-être pas de participants)
+            if (!rankingData || rankingData.length === 0) {
+                console.log('⚠️ No ranking data found for this season');
             } else {
-                console.log('✅ More pages might be available, setting currentPage to 1');
-                // Set currentPage to 1 so next fetch will get page 1
-                currentPage = 1;
+                console.log(`✅ Step 2 complete: Received ${rankingData.length} items`);
             }
             
-            // Get current user id
-            const currentUserId = getCurrentUserId();
+            console.log(`🔍 Step 3: Rendering leaderboard...`);
+            // Render data (même avec un tableau vide pour afficher le tableau vide)
+            const userIdForSticky = getCurrentUserId();
+            renderLeaderboard(rankingData || [], userIdForSticky, true);
+            console.log(`✅ Step 3 complete: Leaderboard rendered`);
             
-            // Render initial data
-            renderLeaderboard(ranking, currentUserId, true);
-            
-            // Add loading indicator if more users might be available
-            if (hasMoreUsers) {
-                console.log('🔄 Setting up loading indicator and scroll observer');
-                addLoadingIndicator();
-                setupIntersectionObserver();
-            }
-
-            // Hide loading overlay when done
-            if (loadingOverlay) {
-                loadingOverlay.style.display = 'none';
-                console.log('✅ Hidden loading overlay, initialization complete');
-            }
-        } catch (e) {
-            // Hide loading overlay on error as well
+            // Hide loading overlay
             if (loadingOverlay) {
                 loadingOverlay.style.display = 'none';
             }
-            console.error('❌ Failed to initialize leaderboard:', e);
-            alert('Failed to load leaderboard. Please try again later.');
+            
+            console.log(`✅ Leaderboard initialization complete`);
+        } catch (error) {
+            console.error('❌ Error in initLeaderboard:', error);
+            
+            // Show detailed error to help debugging
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'none';
+            }
+            
+            // Add more details to the alert for debug
+            const errorMessage = error.message || 'Unknown error';
+            const errorDetails = error.stack ? `\n\nDetails: ${error.stack.split('\n')[0]}` : '';
+            alert(`Failed to load leaderboard: ${errorMessage}${errorDetails}`);
         }
     }
 
