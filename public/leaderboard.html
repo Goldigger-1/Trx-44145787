@@ -2,7 +2,6 @@
 <head>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js"></script>
-    <script src="gameover-sticky.js"></script>
     <script>
       window.TelegramAdsController = new TelegramAdsController();
       window.TelegramAdsController.initialize({
@@ -58,7 +57,7 @@
     </div>
 
     <!-- Current User Ranking (Sticky Bottom, always visible) -->
-    <div class="leaderboard-user-row" id="gameover-user-row" aria-label="Your ranking">
-        <!-- User's own ranking will be injected here by gameover-sticky.js -->
+    <div class="leaderboard-user-row" id="leaderboard-user-row" aria-label="Your ranking">
+        <!-- User's own ranking will be injected here by leaderboard.js -->
     </div>
 </div>
