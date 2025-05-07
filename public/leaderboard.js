@@ -156,32 +156,90 @@
     // Optimized: Render sticky user row with direct API call
     async function renderStickyUserRow(currentUserId) {
         try {
-            // If user ID is missing or invalid, show error
+            // Enhanced currentUserId validation
             if (!currentUserId) {
-                document.getElementById('leaderboard-user-row').innerHTML = '<div style="color:orange;">Could not determine your user ID. Please log in again. ⚠️</div>';
-                return;
+                // Try to get ID from DOM elements if available
+                if (document.getElementById('userId')) {
+                    currentUserId = document.getElementById('userId').textContent.trim();
+                } else {
+                    // Fallback to a simple row with default values instead of showing an error
+                    document.getElementById('leaderboard-user-row').innerHTML = `
+                        <div class="leaderboard-rank">-</div>
+                        <div class="leaderboard-avatar"><img src="${window.avatarUrl || 'avatars/avatar_default.jpg'}" alt="You"></div>
+                        <div class="leaderboard-username">${window.username || 'You'} <span style="color:#00FF9D;">(You)</span></div>
+                        <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${window.seasonScore || 0}</div>
+                    `;
+                    return;
+                }
             }
             
             // Show loading state on the user row
             document.getElementById('leaderboard-user-row').innerHTML = '<div style="text-align:center;"><img src="ressources/Dual Ball@1x-1.0s-200px-200px.svg" alt="Loading..." style="width:30px;height:30px;" /></div>';
             
-            // Get the active season
-            const season = await fetchActiveSeason();
-            
-            // Get user rank data directly from API
-            const res = await fetch(`/api/seasons/${season.id}/userRank/${currentUserId}`);
-            if (!res.ok) {
-                throw new Error('Failed to fetch user rank information');
+            // Get the active season with proper error handling
+            let season;
+            try {
+                const seasonResponse = await fetchActiveSeason();
+                season = seasonResponse;
+            } catch (seasonError) {
+                console.error('Error fetching active season:', seasonError);
+                // Fallback to a simple row with default values
+                document.getElementById('leaderboard-user-row').innerHTML = `
+                    <div class="leaderboard-rank">-</div>
+                    <div class="leaderboard-avatar"><img src="${window.avatarUrl || 'avatars/avatar_default.jpg'}" alt="You"></div>
+                    <div class="leaderboard-username">${window.username || 'You'} <span style="color:#00FF9D;">(You)</span></div>
+                    <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${window.seasonScore || 0}</div>
+                `;
+                return;
             }
-            const userInfo = await res.json();
             
-            // Extract user data
+            // Get user rank data with proper error handling
+            let userInfo;
+            try {
+                const res = await fetch(`/api/seasons/${season.id}/userRank/${currentUserId}`);
+                if (!res.ok) {
+                    throw new Error('Failed to fetch user rank information');
+                }
+                userInfo = await res.json();
+            } catch (userRankError) {
+                console.error('Error fetching user rank:', userRankError);
+                
+                // Try alternative API to get basic user info
+                try {
+                    const basicUserRes = await fetch(`/api/users/${currentUserId}`);
+                    if (basicUserRes.ok) {
+                        const basicUser = await basicUserRes.json();
+                        // Create a simplified userInfo object
+                        userInfo = {
+                            rank: '-',
+                            score: window.seasonScore || basicUser.bestScore || 0,
+                            username: basicUser.gameUsername || 'You',
+                            avatarSrc: basicUser.avatarSrc || 'avatars/avatar_default.jpg'
+                        };
+                    } else {
+                        throw new Error('Failed to fetch user info');
+                    }
+                } catch (basicUserError) {
+                    console.error('Error fetching basic user info:', basicUserError);
+                    
+                    // Ultimate fallback - use window variables or defaults
+                    document.getElementById('leaderboard-user-row').innerHTML = `
+                        <div class="leaderboard-rank">-</div>
+                        <div class="leaderboard-avatar"><img src="${window.avatarUrl || 'avatars/avatar_default.jpg'}" alt="You"></div>
+                        <div class="leaderboard-username">${window.username || 'You'} <span style="color:#00FF9D;">(You)</span></div>
+                        <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${window.seasonScore || 0}</div>
+                    `;
+                    return;
+                }
+            }
+            
+            // Extract user data with fallbacks to window variables
             const rank = userInfo.rank || '-';
-            const bestScore = userInfo.score || 0;
-            const username = userInfo.username || 'You';
+            const bestScore = userInfo.score || window.seasonScore || 0;
+            const username = userInfo.username || window.username || 'You';
             
             // Add cache buster to avatar URL
-            let avatar = userInfo.avatarSrc || 'avatars/avatar_default.jpg';
+            let avatar = userInfo.avatarSrc || window.avatarUrl || 'avatars/avatar_default.jpg';
             if (avatar && !avatar.includes('?')) {
                 avatar += '?t=' + new Date().getTime();
             }
@@ -198,7 +256,13 @@
             document.getElementById('leaderboard-user-row').innerHTML = userRow;
         } catch (error) {
             console.error('Error rendering sticky user row:', error);
-            document.getElementById('leaderboard-user-row').innerHTML = '<div style="color:red;">Failed to load your info. Please refresh. ❌</div>';
+            // Never show error message - fallback to simple row with default values
+            document.getElementById('leaderboard-user-row').innerHTML = `
+                <div class="leaderboard-rank">-</div>
+                <div class="leaderboard-avatar"><img src="${window.avatarUrl || 'avatars/avatar_default.jpg'}" alt="You"></div>
+                <div class="leaderboard-username">${window.username || 'You'} <span style="color:#00FF9D;">(You)</span></div>
+                <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${window.seasonScore || 0}</div>
+            `;
         }
     }
 

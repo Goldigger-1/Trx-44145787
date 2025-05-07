@@ -2030,26 +2030,56 @@ app.get('/api/seasons/:seasonId/userRank/:userId', async (req, res) => {
     // Find the season
     const season = await Season.findByPk(seasonId);
     if (!season) {
-      return res.status(404).json({ error: 'Season not found' });
+      console.log(`⚠️ Season ${seasonId} not found`);
+      // Return a default response instead of an error
+      return res.status(200).json({
+        rank: '-',
+        score: 0,
+        username: 'Unknown User',
+        avatarSrc: '/avatars/avatar_default.jpg'
+      });
+    }
+    
+    // Try to find user by multiple identifiers
+    let user;
+    let actualUserId = userId;
+    
+    // First try by gameId (primary identifier)
+    user = await User.findOne({ where: { gameId: userId } });
+    
+    // If not found and userId looks like a number, try by telegramId
+    if (!user && /^\d+$/.test(userId)) {
+      console.log(`🔍 User not found by gameId, trying telegramId: ${userId}`);
+      user = await User.findOne({ where: { telegramId: userId } });
+      
+      if (user) {
+        console.log(`✅ User found by telegramId: ${userId}, gameId: ${user.gameId}`);
+        actualUserId = user.gameId; // Use gameId for further queries
+      }
+    }
+    
+    // If user still not found, return default data
+    if (!user) {
+      console.log(`⚠️ User not found by any identifier: ${userId}`);
+      return res.status(200).json({
+        rank: '-',
+        score: 0,
+        username: 'Unknown User',
+        avatarSrc: '/avatars/avatar_default.jpg'
+      });
     }
     
     // First, fetch the user's score for this season
     const userScore = await SeasonScore.findOne({
       where: {
-        userId: userId,
+        userId: actualUserId,
         seasonId: seasonId
       }
     });
     
     // If user has no score in this season, return default data
     if (!userScore) {
-      console.log(`⚠️ No score found for user ${userId} in season ${seasonId}`);
-      
-      // Get user info for basics
-      const user = await User.findOne({ where: { gameId: userId } });
-      if (!user) {
-        return res.status(404).json({ error: 'User not found' });
-      }
+      console.log(`⚠️ No score found for user ${actualUserId} in season ${seasonId}`);
       
       // Process avatar path
       let avatarSrc = user.avatarSrc;
@@ -2078,12 +2108,6 @@ app.get('/api/seasons/:seasonId/userRank/:userId', async (req, res) => {
     // User's rank is higher scores count + 1
     const rank = higherScoresCount + 1;
     
-    // Get user info
-    const user = await User.findOne({ where: { gameId: userId } });
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    
     // Process avatar path
     let avatarSrc = user.avatarSrc;
     if (!avatarSrc) {
@@ -2102,9 +2126,14 @@ app.get('/api/seasons/:seasonId/userRank/:userId', async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error calculating user rank:', error);
-    res.status(500).json({ 
-      error: 'Error calculating user rank', 
-      details: error.message 
+    
+    // Even in case of error, return a valid response instead of an error status
+    res.status(200).json({
+      rank: '-',
+      score: 0,
+      username: 'Error',
+      avatarSrc: '/avatars/avatar_default.jpg',
+      errorDetails: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
