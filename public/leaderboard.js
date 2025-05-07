@@ -107,7 +107,7 @@
     let seasonId = null;
     
     // Render leaderboard with progressive loading
-    async function renderLeaderboard(ranking, currentUserId, isInitialLoad = true) {
+    function renderLeaderboard(ranking, currentUserId, isInitialLoad = true) {
         const list = document.getElementById('leaderboard-list');
         
         // If this is the initial load, clear the list and render the podium
@@ -138,16 +138,9 @@
             
             // Prize for 1st
             if (podium[0]) {
-                // Fetch prize from server
-                try {
-                    const prizeRes = await fetch(`/api/seasons/${seasonId}/prize/1`);
-                    if (prizeRes.ok) {
-                        const prizeData = await prizeRes.json();
-                        document.getElementById('podium-1-prize').textContent = prizeData.prize ? `$${prizeData.prize}` : '';
-                    }
-                } catch (error) {
-                    console.error('Error fetching prize:', error);
-                    document.getElementById('podium-1-prize').textContent = '';
+                const prizeElement = document.getElementById('podium-1-prize');
+                if (prizeElement) {
+                    prizeElement.textContent = podium[0].prize ? `$${podium[0].prize}` : '';
                 }
             }
         }
@@ -267,7 +260,7 @@
             
             // If we have new items to render
             if (newItems.length > 0) {
-                await renderLeaderboard(newItems, getCurrentUserId(), false);
+                renderLeaderboard(newItems, getCurrentUserId(), false);
             } else {
                 console.log('No new items to render');
             }
@@ -402,7 +395,7 @@
             setupIntersectionObserver();
             
             // Render initial data
-            await renderLeaderboard(ranking, getCurrentUserId(), true);
+            renderLeaderboard(ranking, getCurrentUserId(), true);
             
             // If we got fewer users than requested, we've reached the end
             hasMoreUsers = initialRanking.length === 15;
