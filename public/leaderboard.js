@@ -454,7 +454,7 @@
                 console.log('🔄 Showing loading overlay');
             }
 
-            // Get active season
+            // Get active season FIRST
             console.log('🔍 Fetching active season...');
             const season = await fetchActiveSeason();
             if (!season) {
@@ -473,8 +473,8 @@
             renderCountdown(season.endDate);
             
             // Fetch first page of ranking (page 0)
-            console.log('📋 Fetching first page of ranking (page 0)...');
-            const ranking = await fetchSeasonRanking(season.id, 0);
+            console.log(`📋 Fetching first page of ranking for season ${seasonId} (page 0)...`);
+            const ranking = await fetchSeasonRanking(seasonId, 0);
             console.log(`✅ Received ${ranking.length} items for first page`);
             
             // Check if we have more pages

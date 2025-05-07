@@ -19,7 +19,10 @@ async function renderGameOverStickyUserRow() {
                 throw new Error('Failed to fetch active season');
             }
         }
+        
+        console.log(`✅ Active season found: ${season.id} (Season ${season.seasonNumber})`);
     } catch (e) {
+        console.error('Error fetching active season:', e);
         document.getElementById('gameover-user-row').innerHTML = '<div style="color:orange;">Could not load season info. ⚠️</div>';
         return;
     }
@@ -41,6 +44,7 @@ async function renderGameOverStickyUserRow() {
 
     // Use the dedicated endpoint to get user rank
     try {
+        console.log(`📊 Fetching rank for user ${userId} in season ${season.id}...`);
         const res = await fetch(`/api/seasons/${season.id}/user-rank/${encodeURIComponent(userId)}`);
         if (!res.ok) throw new Error('Failed to fetch user rank');
         const userData = await res.json();
