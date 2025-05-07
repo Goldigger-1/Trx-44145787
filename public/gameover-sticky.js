@@ -52,6 +52,8 @@ async function renderGameOverStickyUserRow() {
             return;
         }
 
+        console.log(`👤 Utilisateur identifié: ${userId} pour la saison ${season.id}`);
+
         // 3. Utiliser l'endpoint le plus simple existant pour récupérer les données utilisateur
         try {
             console.log(`📊 Récupération des données pour l'utilisateur ${userId} dans la saison ${season.id}...`);
@@ -98,14 +100,18 @@ async function renderGameOverStickyUserRow() {
             let userRank = '-';
             
             try {
-                const userPositionRes = await fetch(`/api/seasons/${season.id}/user-position?userId=${encodeURIComponent(userId)}`);
+                // Assurez-vous que l'ID utilisateur est correctement encodé pour l'URL
+                const encodedUserId = encodeURIComponent(userId);
+                console.log(`🔍 Récupération du rang pour ${encodedUserId}...`);
+                
+                const userPositionRes = await fetch(`/api/seasons/${season.id}/user-position?userId=${encodedUserId}`);
                 
                 if (userPositionRes.ok) {
                     const positionData = await userPositionRes.json();
                     userRank = positionData.position || '-';
                     console.log(`✅ Position utilisateur récupérée: ${userRank}`);
                 } else {
-                    console.log(`⚠️ Impossible de récupérer la position utilisateur, utilisation de la valeur par défaut`);
+                    console.log(`⚠️ API a retourné une erreur: ${userPositionRes.status}. Utilisation de la valeur par défaut`);
                 }
             } catch (positionError) {
                 console.error('❌ Erreur lors de la récupération de la position utilisateur:', positionError);

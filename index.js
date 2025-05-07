@@ -1266,9 +1266,12 @@ app.get('/api/seasons/:seasonId/user-position', async (req, res) => {
       return res.status(404).json({ error: 'Season not found' });
     }
     
-    // Get the user's score first
+    // Get the user's score first - chercher par le bon ID (gameId dans users = userId dans SeasonScores)
     const userScore = await SeasonScore.findOne({
-      where: { seasonId, userId }
+      where: { 
+        seasonId: seasonId,
+        userId: userId
+      }
     });
     
     if (!userScore) {
