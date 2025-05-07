@@ -112,7 +112,9 @@
         
         // If this is the initial load, clear the list and render the podium
         if (isInitialLoad) {
-            list.innerHTML = '';
+            // Clear list but keep loading indicator if present
+            const loadingIndicator = document.getElementById('leaderboard-loading-indicator');
+            list.innerHTML = loadingIndicator ? '' : 'loading-indicator';
             
             // Podium
             const podium = [ranking[0], ranking[1], ranking[2]];
@@ -136,10 +138,13 @@
         // Calculate starting index based on initial load or append
         const startIdx = isInitialLoad ? 0 : list.children.length;
         
-        // If we're not loading the initial batch, only render up to ITEMS_PER_PAGE new items
-        const maxItems = isInitialLoad ? ranking.length : Math.min(ranking.length, 15);
+        // Always render a maximum of 15 items at a time
+        const maxItems = Math.min(ranking.length, 15);
         
-        // Append new rows to the list
+        // Create new fragment to append all items at once
+        const fragment = document.createDocumentFragment();
+        
+        // Append new rows to the fragment
         for (let i = 0; i < maxItems; i++) {
             const user = ranking[i];
             const actualIdx = startIdx + i;
@@ -155,8 +160,11 @@
                 <div class="leaderboard-username">${user.gameUsername || user.username || 'Player'}</div>
                 <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${user.score || 0}</div>
             `;
-            list.appendChild(row);
+            fragment.appendChild(row);
         }
+        
+        // Append all items at once
+        list.appendChild(fragment);
         
         // Add loading indicator at the end if there might be more users
         if (hasMoreUsers) {
@@ -325,6 +333,9 @@
             isLoading = false;
             hasMoreUsers = true;
             
+            // Clear any existing ranking cache when (re)initializing
+            window.fullRankingCache = {};
+            
             // Show loading overlay at the start
             if (loadingOverlay) loadingOverlay.style.display = 'flex';
 
@@ -335,19 +346,17 @@
             
             // Fetch first page of ranking
             const ITEMS_PER_PAGE = 15;
-            const response = await fetchSeasonRanking(season.id, 0);
-            const { ranking, total, totalPages } = response;
+            let initialRanking = await fetchSeasonRanking(season.id, 0, ITEMS_PER_PAGE);
             
-            // Set pagination state
-            hasMoreUsers = totalPages > 1;
-            currentPage = 0;
+            // If we got fewer users than requested, we've reached the end
+            hasMoreUsers = initialRanking.length === 15;
             
             // Add prize to 1st place
             if (initialRanking[0]) initialRanking[0].prize = season.prizeMoney;
             
             // Get current user id robustly
             let currentUserId = getCurrentUserId();
-            renderLeaderboard(ranking, currentUserId, true);
+            renderLeaderboard(initialRanking, currentUserId, true);
 
             // Hide loading overlay when done
             if (loadingOverlay) loadingOverlay.style.display = 'none';
