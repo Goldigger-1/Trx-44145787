@@ -242,9 +242,10 @@
         
         isLoading = true;
         try {
-            const ITEMS_PER_PAGE = 15;
             const ranking = await fetchSeasonRanking(seasonId, currentPage);
-            if (ranking.length < ITEMS_PER_PAGE) {
+            
+            // Check if we have more users
+            if (ranking.length < 15) {
                 hasMoreUsers = false;
             } else {
                 currentPage++;
@@ -253,7 +254,13 @@
             // Only render new items, don't re-render existing ones
             const existingCount = document.querySelectorAll('.leaderboard-row').length;
             const newItems = ranking.slice(existingCount);
-            renderLeaderboard(newItems, getCurrentUserId(), false);
+            
+            // If we have new items to render
+            if (newItems.length > 0) {
+                renderLeaderboard(newItems, getCurrentUserId(), false);
+            } else {
+                console.log('No new items to render');
+            }
         } catch (error) {
             console.error('Error loading more users:', error);
             // Show error in loading indicator
@@ -362,13 +369,30 @@
             if (loadingOverlay) loadingOverlay.style.display = 'flex';
 
             const season = await fetchActiveSeason();
-            seasonId = season.id; // Store for later use with pagination
+            if (!season) {
+                throw new Error('No active season found');
+            }
+            
+            seasonId = season.id;
             document.getElementById('leaderboard-season-title').textContent = `Season ${season.seasonNumber}`;
             renderCountdown(season.endDate);
             
             // Fetch first page of ranking
-            const ITEMS_PER_PAGE = 15;
-            let initialRanking = await fetchSeasonRanking(season.id, 0, ITEMS_PER_PAGE);
+            const ranking = await fetchSeasonRanking(season.id, currentPage);
+            if (ranking.length < 15) {
+                hasMoreUsers = false;
+            } else {
+                currentPage++;
+            }
+            
+            // Add loading indicator before rendering
+            addLoadingIndicator();
+            
+            // Setup intersection observer before rendering
+            setupIntersectionObserver();
+            
+            // Render initial data
+            renderLeaderboard(ranking, getCurrentUserId(), true);
             
             // If we got fewer users than requested, we've reached the end
             hasMoreUsers = initialRanking.length === 15;
