@@ -1169,7 +1169,7 @@ app.post('/api/seasons/:id/close', async (req, res) => {
 });
 
 // --- FIX: Optimisation du chargement du leaderboard par pages ---
-// Cette route remplace l'ancienne implémentation avec une version plus robuste et performante
+// Cette route remplace l'ancienne implémentation avec une version plus robuste
 app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
   try {
     const { seasonId } = req.params;
@@ -1198,141 +1198,46 @@ app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
     
     console.log(`✅ Found season: ${season.id} (Season ${season.seasonNumber})`);
     
-    try {
-      // Optimisation: Récupérer les scores et les détails des utilisateurs en une seule requête
-      // Utilisation de jointure SQL manuelle pour optimiser les performances
-      // IMPORTANT: Compter le nombre total de scores pour déterminer s'il y a plus de données
-      const countQuery = `SELECT COUNT(*) as total FROM "SeasonScores" WHERE seasonId = ?`;
-      const [countResult] = await sequelize.query(countQuery, {
-        replacements: [seasonId],
-        type: Sequelize.QueryTypes.SELECT,
-        plain: true
-      });
+    // Optimisation: Récupérer les scores et les détails des utilisateurs en une seule requête
+    // Utilisation de jointure SQL manuelle pour optimiser les performances
+    const query = `
+      SELECT ss.*, u.gameUsername, u.avatarSrc
+      FROM "SeasonScores" ss
+      JOIN "Users" u ON ss.userId = u.gameId
+      WHERE ss.seasonId = ?
+      ORDER BY ss.score DESC
+      LIMIT ? OFFSET ?
+    `;
+    
+    const [scores] = await sequelize.query(query, {
+      replacements: [seasonId, limit, offset],
+      type: Sequelize.QueryTypes.SELECT,
+      raw: true,
+      nest: true
+    });
+    
+    // Transformer les résultats en format attendu
+    const ranking = Array.isArray(scores) ? scores.map(score => {
+      // Normaliser le format des avatars
+      let avatarSrc = score.avatarSrc;
+      if (!avatarSrc) {
+        avatarSrc = '/avatars/avatar_default.jpg';
+      } else if (!avatarSrc.startsWith('/') && !avatarSrc.startsWith('http')) {
+        avatarSrc = `/avatars/${avatarSrc}`;
+      }
       
-      const totalItems = parseInt(countResult.total) || 0;
-      const hasMore = totalItems > offset + limit;
-      
-      // Query optimisée pour récupérer les données de classement avec un seul appel à la base de données
-      const query = `
-        SELECT ss.*, u.gameUsername, u.avatarSrc, u.gameId 
-        FROM "SeasonScores" ss
-        JOIN "Users" u ON ss.userId = u.gameId
-        WHERE ss.seasonId = ?
-        ORDER BY ss.score DESC
-        LIMIT ? OFFSET ?
-      `;
-      
-      const scores = await sequelize.query(query, {
-        replacements: [seasonId, limit, offset],
-        type: Sequelize.QueryTypes.SELECT,
-        raw: true
-      });
-      
-      // Ajouter le rang aux résultats
-      const ranking = Array.isArray(scores) ? scores.map((score, index) => {
-        // Normaliser le format des avatars
-        let avatarSrc = score.avatarSrc;
-        if (!avatarSrc) {
-          avatarSrc = '/avatars/avatar_default.jpg';
-        } else if (!avatarSrc.startsWith('/') && !avatarSrc.startsWith('http')) {
-          avatarSrc = `/avatars/${avatarSrc}`;
-        }
-        
-        return {
-          userId: score.gameId || score.userId,
-          username: score.gameUsername || 'Unknown User',
-          avatarSrc: avatarSrc,
-          score: score.score || 0,
-          rank: offset + index + 1 // Ajouter le rang
-        };
-      }) : [];
-      
-      console.log(`✅ Found ${ranking.length} users in ranking for season ${seasonId} (page: ${page})`);
-      
-      // Enrichir la réponse avec des métadonnées de pagination pour le client
-      const responseData = {
-        data: ranking,
-        pagination: {
-          page,
-          limit,
-          total: totalItems,
-          hasMore
-        }
+      return {
+        userId: score.userId,
+        username: score.gameUsername || 'Unknown User',
+        avatarSrc: avatarSrc,
+        score: score.score || 0
       };
-      
-      // Caching: Set Cache-Control headers for better performance
-      // Le frontend peut mettre en cache cette réponse pendant 30 secondes
-      res.set('Cache-Control', 'public, max-age=30');
-      
-      // Return formatted response
-      res.status(200).json(responseData);
-    } catch (dbError) {
-      // En cas d'erreur avec la requête optimisée, retomber sur un fallback
-      console.error('❌ Optimized query failed, falling back to standard query:', dbError);
-      
-      // Requête de secours avec Sequelize standard
-      const scores = await SeasonScore.findAll({
-        where: { seasonId },
-        order: [['score', 'DESC']],
-        limit,
-        offset,
-        include: [{
-          model: User,
-          attributes: ['gameId', 'gameUsername', 'avatarSrc'],
-          required: true
-        }]
-      });
-      
-      // En cas d'erreur avec l'include, faire manuellement
-      if (!scores || scores.length === 0) {
-        return res.status(200).json({ 
-          data: [],
-          pagination: {
-            page,
-            limit,
-            total: 0,
-            hasMore: false
-          }
-        });
-      }
-      
-      // Transformer les résultats
-      const rankings = [];
-      for (const score of scores) {
-        try {
-          const user = await User.findByPk(score.userId);
-          if (user) {
-            let avatarSrc = user.avatarSrc;
-            if (!avatarSrc) {
-              avatarSrc = '/avatars/avatar_default.jpg';
-            } else if (!avatarSrc.startsWith('/') && !avatarSrc.startsWith('http')) {
-              avatarSrc = `/avatars/${avatarSrc}`;
-            }
-            
-            rankings.push({
-              userId: user.gameId,
-              username: user.gameUsername || 'Unknown User',
-              avatarSrc: avatarSrc,
-              score: score.score || 0,
-              rank: offset + rankings.length + 1
-            });
-          }
-        } catch (userErr) {
-          console.error(`❌ Error fetching user ${score.userId}:`, userErr);
-        }
-      }
-      
-      // Return as fallback response
-      res.status(200).json({
-        data: rankings,
-        pagination: {
-          page,
-          limit,
-          total: rankings.length,
-          hasMore: rankings.length === limit
-        }
-      });
-    }
+    }) : [];
+    
+    console.log(`✅ Found ${ranking.length} users in ranking for season ${seasonId} (page: ${page})`);
+    
+    // Return as array
+    res.status(200).json(ranking);
   } catch (error) {
     console.error('❌ Error fetching season ranking:', error);
     res.status(500).json({ 
@@ -1342,15 +1247,12 @@ app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
   }
 });
 
-// --- FIX: Optimisation de la route user-rank ---
+// --- FIX: Route optimisée pour récupérer le rang d'un utilisateur sans charger tout le classement ---
 app.get('/api/seasons/:seasonId/user-rank/:userId', async (req, res) => {
   try {
     const { seasonId, userId } = req.params;
     
     console.log(`🔍 Fetching rank for user ${userId} in season ${seasonId}`);
-    
-    // Caching - Ajouter un cache court pour cette route
-    res.set('Cache-Control', 'public, max-age=10'); // Cache de 10 secondes
     
     // Verify the season exists
     const season = await Season.findByPk(seasonId);
@@ -1358,7 +1260,7 @@ app.get('/api/seasons/:seasonId/user-rank/:userId', async (req, res) => {
       return res.status(404).json({ error: 'Season not found' });
     }
     
-    // Get user data with a single query
+    // Get user data
     const user = await User.findByPk(userId);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
@@ -1390,7 +1292,7 @@ app.get('/api/seasons/:seasonId/user-rank/:userId', async (req, res) => {
       });
     }
     
-    // Requête optimisée avec COUNT
+    // SQL optimisé pour calculer le rang précisément
     const rankQuery = `
       SELECT COUNT(*) as rank
       FROM "SeasonScores"
@@ -1432,6 +1334,10 @@ app.get('/api/seasons/:seasonId/user-rank/:userId', async (req, res) => {
     });
   }
 });
+
+// --- FIX: Suppression de la route dupliquée qui causait des problèmes ---
+// La route '/api/seasons/:seasonId/paged-ranking' est maintenant supprimée
+// car la route '/api/seasons/:seasonId/ranking' est optimisée et suffit
 
 // Route pour récupérer le classement global
 app.get('/api/global-ranking', async (req, res) => {
