@@ -129,28 +129,41 @@ async function renderLeaderboardUserRow() {
             try {
                 console.log(`🔍 Tentative de récupération du rang pour ${userId} dans la saison ${season.id}...`);
                 
-                // Utiliser explicitement le port 3001 (serveur de production) pour l'API
-                // Récupérer l'hôte actuel sans le port
-                const currentHost = window.location.hostname;
+                // URL simple pour récupérer le rang - en utilisant l'URL de la page courante comme base
+                const baseUrl = window.location.origin; // Utilise le protocole (http/https) et le domaine de la page courante
+                console.log(`🌐 URL de base: ${baseUrl}`);
                 
-                // URL avec port explicite pour garantir l'accès à l'API correcte
-                const apiUrl = `http://${currentHost}:3001/api/seasons/${season.id}/user-position?userId=${encodeURIComponent(userId)}`;
-                console.log(`🔗 URL de l'API avec port explicite: ${apiUrl}`);
+                // URL complète avec le port actuel de l'application
+                const apiUrl = `${baseUrl}/api/seasons/${season.id}/user-position?userId=${encodeURIComponent(userId)}`;
+                console.log(`🔗 URL complète de l'API: ${apiUrl}`);
                 
-                // Afficher un message temporaire pendant le chargement
-                userRowElement.innerHTML = `
-                    <div class="leaderboard-rank">...</div>
-                    <div class="leaderboard-avatar"><img src="${avatarImgSrc}" alt="${username}"></div>
-                    <div class="leaderboard-username">${username} <span style="color:#00FF9D;">(You)</span></div>
-                    <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${userSeasonScore}</div>
-                `;
+                console.log(`⏳ Envoi de la requête...`);
+                const userPositionRes = await fetch(apiUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Cache-Control': 'no-cache'
+                    }
+                });
                 
-                const userPositionRes = await fetch(apiUrl);
-                console.log(`📊 Statut de la réponse: ${userPositionRes.status}`);
+                console.log(`📊 Statut de la réponse: ${userPositionRes.status} ${userPositionRes.statusText}`);
+                console.log(`📋 En-têtes de la réponse:`, Object.fromEntries([...userPositionRes.headers.entries()]));
                 
+                // Si la réponse est OK, essayer de récupérer le JSON
                 if (userPositionRes.ok) {
-                    const positionData = await userPositionRes.json();
-                    console.log(`🔄 Données complètes reçues:`, positionData);
+                    const responseText = await userPositionRes.text(); // D'abord récupérer le texte brut
+                    console.log(`📄 Réponse brute: ${responseText}`);
+                    
+                    let positionData;
+                    try {
+                        positionData = JSON.parse(responseText);
+                        console.log(`🔄 Données JSON parsées:`, positionData);
+                    } catch (parseError) {
+                        console.error(`❌ Erreur de parsing JSON:`, parseError);
+                        console.log(`⚠️ La réponse n'est pas un JSON valide`);
+                        userRank = '-';
+                        throw new Error('Réponse non-JSON: ' + responseText);
+                    }
                     
                     // Vérifier si la position est bien présente dans la réponse
                     if (positionData && positionData.hasOwnProperty('position')) {
@@ -163,8 +176,8 @@ async function renderLeaderboardUserRow() {
                 } else {
                     // Essayer de récupérer le message d'erreur pour diagnostiquer
                     try {
-                        const errorData = await userPositionRes.json();
-                        console.error(`❌ Erreur de l'API: ${JSON.stringify(errorData)}`);
+                        const errorText = await userPositionRes.text();
+                        console.error(`❌ Erreur de l'API (${userPositionRes.status}): ${errorText}`);
                     } catch (e) {
                         console.error(`❌ Erreur HTTP: ${userPositionRes.status} ${userPositionRes.statusText}`);
                     }
@@ -173,10 +186,6 @@ async function renderLeaderboardUserRow() {
                 }
             } catch (positionError) {
                 console.error('❌ Erreur lors de la récupération de la position utilisateur:', positionError);
-                // Ajouter une trace visible de l'erreur dans l'interface (sera remplacée par la ligne utilisateur complète après)
-                userRowElement.innerHTML = `<div style="color:orange;">Erreur API: ${positionError.message}</div>`;
-                // Attendre 2 secondes pour que l'utilisateur puisse voir l'erreur
-                await new Promise(resolve => setTimeout(resolve, 2000));
             }
             
             // S'assurer que userRank est toujours une valeur valide pour l'affichage
@@ -189,6 +198,9 @@ async function renderLeaderboardUserRow() {
             userRank = String(userRank);
             
             console.log(`🏆 Valeur finale de userRank pour affichage: "${userRank}"`);
+            
+            // Écrire également la valeur dans la console du navigateur en gros pour vérification
+            console.log('%c RANG UTILISATEUR: ' + userRank, 'font-size: 24px; color: red; background-color: yellow;');
             
             // 4. Construire la rangée HTML avec le rang et le score
             const userRow = `

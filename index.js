@@ -1247,75 +1247,115 @@ app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
   }
 });
 
-// --- NOUVELLE SOLUTION OPTIMISÉE: Calculer le rang utilisateur sans charger de liste ---
+// --- SOLUTION OPTIMISÉE: Calculer le rang utilisateur sans charger de liste ---
 // Cette route utilise une requête SQL optimisée qui compte simplement les scores supérieurs
 app.get('/api/seasons/:seasonId/user-position', async (req, res) => {
   try {
+    // Ajouter des logs détaillés pour mieux diagnostiquer
+    console.log(`🔍 API /user-position appelée avec les paramètres: ${JSON.stringify(req.params)} et query: ${JSON.stringify(req.query)}`);
+    console.log(`📌 Headers de la requête: ${JSON.stringify(req.headers)}`);
+    
     const { seasonId } = req.params;
     const { userId } = req.query;
     
-    // Ajouter des en-têtes CORS pour s'assurer que l'API est accessible
+    // Activer CORS pour toutes les origines et méthodes
     res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET');
-    res.header('Access-Control-Allow-Headers', 'Content-Type');
+    res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
     
-    console.log(`🔍 API /user-position appelée: seasonId=${seasonId}, userId=${userId}`);
-    
-    if (!userId) {
-      console.log(`⚠️ userId non fourni dans la requête`);
-      return res.status(400).json({ error: 'userId query parameter is required', position: '-' });
+    // Gestion de la méthode OPTIONS pour les requêtes préliminaires CORS
+    if (req.method === 'OPTIONS') {
+      console.log('🔄 Requête OPTIONS reçue - répondre avec les headers CORS');
+      return res.status(200).end();
     }
     
-    console.log(`🔍 Calculating rank for user ${userId} in season ${seasonId}`);
+    // Validation des paramètres
+    if (!userId) {
+      console.log('⚠️ userId manquant dans la requête');
+      return res.status(400).json({ 
+        error: 'userId query parameter is required',
+        position: '-',
+        message: 'Le paramètre userId est requis'
+      });
+    }
     
-    // Validate season
+    if (!seasonId || isNaN(parseInt(seasonId))) {
+      console.log(`⚠️ seasonId invalide: ${seasonId}`);
+      return res.status(400).json({ 
+        error: 'Invalid season ID',
+        position: '-',
+        message: 'ID de saison invalide'
+      });
+    }
+    
+    console.log(`🔍 Calcul du rang pour l'utilisateur ${userId} dans la saison ${seasonId}`);
+    
+    // Vérifier si la saison existe
     const season = await Season.findByPk(seasonId);
     if (!season) {
-      console.log(`⚠️ Season not found: ${seasonId}`);
-      return res.status(404).json({ error: 'Season not found', position: '-' });
+      console.log(`⚠️ Saison non trouvée: ${seasonId}`);
+      return res.status(404).json({ 
+        error: 'Season not found',
+        position: '-',
+        message: 'La saison demandée n\'existe pas'
+      });
     }
     
-    // Get the user's score first
+    console.log(`✅ Saison trouvée: ${season.id} (Saison ${season.seasonNumber})`);
+    
+    // Récupérer le score de l'utilisateur
     const userScore = await SeasonScore.findOne({
       where: { seasonId, userId }
     });
     
     if (!userScore) {
-      console.log(`⚠️ No score found for user ${userId} in season ${seasonId}`);
-      return res.status(200).json({ position: '-', score: 0 });
+      console.log(`⚠️ Score non trouvé pour l'utilisateur ${userId} dans la saison ${seasonId}`);
+      return res.status(200).json({ 
+        position: '-', 
+        score: 0,
+        message: 'Aucun score de saison trouvé pour cet utilisateur'
+      });
     }
     
-    // Use SQL COUNT to efficiently calculate the position - count how many scores are higher
+    console.log(`✅ Score trouvé pour l'utilisateur ${userId}: ${userScore.score}`);
+    
+    // Utiliser COUNT pour calculer le rang de manière efficace - compter les scores supérieurs
     const rankQuery = `
       SELECT COUNT(*) as higherScores
       FROM "SeasonScores"
       WHERE "seasonId" = ? AND "score" > ?
     `;
     
+    console.log(`🔍 Exécution de la requête SQL: ${rankQuery.replace(/\s+/g, ' ')}`);
+    console.log(`🔍 Paramètres: [${seasonId}, ${userScore.score}]`);
+    
     const [rankResult] = await sequelize.query(rankQuery, {
       replacements: [seasonId, userScore.score],
       type: Sequelize.QueryTypes.SELECT
     });
     
-    // Position is the number of scores that are higher + 1
+    // La position est le nombre de scores supérieurs + 1
     const position = rankResult.higherScores + 1;
     
-    console.log(`✅ User ${userId} is ranked #${position} in season ${seasonId} with score ${userScore.score}`);
+    console.log(`✅ Utilisateur ${userId} est classé #${position} dans la saison ${seasonId} avec un score de ${userScore.score}`);
     
-    // Return rank information with explicit content type
+    // Définir le type de contenu explicitement et renvoyer le résultat
     res.header('Content-Type', 'application/json');
     res.status(200).json({
       userId,
       position,
-      score: userScore.score
+      score: userScore.score,
+      message: 'Rang calculé avec succès'
     });
   } catch (error) {
-    console.error('❌ Error calculating user position:', error);
-    // Toujours renvoyer une réponse avec une position, même en cas d'erreur
+    console.error('❌ Erreur lors du calcul de la position utilisateur:', error);
+    
+    // Toujours renvoyer une réponse cohérente, même en cas d'erreur
     res.status(500).json({ 
-      error: 'Error calculating user position', 
+      error: 'Error calculating user position',
       details: error.message,
-      position: '-'
+      position: '-',
+      message: 'Une erreur est survenue lors du calcul du rang utilisateur'
     });
   }
 });
