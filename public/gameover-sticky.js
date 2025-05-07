@@ -72,8 +72,8 @@ async function renderGameOverStickyUserRow() {
             // 5. Construire la rangée HTML
             const userRow = `
                 <div class="leaderboard-rank">${userData.rank || '-'}</div>
-                <div class="leaderboard-avatar"><img src="${avatarSrc}" alt="${userData.username || 'Vous'}"></div>
-                <div class="leaderboard-username">${userData.username || 'Vous'} <span style="color:#00FF9D;">(Vous)</span></div>
+                <div class="leaderboard-avatar"><img src="${avatarSrc}" alt="${userData.username || 'You'}"></div>
+                <div class="leaderboard-username">${userData.username || 'You'} <span style="color:#00FF9D;">(You)</span></div>
                 <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${userData.score || 0}</div>
             `;
             
@@ -100,8 +100,8 @@ async function renderGameOverStickyUserRow() {
                 // Construire la rangée sans le rang
                 const userRow = `
                     <div class="leaderboard-rank">-</div>
-                    <div class="leaderboard-avatar"><img src="${avatarSrc}" alt="${userData.gameUsername || 'Vous'}"></div>
-                    <div class="leaderboard-username">${userData.gameUsername || 'Vous'} <span style="color:#00FF9D;">(Vous)</span></div>
+                    <div class="leaderboard-avatar"><img src="${avatarSrc}" alt="${userData.gameUsername || 'You'}"></div>
+                    <div class="leaderboard-username">${userData.gameUsername || 'You'} <span style="color:#00FF9D;">(You)</span></div>
                     <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${userData.bestScore || 0}</div>
                 `;
                 
