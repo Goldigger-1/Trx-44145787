@@ -358,7 +358,7 @@ bot.help((ctx) => {
 
 bot.start((ctx) => {
   console.log('Commande /start reçue de:', ctx.from.id, ctx.from.username);
-  ctx.reply('Let’s see how long you last here 😏', {
+  ctx.reply('Let\'s see how long you last here 😏', {
     reply_markup: {
       inline_keyboard: [
         [{ text: 'Play', web_app: { url: webAppUrl } }],
@@ -2020,6 +2020,54 @@ app.post('/api/promo-banner', upload.single('image'), async (req, res) => {
     res.json({ success: true, imageUrl: imageFilename ? `/promo-images/${imageFilename}` : '', link });
   } catch (err) {
     res.status(500).json({ error: 'Could not save promo banner' });
+  }
+});
+
+// API endpoint to get a user's rank in a season efficiently
+app.get('/api/seasons/:seasonId/scores/:userId/rank', async (req, res) => {
+  try {
+    const { seasonId, userId } = req.params;
+    console.log(`🔍 Getting rank for user ${userId} in season ${seasonId}`);
+    
+    // Verify the season exists
+    const season = await Season.findByPk(seasonId);
+    if (!season) {
+      return res.status(404).json({ error: 'Season not found' });
+    }
+    
+    // First check if the user has a score in this season
+    const userScore = await SeasonScore.findOne({
+      where: { seasonId, userId }
+    });
+    
+    if (!userScore) {
+      console.log(`⚠️ No score found for user ${userId} in season ${seasonId}`);
+      return res.json({ rank: '-', score: 0 });
+    }
+    
+    // Count how many users have a higher score than this user
+    const higherScores = await SeasonScore.count({
+      where: {
+        seasonId,
+        score: { [Op.gt]: userScore.score }
+      }
+    });
+    
+    // User's rank is the number of higher scores + 1
+    const rank = higherScores + 1;
+    
+    console.log(`✅ User ${userId} has rank ${rank} in season ${seasonId} with score ${userScore.score}`);
+    
+    res.json({
+      rank,
+      score: userScore.score
+    });
+  } catch (error) {
+    console.error('❌ Error getting user rank:', error);
+    res.status(500).json({ 
+      error: 'Error getting user rank', 
+      details: error.message 
+    });
   }
 });
 

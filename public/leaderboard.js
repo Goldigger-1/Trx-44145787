@@ -96,8 +96,68 @@
         setInterval(update, 20000);
     }
 
+    // Render current user's sticky row efficiently
+    async function renderStickyUserRow(seasonId, currentUserId) {
+        // If user ID is missing or invalid, show error
+        if (!currentUserId) {
+            document.getElementById('leaderboard-user-row').innerHTML = '<div style="color:orange;">Could not determine your user ID. Please log in again. ⚠️</div>';
+            return;
+        }
+        
+        // Show loading state
+        document.getElementById('leaderboard-user-row').innerHTML = '<div style="text-align:center;width:100%;"><img src="ressources/loading.svg" alt="Loading..." width="20" style="margin-right:8px;vertical-align:middle;">Loading your rank...</div>';
+        
+        try {
+            // Get user info and ranking with direct API calls (in parallel)
+            const userInfoPromise = fetch(`/api/users/${encodeURIComponent(currentUserId)}`).then(r => r.ok ? r.json() : null);
+            const userRankPromise = fetch(`/api/seasons/${seasonId}/scores/${encodeURIComponent(currentUserId)}/rank`).then(r => r.ok ? r.json() : null);
+            
+            // Use Promise.all to run both requests in parallel
+            const [userInfo, userRank] = await Promise.all([userInfoPromise, userRankPromise]);
+            
+            if (!userInfo) {
+                throw new Error('User not found');
+            }
+            
+            // Get user's info
+            const username = userInfo.gameUsername || userInfo.username || 'You';
+            let bestScore = userInfo.seasonScore || userInfo.bestScore || 0;
+            let avatar = userInfo.avatarSrc || 'avatars/avatar_default.jpg';
+            let rank = userRank ? userRank.rank : '-';
+            
+            // Correct avatar path if needed
+            if (avatar && !avatar.includes('/')) {
+                avatar = `avatars/${avatar}`;
+            }
+            
+            // Add cache buster to avatar
+            if (avatar && !avatar.includes('?')) {
+                avatar += '?t=' + new Date().getTime();
+            }
+            
+            // If the user rank API returned a score, use that score
+            if (userRank && userRank.score !== undefined) {
+                bestScore = userRank.score;
+            }
+            
+            console.log('[DEBUG] Current user data:', {rank, bestScore, username, avatar});
+            
+            // Render sticky row
+            const userRow = `
+                <div class="leaderboard-rank">${rank}</div>
+                <div class="leaderboard-avatar"><img src="${avatar}" alt="${username}"></div>
+                <div class="leaderboard-username">${username} <span style="color:#00FF9D;">(You)</span></div>
+                <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${bestScore}</div>
+            `;
+            document.getElementById('leaderboard-user-row').innerHTML = userRow;
+        } catch (error) {
+            console.error('❌ Error rendering sticky user row:', error);
+            document.getElementById('leaderboard-user-row').innerHTML = '<div style="color:red;">Failed to load your info. Please refresh. ❌</div>';
+        }
+    }
+
     // Render leaderboard
-    function renderLeaderboard(ranking, currentUserId) {
+    function renderLeaderboard(ranking, currentUserId, seasonId) {
         // Podium
         const podium = [ranking[0], ranking[1], ranking[2]];
         [1,2,3].forEach(i => {
@@ -140,69 +200,9 @@
             `;
             list.appendChild(row);
         });
-        // Current user row (sticky)
-        // --- Robust sticky user row rendering: always use server data ---
-        async function renderStickyUserRow(ranking, currentUserId) {
-            // If user ID is missing or invalid, show error
-            if (!currentUserId) {
-                document.getElementById('leaderboard-user-row').innerHTML = '<div style="color:orange;">Could not determine your user ID. Please log in again. ⚠️</div>';
-                return;
-            }
-            // Deep fix: Always sort the ranking array by bestScore (or score) descending before finding the user's position
-            let sortedRanking = [...ranking].sort((a, b) => (b.bestScore ?? b.score ?? 0) - (a.bestScore ?? a.score ?? 0));
-            let userIndex = sortedRanking.findIndex(u => String(u.gameId ?? u.id ?? u.userId) === String(currentUserId));
-            let rank = userIndex !== -1 ? userIndex + 1 : '-';
-            let user = sortedRanking[userIndex];
-            let bestScore = 0;
-            let username = '';
-            let avatar = 'avatars/avatar_default.jpg';
-            if (user) {
-                // User is ranked
-                bestScore = user.bestScore || user.score || 0;
-                username = user.gameUsername || user.username || 'You';
-                avatar = user.avatarSrc || 'avatars/avatar_default.jpg';
-            } else {
-                // Not ranked: fetch from server
-                try {
-                    const res = await fetch(`/api/users/${encodeURIComponent(currentUserId)}`);
-                    if (res.ok) {
-                        user = await res.json();
-                        bestScore = user.bestScore || user.score || 0;
-                        username = user.gameUsername || user.username || 'You';
-                        avatar = user.avatarSrc || 'avatars/avatar_default.jpg';
-                    } else {
-                        // User not found on server
-                        username = 'You';
-                        bestScore = 0;
-                        avatar = 'avatars/avatar_default.jpg';
-                    }
-                } catch (err) {
-                    username = 'You';
-                    bestScore = 0;
-                    avatar = 'avatars/avatar_default.jpg';
-                }
-            }
-            // Add cache buster to avatar
-            if (avatar && !avatar.includes('?')) {
-                avatar += '?t=' + new Date().getTime();
-            }
-            
-            console.log('[DEBUG] Current user avatar:', avatar);
-            
-            // Render sticky row
-            const userRow = `
-                <div class="leaderboard-rank">${rank}</div>
-                <div class="leaderboard-avatar"><img src="${avatar}" alt="${username}"></div>
-                <div class="leaderboard-username">${username} <span style=\"color:#00FF9D;\">(You)</span></div>
-                <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${bestScore}</div>
-            `;
-            console.log('[DEBUG sticky row]', {rank, bestScore, username, avatar, userRow});
-            document.getElementById('leaderboard-user-row').innerHTML = userRow;
-        }
-        // Call the async function and handle errors
-        renderStickyUserRow(ranking, currentUserId).catch(e => {
-            document.getElementById('leaderboard-user-row').innerHTML = '<div style="color:red;">Failed to load your info. Please refresh. ❌</div>';
-        });
+        
+        // Call the optimized sticky user row render function - pass the season ID to avoid refetching it
+        renderStickyUserRow(seasonId, currentUserId);
     }
 
     // Show leaderboard page
@@ -244,7 +244,7 @@
             if (ranking[0]) ranking[0].prize = season.prizeMoney;
             // Get current user id robustly
             let currentUserId = getCurrentUserId();
-            renderLeaderboard(ranking, currentUserId);
+            renderLeaderboard(ranking, currentUserId, season.id);
 
             // Hide loading overlay when done
             if (loadingOverlay) loadingOverlay.style.display = 'none';
