@@ -1172,11 +1172,13 @@ app.post('/api/seasons/:id/close', async (req, res) => {
 app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
   try {
     const { seasonId } = req.params;
+    
+    // Support pour pagination
     const page = parseInt(req.query.page) || 0;
     const limit = parseInt(req.query.limit) || 15;
     const offset = page * limit;
     
-    console.log(`🔍 Fetching ranking for season ${seasonId} - Page: ${page}, Limit: ${limit}`);
+    console.log(`🔍 Fetching ranking for season ${seasonId} (page: ${page}, limit: ${limit})`);
     
     // Find the season
     const season = await Season.findByPk(seasonId);
@@ -1187,7 +1189,7 @@ app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
     // Log the prize money for debugging
     console.log(`💰 Prize money for season ${season.id}: ${season.prizeMoney}`);
     
-    // Get scores for this season with pagination, ordered by score descending
+    // Get all scores for this season, ordered by score descending WITH PAGINATION
     const scores = await SeasonScore.findAll({
       where: { seasonId: seasonId },
       order: [['score', 'DESC']],
@@ -1212,12 +1214,10 @@ app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
             userId: user.gameId,
             username: user.gameUsername || 'Unknown User',
             avatarSrc: avatarSrc,
-            score: score.score || 0,
-            // Store the global rank for displaying correct position
-            rank: offset + ranking.length + 1
+            score: score.score || 0
           });
           
-          console.log("[AVATAR DEBUG] Added user to ranking:", user.gameId, user.gameUsername, avatarSrc, "Rank:", offset + ranking.length + 1);
+          console.log("[AVATAR DEBUG] Added user to ranking:", user.gameId, user.gameUsername, avatarSrc);
         }
       } catch (userError) {
         console.error(`❌ Error fetching user ${score.userId}:`, userError);
@@ -1225,7 +1225,7 @@ app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
       }
     }
     
-    console.log(`✅ Found ${ranking.length} users in ranking for season ${seasonId} (page ${page})`);
+    console.log(`✅ Found ${ranking.length} users in ranking for season ${seasonId} (page: ${page})`);
     
     // Return as array, not object
     res.status(200).json(ranking);
