@@ -50,7 +50,7 @@ async function renderGameOverStickyUserRow() {
     // Sort and find user in ranking (exact leaderboard logic)
     let sortedRanking = [...ranking].sort((a, b) => (b.bestScore ?? b.score ?? 0) - (a.bestScore ?? a.score ?? 0));
     let userIndex = sortedRanking.findIndex(u => String(u.gameId ?? u.id ?? u.userId) === String(userId));
-    let rank = userIndex !== -1 ? userIndex + 2 : '-';
+    let rank = userIndex !== -1 ? userIndex + 1 : '-';
     let user = sortedRanking[userIndex];
     let bestScore = 0;
     let username = '';
