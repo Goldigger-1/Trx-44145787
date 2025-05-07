@@ -42,13 +42,19 @@
 
     // Fetch leaderboard for season with pagination
     async function fetchSeasonRanking(seasonId, page = 0) {
-        // Fetch only the requested batch of data
-        const ITEMS_PER_PAGE = 15;
-        const res = await fetch(`/api/seasons/${seasonId}/ranking?page=${page}&limit=${ITEMS_PER_PAGE}`);
-        if (!res.ok) throw new Error('Failed to fetch season ranking');
-        const data = await res.json();
-        
-        return data;
+        try {
+            // Fetch only the requested batch of data
+            const ITEMS_PER_PAGE = 15;
+            console.log(`Fetching ranking page ${page} for season ${seasonId}`);
+            const res = await fetch(`/api/seasons/${seasonId}/ranking?page=${page}&limit=${ITEMS_PER_PAGE}`);
+            if (!res.ok) throw new Error('Failed to fetch season ranking');
+            const data = await res.json();
+            console.log(`Received ${data.length} items for page ${page}`);
+            return data;
+        } catch (error) {
+            console.error("Error fetching season ranking:", error);
+            throw error;
+        }
     }
 
     // Utility: Robustly get and validate current user ID
@@ -146,19 +152,17 @@
             }
         }
         
-        // Calculate starting index based on initial load or append
-        const startIdx = isInitialLoad ? 0 : list.children.length;
-        
-        // Always render a maximum of 15 items at a time
-        const maxItems = Math.min(ranking.length, 15);
-        
         // Create new fragment to append all items at once
         const fragment = document.createDocumentFragment();
         
         // Append new rows to the fragment
-        for (let i = 0; i < maxItems; i++) {
+        for (let i = 0; i < ranking.length; i++) {
             const user = ranking[i];
-            const actualIdx = startIdx + i;
+            
+            // Use the rank provided by the API if available, otherwise use the index + startIdx + 1
+            // For backward compatibility, if rank is not provided by API, calculate it based on position
+            const actualRank = user.rank || (currentPage * 15 + i + 1);
+            
             const row = document.createElement('div');
             row.className = 'leaderboard-row';
             
@@ -166,7 +170,7 @@
             const avatarSrc = user.avatarSrc || 'avatars/avatar_default.jpg';
             
             row.innerHTML = `
-                <div class="leaderboard-rank">${actualIdx+1}</div>
+                <div class="leaderboard-rank">${actualRank}</div>
                 <div class="leaderboard-avatar"><img src="${avatarSrc}" alt="${user.gameUsername || user.username || 'Player'}"></div>
                 <div class="leaderboard-username">${user.gameUsername || user.username || 'Player'}</div>
                 <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${user.score || 0}</div>
@@ -246,19 +250,31 @@
         
         isLoading = true;
         try {
+            console.log(`Loading more users, requesting page ${currentPage}`);
             const ranking = await fetchSeasonRanking(seasonId, currentPage);
             
             // Check if we have more users
             if (ranking.length < 15) {
                 hasMoreUsers = false;
+                console.log(`No more users to load (received ${ranking.length} items)`);
             } else {
                 currentPage++;
+                console.log(`Incremented page to ${currentPage} for next load`);
             }
             
-            // Ne pas filtrer les nouveaux éléments - rendre directement tous les éléments du nouveau lot
-            // Le problème était ici - on filtrait à partir de existingCount, mais cela causait un décalage
-            // car on recevait 15 éléments mais n'en rendait que quelques-uns
-            renderLeaderboard(ranking, getCurrentUserId(), false);
+            // If we have items to render
+            if (ranking.length > 0) {
+                renderLeaderboard(ranking, getCurrentUserId(), false);
+                console.log(`Rendered ${ranking.length} more items`);
+            } else {
+                console.log('No new items to render');
+                // No more items, hide loading indicator
+                hasMoreUsers = false;
+                const loadingIndicator = document.getElementById('leaderboard-loading-indicator');
+                if (loadingIndicator) {
+                    loadingIndicator.remove();
+                }
+            }
         } catch (error) {
             console.error('Error loading more users:', error);
             // Show error in loading indicator
@@ -376,16 +392,15 @@
             renderCountdown(season.endDate);
             
             // Fetch first page of ranking
-            const ranking = await fetchSeasonRanking(season.id, currentPage);
+            console.log("Initializing leaderboard, fetching first page (page 0)");
+            const ranking = await fetchSeasonRanking(season.id, 0);
             if (ranking.length < 15) {
                 hasMoreUsers = false;
+                console.log(`Initial load: No more users to load (received ${ranking.length} items)`);
             } else {
-                currentPage++;
+                currentPage = 1; // Next page to load will be 1
+                console.log("Initial load: More users available, next page will be 1");
             }
-            
-            // Add loading indicator and setup observer
-            addLoadingIndicator();
-            setupIntersectionObserver();
             
             // Get current user id
             const currentUserId = getCurrentUserId();
@@ -395,6 +410,14 @@
                 ranking[0].prize = season.prizeMoney;
             }
             renderLeaderboard(ranking, currentUserId, true);
+            
+            // Add loading indicator at the end if there might be more users
+            if (hasMoreUsers) {
+                addLoadingIndicator();
+            }
+            
+            // Setup intersection observer for pagination
+            setupIntersectionObserver();
 
             // Hide loading overlay when done
             if (loadingOverlay) loadingOverlay.style.display = 'none';
