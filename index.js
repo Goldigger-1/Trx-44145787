@@ -1254,8 +1254,16 @@ app.get('/api/seasons/:seasonId/user-position', async (req, res) => {
     const { seasonId } = req.params;
     const { userId } = req.query;
     
+    // Ajouter des en-têtes CORS pour s'assurer que l'API est accessible
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET');
+    res.header('Access-Control-Allow-Headers', 'Content-Type');
+    
+    console.log(`🔍 API /user-position appelée: seasonId=${seasonId}, userId=${userId}`);
+    
     if (!userId) {
-      return res.status(400).json({ error: 'userId query parameter is required' });
+      console.log(`⚠️ userId non fourni dans la requête`);
+      return res.status(400).json({ error: 'userId query parameter is required', position: '-' });
     }
     
     console.log(`🔍 Calculating rank for user ${userId} in season ${seasonId}`);
@@ -1263,15 +1271,13 @@ app.get('/api/seasons/:seasonId/user-position', async (req, res) => {
     // Validate season
     const season = await Season.findByPk(seasonId);
     if (!season) {
-      return res.status(404).json({ error: 'Season not found' });
+      console.log(`⚠️ Season not found: ${seasonId}`);
+      return res.status(404).json({ error: 'Season not found', position: '-' });
     }
     
-    // Get the user's score first - chercher par le bon ID (gameId dans users = userId dans SeasonScores)
+    // Get the user's score first
     const userScore = await SeasonScore.findOne({
-      where: { 
-        seasonId: seasonId,
-        userId: userId
-      }
+      where: { seasonId, userId }
     });
     
     if (!userScore) {
@@ -1296,7 +1302,8 @@ app.get('/api/seasons/:seasonId/user-position', async (req, res) => {
     
     console.log(`✅ User ${userId} is ranked #${position} in season ${seasonId} with score ${userScore.score}`);
     
-    // Return rank information
+    // Return rank information with explicit content type
+    res.header('Content-Type', 'application/json');
     res.status(200).json({
       userId,
       position,
@@ -1304,9 +1311,11 @@ app.get('/api/seasons/:seasonId/user-position', async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error calculating user position:', error);
+    // Toujours renvoyer une réponse avec une position, même en cas d'erreur
     res.status(500).json({ 
       error: 'Error calculating user position', 
-      details: error.message 
+      details: error.message,
+      position: '-'
     });
   }
 });

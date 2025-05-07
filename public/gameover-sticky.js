@@ -52,8 +52,6 @@ async function renderGameOverStickyUserRow() {
             return;
         }
 
-        console.log(`👤 Utilisateur identifié: ${userId} pour la saison ${season.id}`);
-
         // 3. Utiliser l'endpoint le plus simple existant pour récupérer les données utilisateur
         try {
             console.log(`📊 Récupération des données pour l'utilisateur ${userId} dans la saison ${season.id}...`);
@@ -100,22 +98,52 @@ async function renderGameOverStickyUserRow() {
             let userRank = '-';
             
             try {
-                // Assurez-vous que l'ID utilisateur est correctement encodé pour l'URL
-                const encodedUserId = encodeURIComponent(userId);
-                console.log(`🔍 Récupération du rang pour ${encodedUserId}...`);
+                console.log(`🔍 Tentative de récupération du rang pour ${userId} dans la saison ${season.id}...`);
                 
-                const userPositionRes = await fetch(`/api/seasons/${season.id}/user-position?userId=${encodedUserId}`);
+                // URL simple pour récupérer le rang - sans port codé en dur
+                const apiUrl = `/api/seasons/${season.id}/user-position?userId=${encodeURIComponent(userId)}`;
+                console.log(`🔗 URL de l'API: ${apiUrl}`);
+                
+                const userPositionRes = await fetch(apiUrl);
+                console.log(`📊 Statut de la réponse: ${userPositionRes.status}`);
                 
                 if (userPositionRes.ok) {
                     const positionData = await userPositionRes.json();
-                    userRank = positionData.position || '-';
-                    console.log(`✅ Position utilisateur récupérée: ${userRank}`);
+                    console.log(`🔄 Données complètes reçues:`, positionData);
+                    
+                    // Vérifier si la position est bien présente dans la réponse
+                    if (positionData && positionData.hasOwnProperty('position')) {
+                        userRank = positionData.position;
+                        console.log(`✅ Position utilisateur récupérée: ${userRank}`);
+                    } else {
+                        console.warn(`⚠️ La réponse ne contient pas de propriété 'position':`, positionData);
+                        userRank = '-';
+                    }
                 } else {
-                    console.log(`⚠️ API a retourné une erreur: ${userPositionRes.status}. Utilisation de la valeur par défaut`);
+                    // Essayer de récupérer le message d'erreur pour diagnostiquer
+                    try {
+                        const errorData = await userPositionRes.json();
+                        console.error(`❌ Erreur de l'API: ${JSON.stringify(errorData)}`);
+                    } catch (e) {
+                        console.error(`❌ Erreur HTTP: ${userPositionRes.status} ${userPositionRes.statusText}`);
+                    }
+                    
+                    console.log(`⚠️ Impossible de récupérer la position utilisateur, utilisation de la valeur par défaut`);
                 }
             } catch (positionError) {
                 console.error('❌ Erreur lors de la récupération de la position utilisateur:', positionError);
             }
+            
+            // S'assurer que userRank est toujours une valeur valide pour l'affichage
+            if (userRank === undefined || userRank === null) {
+                console.warn('⚠️ userRank est undefined ou null, utilisation de la valeur par défaut');
+                userRank = '-';
+            }
+            
+            // Forcer le type de userRank en string pour l'affichage
+            userRank = String(userRank);
+            
+            console.log(`🏆 Valeur finale de userRank pour affichage: "${userRank}"`);
             
             // 4. Construire la rangée HTML avec le rang et le score
             const userRow = `
