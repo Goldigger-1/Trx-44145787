@@ -2944,11 +2944,6 @@
                 if (settingsUserId) {
                     settingsUserId.textContent = userId;
                 }
-                
-                // Expose userId and username globally for leaderboard and game over components
-                window.userId = userId;
-                window.username = username;
-                window.avatarUrl = avatarUrl;
             } catch (error) {
                 console.error("❌ Error updating user profile display:", error);
             }
