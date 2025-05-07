@@ -99,7 +99,7 @@ async function renderLeaderboardUserRow() {
                 avatarSrc += '?t=' + new Date().getTime();
             }
             
-            // 5. Construire la rangée HTML
+            // 5. Construire la rangée HTML avec le score de la saison, et non le score global
             const userRow = `
                 <div class="leaderboard-rank">${userData.rank || '-'}</div>
                 <div class="leaderboard-avatar"><img src="${avatarSrc}" alt="${userData.username || 'You'}"></div>
@@ -112,14 +112,24 @@ async function renderLeaderboardUserRow() {
         } catch (error) {
             console.error('❌ Erreur lors de la récupération du rang utilisateur:', error);
             
-            // Fallback: récupérer les données utilisateur directement
+            // Fallback: essayer de récupérer les informations de score directement depuis la table SeasonScores
             try {
-                const res = await fetch(`/api/users/${encodeURIComponent(userId)}`);
-                if (!res.ok) {
+                // D'abord récupérer les données utilisateur de base
+                const userRes = await fetch(`/api/users/${encodeURIComponent(userId)}`);
+                if (!userRes.ok) {
                     throw new Error('Impossible de récupérer les données utilisateur');
                 }
                 
-                const userData = await res.json();
+                const userData = await userRes.json();
+                
+                // Ensuite récupérer le score de saison spécifique
+                const seasonScoreRes = await fetch(`/api/seasons/${season.id}/scores/${encodeURIComponent(userId)}`);
+                let seasonScore = 0;
+                
+                if (seasonScoreRes.ok) {
+                    const seasonScoreData = await seasonScoreRes.json();
+                    seasonScore = seasonScoreData.score || 0;
+                }
                 
                 // Préparer l'avatar
                 let avatarSrc = userData.avatarSrc || 'avatars/avatar_default.jpg';
@@ -127,12 +137,12 @@ async function renderLeaderboardUserRow() {
                     avatarSrc += '?t=' + new Date().getTime();
                 }
                 
-                // Construire la rangée sans le rang
+                // Construire la rangée sans le rang mais avec le score de saison spécifique
                 const userRow = `
                     <div class="leaderboard-rank">-</div>
                     <div class="leaderboard-avatar"><img src="${avatarSrc}" alt="${userData.gameUsername || 'You'}"></div>
                     <div class="leaderboard-username">${userData.gameUsername || 'You'} <span style="color:#00FF9D;">(You)</span></div>
-                    <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${userData.bestScore || 0}</div>
+                    <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${seasonScore}</div>
                 `;
                 
                 userRowElement.innerHTML = userRow;
