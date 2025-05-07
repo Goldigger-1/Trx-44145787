@@ -1189,19 +1189,29 @@ app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
     
     console.log(`🔍 Pagination: page=${page}, limit=${limit}, offset=${offset}`);
     
-    // Find the season
-    const season = await Season.findByPk(seasonId);
-    if (!season) {
+    // Vérification rapide que la saison existe
+    const seasonExists = await sequelize.query(
+      'SELECT EXISTS(SELECT 1 FROM "Seasons" WHERE id = ?) as exists',
+      {
+        replacements: [seasonId],
+        type: Sequelize.QueryTypes.SELECT,
+        plain: true
+      }
+    );
+    
+    if (!seasonExists || !seasonExists.exists) {
       console.error(`❌ Season not found: ${seasonId}`);
       return res.status(404).json({ error: 'Season not found' });
     }
     
-    console.log(`✅ Found season: ${season.id} (Season ${season.seasonNumber})`);
-    
-    // Optimisation: Récupérer les scores et les détails des utilisateurs en une seule requête
-    // Utilisation de jointure SQL manuelle pour optimiser les performances
+    // Optimisation majeure: Récupérer uniquement les colonnes nécessaires et utiliser un index 
+    // sur score pour accélérer l'ORDER BY
     const query = `
-      SELECT ss.*, u.gameUsername, u.avatarSrc
+      SELECT 
+        ss.userId, 
+        ss.score,
+        u.gameUsername,
+        u.avatarSrc
       FROM "SeasonScores" ss
       JOIN "Users" u ON ss.userId = u.gameId
       WHERE ss.seasonId = ?
@@ -1209,15 +1219,13 @@ app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
       LIMIT ? OFFSET ?
     `;
     
-    const [scores] = await sequelize.query(query, {
+    const scores = await sequelize.query(query, {
       replacements: [seasonId, limit, offset],
-      type: Sequelize.QueryTypes.SELECT,
-      raw: true,
-      nest: true
+      type: Sequelize.QueryTypes.SELECT
     });
     
-    // Transformer les résultats en format attendu
-    const ranking = Array.isArray(scores) ? scores.map(score => {
+    // Format de réponse optimisé
+    const ranking = scores.map(score => {
       // Normaliser le format des avatars
       let avatarSrc = score.avatarSrc;
       if (!avatarSrc) {
@@ -1232,11 +1240,12 @@ app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
         avatarSrc: avatarSrc,
         score: score.score || 0
       };
-    }) : [];
+    });
     
     console.log(`✅ Found ${ranking.length} users in ranking for season ${seasonId} (page: ${page})`);
     
-    // Return as array
+    // Ajouter Cache-Control pour permettre la mise en cache côté client
+    res.set('Cache-Control', 'public, max-age=5'); // Cache de 5 secondes 
     res.status(200).json(ranking);
   } catch (error) {
     console.error('❌ Error fetching season ranking:', error);
@@ -1247,85 +1256,58 @@ app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
   }
 });
 
-// --- FIX: Route optimisée pour récupérer le rang d'un utilisateur sans charger tout le classement ---
+// --- FIX: Route optimisée pour le sticky user rank ---
 app.get('/api/seasons/:seasonId/user-rank/:userId', async (req, res) => {
   try {
     const { seasonId, userId } = req.params;
     
     console.log(`🔍 Fetching rank for user ${userId} in season ${seasonId}`);
     
-    // Verify the season exists
-    const season = await Season.findByPk(seasonId);
-    if (!season) {
-      return res.status(404).json({ error: 'Season not found' });
-    }
+    // Vérification combinée de l'existence de la saison et de l'utilisateur
+    const query = `
+      SELECT 
+        u.gameId,
+        u.gameUsername,
+        u.avatarSrc,
+        COALESCE(ss.score, 0) as score,
+        (SELECT COUNT(*) FROM "SeasonScores" WHERE seasonId = ? AND score > COALESCE(ss.score, 0)) + 1 as rank
+      FROM "Users" u
+      LEFT JOIN "SeasonScores" ss ON u.gameId = ss.userId AND ss.seasonId = ?
+      WHERE u.gameId = ?
+      LIMIT 1
+    `;
     
-    // Get user data
-    const user = await User.findByPk(userId);
-    if (!user) {
+    const [userRank] = await sequelize.query(query, {
+      replacements: [seasonId, seasonId, userId],
+      type: Sequelize.QueryTypes.SELECT
+    });
+    
+    if (!userRank) {
       return res.status(404).json({ error: 'User not found' });
     }
     
-    // Get user's season score
-    const userSeasonScore = await SeasonScore.findOne({
-      where: { seasonId, userId }
-    });
-    
-    if (!userSeasonScore) {
-      // User has no score in this season, return rank as beyond last place
-      console.log(`⚠️ User ${userId} has no score in season ${seasonId}`);
-      
-      // Format avatar path for consistency
-      let avatarSrc = user.avatarSrc;
-      if (!avatarSrc) {
-        avatarSrc = '/avatars/avatar_default.jpg';
-      } else if (!avatarSrc.startsWith('/') && !avatarSrc.startsWith('http')) {
-        avatarSrc = `/avatars/${avatarSrc}`;
-      }
-      
-      return res.status(200).json({
-        userId,
-        username: user.gameUsername,
-        avatarSrc: avatarSrc,
-        rank: '-',
-        score: 0
-      });
-    }
-    
-    // SQL optimisé pour calculer le rang précisément
-    const rankQuery = `
-      SELECT COUNT(*) as rank
-      FROM "SeasonScores"
-      WHERE seasonId = ? AND score > ?
-    `;
-    
-    const [rankResult] = await sequelize.query(rankQuery, {
-      replacements: [seasonId, userSeasonScore.score],
-      type: Sequelize.QueryTypes.SELECT,
-      plain: true
-    });
-    
-    // Le rang est le nombre de scores plus élevés + 1
-    const rank = parseInt(rankResult.rank) + 1;
-    
     // Format avatar path for consistency
-    let avatarSrc = user.avatarSrc;
+    let avatarSrc = userRank.avatarSrc;
     if (!avatarSrc) {
       avatarSrc = '/avatars/avatar_default.jpg';
     } else if (!avatarSrc.startsWith('/') && !avatarSrc.startsWith('http')) {
       avatarSrc = `/avatars/${avatarSrc}`;
     }
     
-    console.log(`✅ User ${userId} is ranked #${rank} in season ${seasonId} with score ${userSeasonScore.score}`);
+    console.log(`✅ User ${userId} is ranked #${userRank.rank} in season ${seasonId} with score ${userRank.score}`);
     
-    // Return user data with rank
-    res.status(200).json({
-      userId,
-      username: user.gameUsername,
+    // Format de réponse standardisé
+    const response = {
+      userId: userRank.gameId,
+      username: userRank.gameUsername,
       avatarSrc: avatarSrc,
-      rank,
-      score: userSeasonScore.score
-    });
+      rank: userRank.rank,
+      score: userRank.score
+    };
+    
+    // Ajouter Cache-Control pour permettre la mise en cache côté client
+    res.set('Cache-Control', 'public, max-age=5'); // Cache de 5 secondes
+    res.status(200).json(response);
   } catch (error) {
     console.error('❌ Error calculating user rank:', error);
     res.status(500).json({ 

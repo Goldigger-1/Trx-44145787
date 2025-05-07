@@ -25,14 +25,14 @@
             
             // Ajouter un timeout pour éviter que la requête ne reste bloquée
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 secondes timeout
+            const timeoutId = setTimeout(() => controller.abort(), 5000); // Réduit à 5 secondes
             
             try {
                 // Try the newer endpoint first
                 console.log('🌐 Trying primary endpoint: /api/seasons/active');
                 const res = await fetch('/api/seasons/active', { 
                     signal: controller.signal,
-                    headers: { 'Cache-Control': 'no-cache' } // Éviter le cache
+                    headers: { 'Cache-Control': 'no-cache' } 
                 });
                 
                 console.log(`🔄 Primary endpoint response: ${res.status} - ${res.statusText}`);
@@ -50,7 +50,7 @@
                 console.log('⚠️ Primary endpoint failed, trying fallback: /api/active-season');
                 const fallbackRes = await fetch('/api/active-season', { 
                     signal: controller.signal,
-                    headers: { 'Cache-Control': 'no-cache' } // Éviter le cache
+                    headers: { 'Cache-Control': 'no-cache' }
                 });
                 
                 console.log(`🔄 Fallback endpoint response: ${fallbackRes.status} - ${fallbackRes.statusText}`);
@@ -72,7 +72,7 @@
                 clearTimeout(timeoutId);
                 
                 if (fetchError.name === 'AbortError') {
-                    console.error('🕒 Fetch request timed out after 10 seconds');
+                    console.error('🕒 Fetch request timed out');
                     throw new Error('Request for active season timed out. Please try again later.');
                 }
                 throw fetchError;
@@ -100,18 +100,15 @@
             const url = `/api/seasons/${seasonId}/ranking?page=${page}&limit=${ITEMS_PER_PAGE}`;
             console.log(`🌐 Request URL: ${url}`);
             
-            // Ajouter un cache buster pour éviter les problèmes de cache
-            const cacheBuster = new Date().getTime();
-            const finalUrl = `${url}&_=${cacheBuster}`;
-            
-            // Ajouter un timeout pour éviter que la requête ne reste bloquée
+            // Optimisation: supprimer le cache buster pour permettre au navigateur de mettre en cache
+            // et ajouter AbortController avec un timeout plus court
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 secondes timeout
+            const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 secondes timeout (réduit de 10s)
             
             try {
-                const res = await fetch(finalUrl, { 
+                const res = await fetch(url, { 
                     signal: controller.signal,
-                    headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
+                    headers: { 'Cache-Control': 'max-age=30' } // Cache de 30 secondes pour améliorer les performances
                 });
                 // Effacer le timeout
                 clearTimeout(timeoutId);
@@ -138,8 +135,11 @@
                 console.log(`📦 Received ${data.length} items for page ${page}`);
                 return data;
             } catch (fetchError) {
+                // Effacer le timeout
+                clearTimeout(timeoutId);
+                
                 if (fetchError.name === 'AbortError') {
-                    console.error('🕒 Fetch request timed out after 10 seconds');
+                    console.error('🕒 Fetch request timed out after 5 seconds');
                     throw new Error('Request timed out. Please try again later.');
                 }
                 throw fetchError;
@@ -195,8 +195,8 @@
             document.getElementById('leaderboard-countdown-minutes').textContent = pad(minutes);
         }
         update();
-        // Update every 20s
-        setInterval(update, 20000);
+        // Update every minute instead of every 20s
+        setInterval(update, 60000);
     }
 
     // Global variables for progressive loading
@@ -270,17 +270,11 @@
                 }
             });
             
-            // Prize for 1st
-            if (podium[0]) {
-                // Get the season prize money
-                const season = await fetchActiveSeason();
-                if (season && season.prizeMoney) {
-                    const prizeElement = document.getElementById('podium-1-prize');
-                    if (prizeElement) {
-                        prizeElement.textContent = `$${season.prizeMoney}`;
-                    }
-                }
-            }
+            // Optimisation: On n'a pas besoin de refaire un fetch pour le prize money
+            // car on a déjà l'info dans activeSeason depuis initLeaderboard
+            // La ligne fetchActiveSeason() est supprimée ici
+            
+            // Le prize money sera maintenant défini dans initLeaderboard
         }
         
         // Si aucune donnée et ce n'est pas le chargement initial, on ne fait rien
@@ -314,7 +308,6 @@
             // Dans la première page, on affiche les rangs 1-15
             // Dans la deuxième page (page=1), on affiche les rangs 16-30, etc.
             const actualRank = startIdx + i + 1;
-            console.log(`👤 Adding user ${user.username || 'Unknown'} at rank ${actualRank}`);
             
             const row = document.createElement('div');
             row.className = 'leaderboard-row';
@@ -492,11 +485,6 @@
             const username = user.gameUsername || user.username || 'You';
             let avatar = user.avatarSrc || 'avatars/avatar_default.jpg';
             
-            // Add cache buster to avatar
-            if (avatar && !avatar.includes('?')) {
-                avatar += '?t=' + new Date().getTime();
-            }
-            
             // Render sticky row
             const userRow = `
                 <div class="leaderboard-rank">${rank}</div>
@@ -508,41 +496,44 @@
         } else {
             // User not in current ranking page - use the dedicated API endpoint
             try {
-                const res = await fetch(`/api/seasons/${seasonId}/user-rank/${encodeURIComponent(currentUserId)}`);
+                // Timeout plus court pour ne pas bloquer l'UI
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 secondes max
+                
+                const res = await fetch(`/api/seasons/${seasonId}/user-rank/${encodeURIComponent(currentUserId)}`, {
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                
                 if (!res.ok) throw new Error('Failed to fetch user rank');
                 const userData = await res.json();
-                
-                // Add cache buster to avatar
-                let avatar = userData.avatarSrc || 'avatars/avatar_default.jpg';
-                if (avatar && !avatar.includes('?')) {
-                    avatar += '?t=' + new Date().getTime();
-                }
                 
                 // Render sticky row
                 const userRow = `
                     <div class="leaderboard-rank">${userData.rank || '-'}</div>
-                    <div class="leaderboard-avatar"><img src="${avatar}" alt="${userData.username || 'You'}"></div>
+                    <div class="leaderboard-avatar"><img src="${userData.avatarSrc}" alt="${userData.username || 'You'}"></div>
                     <div class="leaderboard-username">${userData.username || 'You'} <span style="color:#00FF9D;">(You)</span></div>
                     <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${userData.score || 0}</div>
                 `;
                 document.getElementById('leaderboard-user-row').innerHTML = userRow;
             } catch (err) {
                 console.error('Error fetching user rank:', err);
-                // Fallback to basic user info
+                // Fallback to basic user info without avatar cache buster
                 try {
-                    const res = await fetch(`/api/users/${encodeURIComponent(currentUserId)}`);
-                    const userData = res.ok ? await res.json() : { gameUsername: 'You', bestScore: 0 };
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 3000);
                     
-                    // Add cache buster to avatar
-                    let avatar = userData.avatarSrc || 'avatars/avatar_default.jpg';
-                    if (avatar && !avatar.includes('?')) {
-                        avatar += '?t=' + new Date().getTime();
-                    }
+                    const res = await fetch(`/api/users/${encodeURIComponent(currentUserId)}`, {
+                        signal: controller.signal
+                    });
+                    clearTimeout(timeoutId);
+                    
+                    const userData = res.ok ? await res.json() : { gameUsername: 'You', bestScore: 0 };
                     
                     // Render sticky row without rank
                     const userRow = `
                         <div class="leaderboard-rank">-</div>
-                        <div class="leaderboard-avatar"><img src="${avatar}" alt="${userData.gameUsername || 'You'}"></div>
+                        <div class="leaderboard-avatar"><img src="${userData.avatarSrc || 'avatars/avatar_default.jpg'}" alt="${userData.gameUsername || 'You'}"></div>
                         <div class="leaderboard-username">${userData.gameUsername || 'You'} <span style="color:#00FF9D;">(You)</span></div>
                         <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${userData.bestScore || 0}</div>
                     `;
@@ -570,10 +561,7 @@
     // Attach close button event
     document.getElementById('close-leaderboard').onclick = hideLeaderboard;
 
-    // Integration: Open leaderboard from home page (group element click)
-    // Example: document.getElementById('season-container').onclick = showLeaderboard;
-
-    // Main init - simplifier pour isoler le problème
+    // Main init function
     async function initLeaderboard() {
         const loadingOverlay = document.getElementById('leaderboard-loading-overlay');
         try {
@@ -620,6 +608,12 @@
                 titleElement.textContent = `Season ${activeSeason.seasonNumber}`;
             }
             
+            // Définir le prize money ici plutôt que lors du rendu du leaderboard
+            const prizeElement = document.getElementById('podium-1-prize');
+            if (prizeElement && activeSeason.prizeMoney) {
+                prizeElement.textContent = `$${activeSeason.prizeMoney}`;
+            }
+            
             // Initialiser le compte à rebours avec la date de fin de saison
             if (activeSeason.endDate) {
                 console.log(`⏰ Initializing countdown with end date: ${activeSeason.endDate}`);
@@ -659,15 +653,13 @@
             
             // Add more details to the alert for debug
             const errorMessage = error.message || 'Unknown error';
-            const errorDetails = error.stack ? `\n\nDetails: ${error.stack.split('\n')[0]}` : '';
-            alert(`Failed to load leaderboard: ${errorMessage}${errorDetails}`);
+            alert(`Failed to load leaderboard: ${errorMessage}`);
         }
     }
 
     // Expose showLeaderboard globally for integration
     window.showLeaderboard = showLeaderboard;
     // Initialize leaderboard on page load (or call when opening)
-    // initLeaderboard(); // Uncomment if you want auto-load
     window.initLeaderboard = initLeaderboard;
 
 })();
