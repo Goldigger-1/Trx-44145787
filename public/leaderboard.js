@@ -83,41 +83,6 @@
         }
     }
 
-    // OPTIMIZED: Récupération du top 3 uniquement pour le podium
-    async function fetchTopThree(seasonId) {
-        try {
-            console.log(`🏆 Fetching top 3 players for season ${seasonId}`);
-            
-            // Vérification de l'ID de saison
-            if (!seasonId || seasonId <= 0) {
-                console.error(`❌ Invalid season ID: ${seasonId}`);
-                throw new Error(`Invalid season ID: ${seasonId}`);
-            }
-            
-            // Récupérer uniquement les 3 premiers
-            const url = `/api/seasons/${seasonId}/ranking?page=0&limit=3`;
-            
-            // Ajouter un cache buster pour éviter les problèmes de cache
-            const cacheBuster = new Date().getTime();
-            const finalUrl = `${url}&_=${cacheBuster}`;
-            
-            const res = await fetch(finalUrl, {
-                headers: { 'Cache-Control': 'no-cache' }
-            });
-            
-            if (!res.ok) {
-                throw new Error(`Failed to fetch top 3: ${res.status} ${res.statusText}`);
-            }
-            
-            const data = await res.json();
-            console.log(`✅ Received top ${Math.min(data.length, 3)} players`);
-            return data;
-        } catch (error) {
-            console.error('❌ Error fetching top 3:', error);
-            throw error;
-        }
-    }
-
     // Fetch leaderboard for season with pagination
     async function fetchSeasonRanking(seasonId, page = 0) {
         try {
@@ -163,15 +128,27 @@
                     throw new Error(`Failed to fetch season ranking: ${res.status} ${res.statusText}`);
                 }
                 
-                const data = await res.json();
-                if (!Array.isArray(data)) {
-                    console.error('❌ API response is not an array:', data);
+                // Adaptation au nouveau format de réponse de l'API
+                const response = await res.json();
+                
+                // Vérifier si la réponse est au nouveau format (avec data et pagination)
+                if (response && response.data && Array.isArray(response.data)) {
+                    console.log(`📦 Received ${response.data.length} items for page ${page}`);
+                    
+                    // Mettre à jour les variables globales pour la pagination
+                    hasMoreUsers = response.pagination && response.pagination.hasMore;
+                    
+                    // Retourner uniquement le tableau de données
+                    return response.data;
+                } else if (Array.isArray(response)) {
+                    // Format ancien (compatible avec versions antérieures)
+                    console.log(`📦 Received ${response.length} items for page ${page} (old format)`);
+                    return response;
+                } else {
+                    console.error('❌ API response format is invalid:', response);
                     // Retourner un tableau vide en cas de réponse mal formée
                     return [];
                 }
-                
-                console.log(`📦 Received ${data.length} items for page ${page}`);
-                return data;
             } catch (fetchError) {
                 if (fetchError.name === 'AbortError') {
                     console.error('🕒 Fetch request timed out after 10 seconds');
@@ -181,40 +158,6 @@
             }
         } catch (error) {
             console.error('💥 Error in fetchSeasonRanking:', error);
-            throw error;
-        }
-    }
-
-    // OPTIMIZED: Fonction dédiée pour récupérer le rang utilisateur directement
-    async function fetchUserRank(seasonId, userId) {
-        try {
-            console.log(`👤 Fetching rank for user ${userId} in season ${seasonId}`);
-            
-            if (!userId || !seasonId) {
-                console.error(`❌ Missing required params: userId=${userId}, seasonId=${seasonId}`);
-                throw new Error('Missing required parameters');
-            }
-            
-            // Utiliser l'endpoint dédié pour récupérer le rang utilisateur
-            const url = `/api/seasons/${seasonId}/user-rank/${encodeURIComponent(userId)}`;
-            
-            // Ajouter un cache buster
-            const cacheBuster = new Date().getTime();
-            const finalUrl = `${url}?_=${cacheBuster}`;
-            
-            const res = await fetch(finalUrl, {
-                headers: { 'Cache-Control': 'no-cache' }
-            });
-            
-            if (!res.ok) {
-                throw new Error(`Failed to fetch user rank: ${res.status} ${res.statusText}`);
-            }
-            
-            const userData = await res.json();
-            console.log(`✅ User ${userId} is ranked #${userData.rank} with score ${userData.score}`);
-            return userData;
-        } catch (error) {
-            console.error('❌ Error fetching user rank:', error);
             throw error;
         }
     }
@@ -274,23 +217,63 @@
     let hasMoreUsers = true;
     let seasonId = null;
     
-    // OPTIMIZED: Render podium only
-    async function renderPodium(topThree) {
-        console.log('🏆 Rendering podium with top 3 users');
-        
-        if (!topThree || !Array.isArray(topThree) || topThree.length === 0) {
-            console.log('⚠️ No top players found for podium');
-            return;
+    // Amélioration: Fonction dédiée pour obtenir le podium (top 3) - séparée du chargement principal
+    async function fetchPodium(seasonId) {
+        try {
+            console.log(`🏆 Fetching top 3 users for season ${seasonId}`);
+            
+            // Utiliser un endpoint spécifique pour récupérer uniquement le podium (optimisation)
+            const url = `/api/seasons/${seasonId}/ranking?page=0&limit=3`;
+            
+            // Ajouter un cache buster pour éviter les problèmes de cache
+            const cacheBuster = new Date().getTime();
+            const finalUrl = `${url}&_=${cacheBuster}`;
+            
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 secondes timeout
+            
+            const res = await fetch(finalUrl, { 
+                signal: controller.signal,
+                headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
+            });
+            
+            // Effacer le timeout
+            clearTimeout(timeoutId);
+            
+            if (!res.ok) {
+                return []; // Retourner un tableau vide en cas d'erreur
+            }
+            
+            const data = await res.json();
+            return Array.isArray(data) ? data.slice(0, 3) : [];
+        } catch (error) {
+            console.error('❌ Error fetching podium:', error);
+            return []; // Retourner un tableau vide en cas d'erreur
         }
+    }
+
+    // Amélioration: Fonction dédiée pour afficher le podium
+    function renderPodium(podiumUsers) {
+        console.log(`🏆 Rendering podium with ${podiumUsers.length} users`);
         
-        // Podium (maximum 3 players)
-        [1,2,3].forEach(i => {
-            const user = i <= topThree.length ? topThree[i-1] : null;
-            if (!user) return;
+        [1, 2, 3].forEach(i => {
+            const user = i <= podiumUsers.length ? podiumUsers[i-1] : null;
+            if (!user) {
+                // Afficher placeholder pour les positions vides
+                const podiumElement = document.getElementById(`podium-${i}-username`);
+                if (podiumElement) podiumElement.textContent = '-';
+                
+                const avatarElement = document.getElementById(`podium-${i}-avatar`);
+                if (avatarElement) {
+                    avatarElement.src = 'avatars/avatar_default.jpg';
+                    avatarElement.alt = `Position ${i}`;
+                }
+                return;
+            }
             
             const podiumElement = document.getElementById(`podium-${i}-username`);
             if (podiumElement) {
-                podiumElement.textContent = user.username || `User${i}`;
+                podiumElement.textContent = user.gameUsername || user.username || `User${i}`;
             }
             
             // Ensure we use avatarSrc when available
@@ -298,28 +281,32 @@
             const avatarElement = document.getElementById(`podium-${i}-avatar`);
             if (avatarElement) {
                 avatarElement.src = avatarSrc;
-                avatarElement.alt = user.username || `User${i}`;
+                avatarElement.alt = user.gameUsername || user.username || `User${i}`;
             }
         });
         
-        // Prize for 1st
-        if (topThree[0]) {
-            try {
-                // Get the season prize money
-                const season = await fetchActiveSeason();
-                if (season && season.prizeMoney) {
-                    const prizeElement = document.getElementById('podium-1-prize');
-                    if (prizeElement) {
-                        prizeElement.textContent = `$${season.prizeMoney}`;
-                    }
-                }
-            } catch (error) {
-                console.error('❌ Error fetching prize money:', error);
-            }
+        // Mettre à jour le prix pour la 1ère place
+        if (podiumUsers.length > 0) {
+            updatePrizeMoney();
         }
     }
-    
-    // Render leaderboard with progressive loading
+
+    // Mettre à jour le montant du prix séparément pour éviter de bloquer l'affichage du podium
+    async function updatePrizeMoney() {
+        try {
+            const activeSeason = await fetchActiveSeason();
+            if (activeSeason && activeSeason.prizeMoney) {
+                const prizeElement = document.getElementById('podium-1-prize');
+                if (prizeElement) {
+                    prizeElement.textContent = `$${activeSeason.prizeMoney}`;
+                }
+            }
+        } catch (error) {
+            console.error('❌ Error updating prize money:', error);
+        }
+    }
+
+    // Render leaderboard with progressive loading - optimized
     async function renderLeaderboard(ranking, currentUserId, isInitialLoad = true) {
         const list = document.getElementById('leaderboard-list');
         
@@ -360,6 +347,9 @@
                 list.appendChild(emptyMessage);
                 return;
             }
+            
+            // IMPORTANT: Le podium est maintenant géré séparément
+            // Voir la fonction renderPodium() appelée dans initLeaderboard()
         }
         
         // Si aucune donnée et ce n'est pas le chargement initial, on ne fait rien
@@ -370,6 +360,8 @@
         }
         
         // Calculate starting index based on initial load or append
+        // Pour le chargement initial, on commence à l'index 0
+        // Pour les chargements suivants, on calcule en fonction de la page actuelle
         const startIdx = isInitialLoad ? 0 : (currentPage * 15);
         console.log(`📊 Starting index for new items: ${startIdx}`);
         
@@ -391,7 +383,6 @@
             // Dans la première page, on affiche les rangs 1-15
             // Dans la deuxième page (page=1), on affiche les rangs 16-30, etc.
             const actualRank = startIdx + i + 1;
-            console.log(`👤 Adding user ${user.username || 'Unknown'} at rank ${actualRank}`);
             
             const row = document.createElement('div');
             row.className = 'leaderboard-row';
@@ -402,8 +393,8 @@
             
             row.innerHTML = `
                 <div class="leaderboard-rank">${actualRank}</div>
-                <div class="leaderboard-avatar"><img src="${avatarSrc}" alt="${user.username || 'Player'}"></div>
-                <div class="leaderboard-username">${user.username || 'Player'}</div>
+                <div class="leaderboard-avatar"><img src="${avatarSrc}" alt="${user.gameUsername || user.username || 'Player'}"></div>
+                <div class="leaderboard-username">${user.gameUsername || user.username || 'Player'}</div>
                 <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${user.score || 0}</div>
             `;
             fragment.appendChild(row);
@@ -420,6 +411,16 @@
         } else {
             console.log('🛑 No more users available, not adding loading indicator');
             hasMoreUsers = false;
+        }
+        
+        // Only render the sticky user row on initial load
+        if (isInitialLoad) {
+            console.log('👤 Rendering sticky user row');
+            // Optimisation: Utiliser directement l'API user-rank au lieu de chercher dans le ranking
+            renderStickyUserRow(ranking, currentUserId).catch(e => {
+                console.error('❌ Error rendering sticky user row:', e);
+                document.getElementById('leaderboard-user-row').innerHTML = '<div style="color:red;">Failed to load your info. Please refresh. ❌</div>';
+            });
         }
     }
     
@@ -540,18 +541,28 @@
         }
     }
     
-    // OPTIMIZED: Current user row (sticky) using dedicated endpoint
-    async function renderStickyUserRow(currentUserId) {
+    // Current user row (sticky) - optimized to always use API directly for reliability
+    async function renderStickyUserRow(ranking, currentUserId) {
+        // If user ID is missing or invalid, show error
         if (!currentUserId) {
             document.getElementById('leaderboard-user-row').innerHTML = '<div style="color:orange;">Could not determine your user ID. Please log in again. ⚠️</div>';
             return;
         }
 
         try {
-            console.log(`👤 Rendering sticky row for user ${currentUserId}`);
+            // Utiliser directement l'API dédiée pour récupérer le rang de l'utilisateur
+            console.log(`🔍 Fetching user rank via API for user ${currentUserId} in season ${seasonId}`);
             
-            // Use the dedicated endpoint to get user rank efficiently
-            const userData = await fetchUserRank(seasonId, currentUserId);
+            const res = await fetch(`/api/seasons/${seasonId}/user-rank/${encodeURIComponent(currentUserId)}`, {
+                headers: { 'Cache-Control': 'no-cache' },
+                timeout: 5000 // Timeout de 5 secondes
+            });
+            
+            if (!res.ok) {
+                throw new Error(`Failed to fetch user rank: ${res.status} ${res.statusText}`);
+            }
+            
+            const userData = await res.json();
             
             // Add cache buster to avatar
             let avatar = userData.avatarSrc || 'avatars/avatar_default.jpg';
@@ -559,7 +570,7 @@
                 avatar += '?t=' + new Date().getTime();
             }
             
-            // Render sticky row with optimized data
+            // Render sticky row
             const userRow = `
                 <div class="leaderboard-rank">${userData.rank || '-'}</div>
                 <div class="leaderboard-avatar"><img src="${avatar}" alt="${userData.username || 'You'}"></div>
@@ -567,10 +578,33 @@
                 <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${userData.score || 0}</div>
             `;
             document.getElementById('leaderboard-user-row').innerHTML = userRow;
-            console.log('✅ Sticky user row rendered successfully');
         } catch (err) {
-            console.error('❌ Error rendering sticky user row:', err);
-            document.getElementById('leaderboard-user-row').innerHTML = '<div style="color:orange;">Could not load your ranking. ⚠️</div>';
+            console.error('Error fetching user rank:', err);
+            
+            // Fallback to basic user info without rank info
+            try {
+                const res = await fetch(`/api/users/${encodeURIComponent(currentUserId)}`);
+                if (!res.ok) throw new Error(`Failed to fetch user data: ${res.status}`);
+                
+                const userData = await res.json();
+                
+                // Add cache buster to avatar
+                let avatar = userData.avatarSrc || 'avatars/avatar_default.jpg';
+                if (avatar && !avatar.includes('?')) {
+                    avatar += '?t=' + new Date().getTime();
+                }
+                
+                // Render sticky row without rank
+                const userRow = `
+                    <div class="leaderboard-rank">-</div>
+                    <div class="leaderboard-avatar"><img src="${avatar}" alt="${userData.gameUsername || 'You'}"></div>
+                    <div class="leaderboard-username">${userData.gameUsername || 'You'} <span style="color:#00FF9D;">(You)</span></div>
+                    <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${userData.bestScore || 0}</div>
+                `;
+                document.getElementById('leaderboard-user-row').innerHTML = userRow;
+            } catch (userErr) {
+                document.getElementById('leaderboard-user-row').innerHTML = '<div style="color:orange;">Could not load your ranking. ⚠️</div>';
+            }
         }
     }
 
@@ -590,99 +624,111 @@
     // Attach close button event
     document.getElementById('close-leaderboard').onclick = hideLeaderboard;
 
-    // OPTIMIZED: Completely redesigned initialization
+    // Integration: Open leaderboard from home page (group element click)
+    // Example: document.getElementById('season-container').onclick = showLeaderboard;
+
+    // Main init - optimized with separate operations to improve performance
     async function initLeaderboard() {
-        console.log('🚀 Initializing leaderboard...');
         const loadingOverlay = document.getElementById('leaderboard-loading-overlay');
-        
         try {
-            // Reset pagination variables
+            console.log('🚀 Initializing leaderboard...');
+            
+            // Reset pagination variables - IMPORTANT
             currentPage = 0;
             isLoading = false;
             hasMoreUsers = true;
             seasonId = null;
             
+            // Supprimer toutes les lignes existantes pour éviter les doublons
+            const listElement = document.getElementById('leaderboard-list');
+            if (listElement) {
+                console.log('🧹 Clearing existing list');
+                listElement.innerHTML = '';
+            }
+            
             // Show loading overlay
             if (loadingOverlay) {
                 loadingOverlay.style.display = 'flex';
             }
-            
+
             console.log('🔍 Step 1: Fetching active season...');
-            // Get active season first
+            // Get active season FIRST
             const activeSeason = await fetchActiveSeason();
-            if (!activeSeason || !activeSeason.id) {
+            if (!activeSeason) {
                 throw new Error('No active season found');
+            }
+            console.log(`✅ Active season found: ${activeSeason.id} (Season ${activeSeason.seasonNumber})`);
+            
+            // Vérifier que l'ID de saison est valide
+            if (!activeSeason.id || isNaN(parseInt(activeSeason.id)) || parseInt(activeSeason.id) <= 0) {
+                console.error(`❌ Invalid season ID: ${activeSeason.id}`);
+                throw new Error(`Invalid season ID: ${activeSeason.id}`);
             }
             
             // Set season ID
             seasonId = parseInt(activeSeason.id);
-            console.log(`✅ Active season ID set to ${seasonId}`);
             
-            // Update title
+            // Update title if element exists
             const titleElement = document.getElementById('leaderboard-season-title');
             if (titleElement) {
                 titleElement.textContent = `Season ${activeSeason.seasonNumber}`;
             }
             
-            // Initialize countdown
+            // Initialiser le compte à rebours avec la date de fin de saison
             if (activeSeason.endDate) {
                 console.log(`⏰ Initializing countdown with end date: ${activeSeason.endDate}`);
                 renderCountdown(activeSeason.endDate);
             }
             
-            // PARALLEL LOADING: Start three tasks simultaneously
-            console.log('🔄 Starting parallel tasks...');
+            // OPTIMISATION: Charger le podium et le ranking en parallèle
+            console.log('🏆 Fetching podium and first page of ranking in parallel...');
             
-            // 1. Fetch and render top 3 for podium
-            const podiumPromise = fetchTopThree(seasonId)
-                .then(topThree => renderPodium(topThree))
-                .catch(error => {
-                    console.error('❌ Error rendering podium:', error);
-                    // Non-critical, continue
-                });
+            const [podiumUsers, rankingData] = await Promise.all([
+                fetchPodium(seasonId),
+                fetchSeasonRanking(seasonId, 0)
+            ]);
             
-            // 2. Fetch and render sticky user row
+            // Le podium est rendu avant le reste du leaderboard
+            renderPodium(podiumUsers);
+            
+            // Rendre maintenant le leaderboard (hors podium)
+            if (!rankingData || rankingData.length === 0) {
+                console.log('⚠️ No ranking data found for this season');
+            } else {
+                console.log(`✅ Received ${rankingData.length} items for leaderboard`);
+            }
+            
+            console.log(`🔍 Step 3: Rendering leaderboard...`);
+            // Render data (même avec un tableau vide pour afficher le tableau vide)
             const userIdForSticky = getCurrentUserId();
-            const stickyRowPromise = renderStickyUserRow(userIdForSticky)
-                .catch(error => {
-                    console.error('❌ Error rendering sticky row:', error);
-                    // Non-critical, continue
-                });
+            renderLeaderboard(rankingData || [], userIdForSticky, true);
+            console.log(`✅ Step 3 complete: Leaderboard rendered`);
             
-            // 3. Fetch first page of user list (15 items)
-            const firstPagePromise = fetchSeasonRanking(seasonId, 0)
-                .then(rankingData => {
-                    console.log(`✅ First page data received: ${rankingData.length} items`);
-                    // Render data (even if empty)
-                    return renderLeaderboard(rankingData || [], userIdForSticky, true);
-                })
-                .catch(error => {
-                    console.error('❌ Error rendering first page:', error);
-                    // Critical, but still try to render empty list
-                    return renderLeaderboard([], userIdForSticky, true);
-                });
-            
-            // Wait for all critical tasks to complete
-            await Promise.all([podiumPromise, stickyRowPromise, firstPagePromise]);
-            
-            console.log('✅ Leaderboard initialization complete');
-        } catch (error) {
-            console.error('❌ Error in initLeaderboard:', error);
-            
-            // Add more details to the alert for debug
-            const errorMessage = error.message || 'Unknown error';
-            const errorDetails = error.stack ? `\n\nDetails: ${error.stack.split('\n')[0]}` : '';
-            alert(`Failed to load leaderboard: ${errorMessage}${errorDetails}`);
-        } finally {
-            // Always hide loading overlay
+            // Hide loading overlay
             if (loadingOverlay) {
                 loadingOverlay.style.display = 'none';
             }
+            
+            console.log(`✅ Leaderboard initialization complete`);
+        } catch (error) {
+            console.error('❌ Error in initLeaderboard:', error);
+            
+            // Show detailed error to help debugging
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'none';
+            }
+            
+            // Add more details to the alert for debug
+            const errorMessage = error.message || 'Unknown error';
+            alert(`Failed to load leaderboard: ${errorMessage}`);
         }
     }
 
     // Expose showLeaderboard globally for integration
     window.showLeaderboard = showLeaderboard;
+    // Initialize leaderboard on page load (or call when opening)
+    // initLeaderboard(); // Uncomment if you want auto-load
     window.initLeaderboard = initLeaderboard;
 
 })();
+
