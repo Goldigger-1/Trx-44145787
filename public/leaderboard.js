@@ -66,8 +66,10 @@
             }
             window.fullRankingCache[seasonId].push(...data.ranking);
 
-            // Mettre à jour hasMoreUsers basé sur la pagination
-            hasMoreUsers = page < data.pagination.totalPages;
+            // Mettre à jour hasMoreUsers en fonction des métadonnées de pagination
+            if (data.pagination) {
+                hasMoreUsers = page < data.pagination.totalPages;
+            }
 
             return data.ranking;
         } catch (error) {
@@ -249,18 +251,27 @@
             const USERS_PER_PAGE = 10;
             const newUsers = await fetchSeasonRanking(seasonId, currentPage, USERS_PER_PAGE);
             
-            // Si on a reçu des utilisateurs, on les affiche
+            // Check if we've loaded all users
+            if (window.fullRankingCache && window.fullRankingCache[seasonId]) {
+                const fullLength = window.fullRankingCache[seasonId].length;
+                hasMoreUsers = (currentPage + 1) * USERS_PER_PAGE < fullLength;
+            } else if (newUsers.length < USERS_PER_PAGE) {
+                // If we received fewer users than requested, we've reached the end
+                hasMoreUsers = false;
+            }
+            
+            // If we got some users, render them
             if (newUsers.length > 0) {
                 renderLeaderboard(newUsers, getCurrentUserId(), false);
             } else {
-                // Plus d'utilisateurs, on retire l'indicateur de chargement
+                // No more users, remove loading indicator
                 const loadingIndicator = document.getElementById('leaderboard-loading-indicator');
                 if (loadingIndicator) loadingIndicator.remove();
                 hasMoreUsers = false;
             }
         } catch (error) {
             console.error('Error loading more users:', error);
-            // Afficher l'erreur dans l'indicateur de chargement
+            // Show error in loading indicator
             const loadingIndicator = document.getElementById('leaderboard-loading-indicator');
             if (loadingIndicator) {
                 loadingIndicator.innerHTML = '<div style="color:orange;">Failed to load more users. Tap to retry.</div>';
