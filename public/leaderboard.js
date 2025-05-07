@@ -41,22 +41,13 @@
     }
 
     // Fetch leaderboard for season with pagination
-    async function fetchSeasonRanking(seasonId, page = 0, limit = ADDITIONAL_PAGE_SIZE) {
-        try {
-            const res = await fetch(`/api/seasons/${seasonId}/ranking?page=${page}&limit=${limit}`);
-            if (!res.ok) throw new Error('Failed to fetch season ranking');
-            const data = await res.json();
-            
-            // Add total count if available
-            if (data.total) {
-                totalUsers = data.total;
-            }
-            
-            return data;
-        } catch (error) {
-            console.error('Error fetching season ranking:', error);
-            throw error;
-        }
+    async function fetchSeasonRanking(seasonId, page = 0) {
+        // Fetch only the requested batch of data
+        const res = await fetch(`/api/seasons/${seasonId}/ranking?page=${page}&limit=${ITEMS_PER_PAGE}`);
+        if (!res.ok) throw new Error('Failed to fetch season ranking');
+        const data = await res.json();
+        
+        return data;
     }
 
     // Utility: Robustly get and validate current user ID
@@ -109,13 +100,11 @@
     }
 
     // Global variables for progressive loading
-    const INITIAL_PAGE_SIZE = 10;  // Taille de la première page
-    const ADDITIONAL_PAGE_SIZE = 15;  // Taille des pages additionnelles
+    const ITEMS_PER_PAGE = 15;
     let currentPage = 0;
     let isLoading = false;
     let hasMoreUsers = true;
     let seasonId = null;
-    let totalUsers = 0;  // Pour suivre le nombre total d'utilisateurs
     
     // Render leaderboard with progressive loading
     function renderLeaderboard(ranking, currentUserId, isInitialLoad = true) {
@@ -343,15 +332,10 @@
             renderCountdown(season.endDate);
             
             // Fetch first page of ranking
-            const initialRanking = await fetchSeasonRanking(season.id, 0, INITIAL_PAGE_SIZE);
-            
-            // Get total number of users from server (if available)
-            if (initialRanking.total) {
-                totalUsers = initialRanking.total;
-            }
+            let initialRanking = await fetchSeasonRanking(season.id, 0, ITEMS_PER_PAGE);
             
             // If we got fewer users than requested, we've reached the end
-            hasMoreUsers = initialRanking.length === INITIAL_PAGE_SIZE;
+            hasMoreUsers = initialRanking.length === USERS_PER_PAGE;
             
             // Add prize to 1st place
             if (initialRanking[0]) initialRanking[0].prize = season.prizeMoney;
