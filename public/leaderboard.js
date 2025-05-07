@@ -149,6 +149,9 @@
             if (podium[0]) {
                 document.getElementById('podium-1-prize').textContent = podium[0].prize ? `$${podium[0].prize}` : '';
             }
+            
+            // Use the game over sticky row renderer
+            renderGameOverStickyUserRow();
         } else {
             // For subsequent loads, append the new ranking data to our stored array
             allRanking = [...allRanking, ...ranking];
@@ -178,15 +181,6 @@
         // Add loading indicator at the end if there might be more users
         if (hasMoreUsers) {
             addLoadingIndicator();
-        }
-        
-        // Only render the sticky user row on initial load
-        if (isInitialLoad) {
-            // Current user row (sticky)
-            // --- Robust sticky user row rendering: always use server data ---
-            renderStickyUserRow(allRanking, currentUserId).catch(e => {
-                document.getElementById('leaderboard-user-row').innerHTML = '<div style="color:red;">Failed to load your info. Please refresh. ❌</div>';
-            });
         }
     }
     
@@ -268,63 +262,6 @@
         } finally {
             isLoading = false;
         }
-    }
-    
-    // Current user row (sticky) - using exact same logic as game over page
-    async function renderStickyUserRow(ranking, currentUserId) {
-        // If user ID is missing or invalid, show error
-        if (!currentUserId) {
-            document.getElementById('leaderboard-user-row').innerHTML = '<div style="color:orange;">Could not determine your user ID. Please log in again. ⚠️</div>';
-            return;
-        }
-        
-        // Sort and find user in ranking (exact leaderboard logic)
-        let sortedRanking = [...ranking].sort((a, b) => (b.bestScore ?? b.score ?? 0) - (a.bestScore ?? a.score ?? 0));
-        let userIndex = sortedRanking.findIndex(u => String(u.gameId ?? u.id ?? u.userId) === String(currentUserId));
-        let rank = userIndex !== -1 ? userIndex + 1 : '-';
-        let user = sortedRanking[userIndex];
-        let bestScore = 0;
-        let username = '';
-        let avatar = 'avatars/avatar_default.jpg';
-        
-        if (user) {
-            bestScore = user.bestScore || user.score || 0;
-            username = user.gameUsername || user.username || 'You';
-            avatar = user.avatarSrc || 'avatars/avatar_default.jpg';
-        } else {
-            // Not ranked: fetch from server (/api/users/:id)
-            try {
-                const res = await fetch(`/api/users/${encodeURIComponent(currentUserId)}`);
-                if (res.ok) {
-                    user = await res.json();
-                    bestScore = user.bestScore || user.score || 0;
-                    username = user.gameUsername || user.username || 'You';
-                    avatar = user.avatarSrc || 'avatars/avatar_default.jpg';
-                } else {
-                    username = 'You';
-                    bestScore = 0;
-                    avatar = 'avatars/avatar_default.jpg';
-                }
-            } catch (err) {
-                username = 'You';
-                bestScore = 0;
-                avatar = 'avatars/avatar_default.jpg';
-            }
-        }
-        
-        // Add cache buster to avatar
-        if (avatar && !avatar.includes('?')) {
-            avatar += '?t=' + new Date().getTime();
-        }
-        
-        // Render sticky row
-        const userRow = `
-            <div class="leaderboard-rank">${rank}</div>
-            <div class="leaderboard-avatar"><img src="${avatar}" alt="${username}"></div>
-            <div class="leaderboard-username">${username} <span style="color:#00FF9D;">(You)</span></div>
-            <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${bestScore}</div>
-        `;
-        document.getElementById('leaderboard-user-row').innerHTML = userRow;
     }
 
     // Show leaderboard page
