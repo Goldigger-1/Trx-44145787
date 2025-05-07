@@ -165,8 +165,8 @@
             // Use avatarSrc when available, otherwise use default
             const avatarSrc = user.avatarSrc || 'avatars/avatar_default.jpg';
             
-            // Calculate rank based on actual index in the full ranking
-            const rank = (currentPage * 15) + i + 1;
+            // Calculate rank based on actual index in the list
+            const rank = startIdx + i + 1;
             
             row.innerHTML = `
                 <div class="leaderboard-rank">${rank}</div>
