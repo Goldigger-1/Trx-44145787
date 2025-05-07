@@ -1172,7 +1172,11 @@ app.post('/api/seasons/:id/close', async (req, res) => {
 app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
   try {
     const { seasonId } = req.params;
-    console.log(`🔍 Fetching ranking for season ${seasonId}`);
+    const page = parseInt(req.query.page) || 0;
+    const limit = parseInt(req.query.limit) || 15;
+    const offset = page * limit;
+    
+    console.log(`🔍 Fetching ranking for season ${seasonId} (page: ${page}, limit: ${limit})`);
     
     // Find the season
     const season = await Season.findByPk(seasonId);
@@ -1180,10 +1184,12 @@ app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
       return res.status(404).json({ error: 'Season not found' });
     }
     
-    // Get all scores for this season, ordered by score descending
+    // Get scores for this season with pagination, ordered by score descending
     const scores = await SeasonScore.findAll({
       where: { seasonId: seasonId },
-      order: [['score', 'DESC']]
+      order: [['score', 'DESC']],
+      limit: limit,
+      offset: offset
     });
     
     // Get user details for each score
@@ -1761,7 +1767,11 @@ app.post('/api/seasons/:seasonId/scores', async (req, res) => {
 app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
   try {
     const { seasonId } = req.params;
-    console.log(`🔍 Fetching ranking for season ${seasonId}`);
+    const page = parseInt(req.query.page) || 0;
+    const limit = parseInt(req.query.limit) || 15;
+    const offset = page * limit;
+    
+    console.log(`🔍 Fetching ranking for season ${seasonId} (page: ${page}, limit: ${limit})`);
     
     // Find the season
     const season = await Season.findByPk(seasonId);
@@ -1769,10 +1779,12 @@ app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
       return res.status(404).json({ error: 'Season not found' });
     }
     
-    // Get all scores for this season, ordered by score descending
+    // Get scores for this season with pagination, ordered by score descending
     const scores = await SeasonScore.findAll({
       where: { seasonId: seasonId },
-      order: [['score', 'DESC']]
+      order: [['score', 'DESC']],
+      limit: limit,
+      offset: offset
     });
     
     // Get user details for each score
