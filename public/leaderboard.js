@@ -136,9 +136,13 @@
         // Calculate starting index based on initial load or append
         const startIdx = isInitialLoad ? 0 : list.children.length;
         
+        // If we're not loading the initial batch, only render up to ITEMS_PER_PAGE new items
+        const maxItems = isInitialLoad ? ranking.length : Math.min(ranking.length, 15);
+        
         // Append new rows to the list
-        ranking.forEach((user, idx) => {
-            const actualIdx = startIdx + idx;
+        for (let i = 0; i < maxItems; i++) {
+            const user = ranking[i];
+            const actualIdx = startIdx + i;
             const row = document.createElement('div');
             row.className = 'leaderboard-row';
             
@@ -152,7 +156,7 @@
                 <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${user.score || 0}</div>
             `;
             list.appendChild(row);
-        });
+        }
         
         // Add loading indicator at the end if there might be more users
         if (hasMoreUsers) {
