@@ -256,7 +256,10 @@
             // Check if we have more users
             if (ranking.length < ITEMS_PER_PAGE) {
                 hasMoreUsers = false;
-            } else {
+            }
+            // Only increment currentPage if we have more users
+            // This ensures proper ranking across pages
+            if (hasMoreUsers) {
                 currentPage++;
             }
             
@@ -386,11 +389,14 @@
             document.getElementById('leaderboard-season-title').textContent = `Season ${season.seasonNumber}`;
             renderCountdown(season.endDate);
             
-            // Fetch first page of ranking
+            // Fetch first page of ranking (currentPage starts at 0)
             const ranking = await fetchSeasonRanking(season.id, currentPage);
             if (ranking.length < ITEMS_PER_PAGE) {
                 hasMoreUsers = false;
-            } else {
+            }
+            // Only increment currentPage if we have more users
+            // This ensures the first page starts at rank 1
+            if (hasMoreUsers) {
                 currentPage++;
             }
             
