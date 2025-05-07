@@ -1,8 +1,5 @@
 // Leaderboard Page Logic
 (function() {
-    // Configuration
-    const ITEMS_PER_PAGE = 15;
-
     // Utility: Format number with leading zero
     function pad(num) {
         return num.toString().padStart(2, '0');
@@ -46,6 +43,7 @@
     // Fetch leaderboard for season with pagination
     async function fetchSeasonRanking(seasonId, page = 0) {
         // Fetch only the requested batch of data
+        const ITEMS_PER_PAGE = 15;
         const res = await fetch(`/api/seasons/${seasonId}/ranking?page=${page}&limit=${ITEMS_PER_PAGE}`);
         if (!res.ok) throw new Error('Failed to fetch season ranking');
         const data = await res.json();
@@ -151,8 +149,8 @@
         // Calculate starting index based on initial load or append
         const startIdx = isInitialLoad ? 0 : list.children.length;
         
-        // Always render a maximum of ITEMS_PER_PAGE items at a time
-        const maxItems = Math.min(ranking.length, ITEMS_PER_PAGE);
+        // Always render a maximum of 15 items at a time
+        const maxItems = Math.min(ranking.length, 15);
         
         // Create new fragment to append all items at once
         const fragment = document.createDocumentFragment();
@@ -167,11 +165,8 @@
             // Use avatarSrc when available, otherwise use default
             const avatarSrc = user.avatarSrc || 'avatars/avatar_default.jpg';
             
-            // Calculate rank: (currentPage * ITEMS_PER_PAGE) + i + 1
-            // This ensures the first item is rank 1
-            const rank = (currentPage * ITEMS_PER_PAGE) + i + 1;
             row.innerHTML = `
-                <div class="leaderboard-rank">${rank}</div>
+                <div class="leaderboard-rank">${actualIdx+1}</div>
                 <div class="leaderboard-avatar"><img src="${avatarSrc}" alt="${user.gameUsername || user.username || 'Player'}"></div>
                 <div class="leaderboard-username">${user.gameUsername || user.username || 'Player'}</div>
                 <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${user.score || 0}</div>
@@ -254,12 +249,9 @@
             const ranking = await fetchSeasonRanking(seasonId, currentPage);
             
             // Check if we have more users
-            if (ranking.length < ITEMS_PER_PAGE) {
+            if (ranking.length < 15) {
                 hasMoreUsers = false;
-            }
-            // Only increment currentPage if we have more users
-            // This ensures proper ranking across pages
-            if (hasMoreUsers) {
+            } else {
                 currentPage++;
             }
             
@@ -389,14 +381,11 @@
             document.getElementById('leaderboard-season-title').textContent = `Season ${season.seasonNumber}`;
             renderCountdown(season.endDate);
             
-            // Fetch first page of ranking (currentPage starts at 0)
+            // Fetch first page of ranking
             const ranking = await fetchSeasonRanking(season.id, currentPage);
-            if (ranking.length < ITEMS_PER_PAGE) {
+            if (ranking.length < 15) {
                 hasMoreUsers = false;
-            }
-            // Only increment currentPage if we have more users
-            // This ensures the first page starts at rank 1
-            if (hasMoreUsers) {
+            } else {
                 currentPage++;
             }
             
