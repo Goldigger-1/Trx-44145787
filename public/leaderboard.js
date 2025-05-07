@@ -1,5 +1,8 @@
 // Leaderboard Page Logic
 (function() {
+    // Configuration
+    const ITEMS_PER_PAGE = 15;
+
     // Utility: Format number with leading zero
     function pad(num) {
         return num.toString().padStart(2, '0');
@@ -43,7 +46,6 @@
     // Fetch leaderboard for season with pagination
     async function fetchSeasonRanking(seasonId, page = 0) {
         // Fetch only the requested batch of data
-        const ITEMS_PER_PAGE = 15;
         const res = await fetch(`/api/seasons/${seasonId}/ranking?page=${page}&limit=${ITEMS_PER_PAGE}`);
         if (!res.ok) throw new Error('Failed to fetch season ranking');
         const data = await res.json();
@@ -149,8 +151,8 @@
         // Calculate starting index based on initial load or append
         const startIdx = isInitialLoad ? 0 : list.children.length;
         
-        // Always render a maximum of 15 items at a time
-        const maxItems = Math.min(ranking.length, 15);
+        // Always render a maximum of ITEMS_PER_PAGE items at a time
+        const maxItems = Math.min(ranking.length, ITEMS_PER_PAGE);
         
         // Create new fragment to append all items at once
         const fragment = document.createDocumentFragment();
@@ -251,7 +253,7 @@
             const ranking = await fetchSeasonRanking(seasonId, currentPage);
             
             // Check if we have more users
-            if (ranking.length < 15) {
+            if (ranking.length < ITEMS_PER_PAGE) {
                 hasMoreUsers = false;
             } else {
                 currentPage++;
@@ -385,7 +387,7 @@
             
             // Fetch first page of ranking
             const ranking = await fetchSeasonRanking(season.id, currentPage);
-            if (ranking.length < 15) {
+            if (ranking.length < ITEMS_PER_PAGE) {
                 hasMoreUsers = false;
             } else {
                 currentPage++;
