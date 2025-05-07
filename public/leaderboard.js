@@ -41,20 +41,20 @@
     }
 
     // Fetch leaderboard for season with pagination
-    async function fetchSeasonRanking(seasonId, page = 0) {
-        isLoading = true;
-        try {
-            const res = await fetch(`/api/seasons/${seasonId}/ranking?page=${page}&limit=${ITEMS_PER_PAGE}`);
-            if (!res.ok) throw new Error('Failed to fetch season ranking');
-            const data = await res.json();
-            
-            // Update hasMoreUsers based on the number of items received
-            hasMoreUsers = data.length === ITEMS_PER_PAGE;
-            
-            return data;
-        } finally {
-            isLoading = false;
+    async function fetchSeasonRanking(seasonId, page = 0, limit = 10) {
+        // Fetch only the requested batch of data
+        const res = await fetch(`/api/seasons/${seasonId}/ranking?page=${page}&limit=${limit}`);
+        if (!res.ok) throw new Error('Failed to fetch season ranking');
+        const data = await res.json();
+        
+        // Cache the data we received
+        window.fullRankingCache = window.fullRankingCache || {};
+        if (!window.fullRankingCache[seasonId]) {
+            window.fullRankingCache[seasonId] = [];
         }
+        window.fullRankingCache[seasonId].push(...data);
+        
+        return data;
     }
 
     // Utility: Robustly get and validate current user ID
@@ -111,15 +111,18 @@
     let isLoading = false;
     let hasMoreUsers = true;
     let seasonId = null;
-    const ITEMS_PER_PAGE = 15;
+    let allRanking = [];
     
     // Render leaderboard with progressive loading
-    async function renderLeaderboard(ranking, currentUserId, isInitialLoad = true) {
+    function renderLeaderboard(ranking, currentUserId, isInitialLoad = true) {
         const list = document.getElementById('leaderboard-list');
         
         // If this is the initial load, clear the list and render the podium
         if (isInitialLoad) {
             list.innerHTML = '';
+            
+            // Store the ranking data for the sticky user row
+            allRanking = [...ranking];
             
             // Podium
             const podium = [ranking[0], ranking[1], ranking[2]];
@@ -138,40 +141,9 @@
             if (podium[0]) {
                 document.getElementById('podium-1-prize').textContent = podium[0].prize ? `$${podium[0].prize}` : '';
             }
-        }
-        
-        // Calculate starting index based on initial load or append
-        const startIndex = isInitialLoad ? 0 : list.children.length;
-        
-        // Append new rows to the list
-        ranking.forEach((user, idx) => {
-            const actualIdx = startIndex + idx;
-            const row = document.createElement('div');
-            row.className = 'leaderboard-row';
-            
-            // Use avatarSrc when available, otherwise use default
-            const avatarSrc = user.avatarSrc || 'avatars/avatar_default.jpg';
-            
-            row.innerHTML = `
-                <div class="leaderboard-rank">${actualIdx+1}</div>
-                <div class="leaderboard-avatar"><img src="${avatarSrc}" alt="${user.gameUsername || user.username || 'Player'}"></div>
-                <div class="leaderboard-username">${user.gameUsername || user.username || 'Player'}</div>
-                <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${user.score || 0}</div>
-            `;
-            list.appendChild(row);
-        });
-        
-        // Add loading indicator at the end if there might be more users
-        if (hasMoreUsers) {
-            addLoadingIndicator();
-        }
-        
-        // Current user row (sticky)
-        // --- Robust sticky user row rendering: always use server data ---
-        try {
-            await renderStickyUserRow(ranking, currentUserId);
-        } catch (e) {
-            document.getElementById('leaderboard-user-row').innerHTML = '<div style="color:red;">Failed to load your info. Please refresh. ❌</div>';
+        } else {
+            // For subsequent loads, append the new ranking data to our stored array
+            allRanking = [...allRanking, ...ranking];
         }
         
         // Calculate starting index based on initial load or append
@@ -249,20 +221,47 @@
     
     // Load more users when user scrolls to bottom
     async function loadMoreUsers() {
-        if (isLoading || !hasMoreUsers) return;
+        if (isLoading || !hasMoreUsers || !seasonId) return;
+        
+        isLoading = true;
+        currentPage++;
         
         try {
-            const ranking = await fetchSeasonRanking(seasonId, currentPage + 1);
-            if (ranking.length > 0) {
-                currentPage++;
-                renderLeaderboard(ranking, getCurrentUserId(), false);
+            const USERS_PER_PAGE = 10;
+            const newUsers = await fetchSeasonRanking(seasonId, currentPage, USERS_PER_PAGE);
+            
+            // Check if we've loaded all users
+            if (window.fullRankingCache && window.fullRankingCache[seasonId]) {
+                const fullLength = window.fullRankingCache[seasonId].length;
+                hasMoreUsers = (currentPage + 1) * USERS_PER_PAGE < fullLength;
+            } else if (newUsers.length < USERS_PER_PAGE) {
+                // If we received fewer users than requested, we've reached the end
+                hasMoreUsers = false;
+            }
+            
+            // If we got some users, render them
+            if (newUsers.length > 0) {
+                renderLeaderboard(newUsers, getCurrentUserId(), false);
+            } else {
+                // No more users, remove loading indicator
+                const loadingIndicator = document.getElementById('leaderboard-loading-indicator');
+                if (loadingIndicator) loadingIndicator.remove();
+                hasMoreUsers = false;
             }
         } catch (error) {
             console.error('Error loading more users:', error);
-            hasMoreUsers = false;
+            // Show error in loading indicator
+            const loadingIndicator = document.getElementById('leaderboard-loading-indicator');
+            if (loadingIndicator) {
+                loadingIndicator.innerHTML = '<div style="color:orange;">Failed to load more users. Tap to retry.</div>';
+                loadingIndicator.style.cursor = 'pointer';
+                loadingIndicator.onclick = loadMoreUsers;
+            }
+        } finally {
+            isLoading = false;
         }
     }
-
+    
     // Current user row (sticky) - separated into its own function
     async function renderStickyUserRow(ranking, currentUserId) {
         // If user ID is missing or invalid, show error
@@ -343,6 +342,7 @@
 
     // Main init
     async function initLeaderboard() {
+        const loadingOverlay = document.getElementById('leaderboard-loading-overlay');
         try {
             // Reset pagination variables
             currentPage = 0;
@@ -353,7 +353,6 @@
             window.fullRankingCache = {};
             
             // Show loading overlay at the start
-            const loadingOverlay = document.getElementById('leaderboard-loading-overlay');
             if (loadingOverlay) loadingOverlay.style.display = 'flex';
 
             const season = await fetchActiveSeason();
@@ -362,24 +361,26 @@
             renderCountdown(season.endDate);
             
             // Fetch first page of ranking
-            const ranking = await fetchSeasonRanking(seasonId, 0);
-            renderLeaderboard(ranking, getCurrentUserId());
+            const USERS_PER_PAGE = 10;
+            let initialRanking = await fetchSeasonRanking(season.id, 0, USERS_PER_PAGE);
+            
+            // If we got fewer users than requested, we've reached the end
+            hasMoreUsers = initialRanking.length === USERS_PER_PAGE;
+            
+            // Add prize to 1st place
+            if (initialRanking[0]) initialRanking[0].prize = season.prizeMoney;
+            
+            // Get current user id robustly
+            let currentUserId = getCurrentUserId();
+            renderLeaderboard(initialRanking, currentUserId, true);
 
-            // Setup intersection observer for loading more users
-            setupIntersectionObserver();
-            
-            // Show the leaderboard
-            document.getElementById('leaderboard-screen').style.display = 'block';
-            
-            // Focus the close button for accessibility
-            document.getElementById('close-leaderboard').focus();
-        } catch (error) {
-            console.error('Error initializing leaderboard:', error);
-            document.getElementById('leaderboard-screen').style.display = 'block';
-            document.getElementById('leaderboard-list').innerHTML = '<div style="color:red;">Failed to load leaderboard. Please refresh. ❌</div>';
-        } finally {
-            const loadingOverlay = document.getElementById('leaderboard-loading-overlay');
+            // Hide loading overlay when done
             if (loadingOverlay) loadingOverlay.style.display = 'none';
+        } catch (e) {
+            // Hide loading overlay on error as well
+            if (loadingOverlay) loadingOverlay.style.display = 'none';
+            alert('Failed to load leaderboard. Please try again later.');
+            console.error(e);
         }
     }
 
