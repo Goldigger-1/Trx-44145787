@@ -52,53 +52,70 @@ async function renderGameOverStickyUserRow() {
             return;
         }
 
-        // 3. Récupérer à la fois le score et le rang de l'utilisateur dans la saison active
-        let userData = null;
-        let userRank = null;
+        // 3. Récupérer les données de classement de l'utilisateur
+        let userRank = '-';
         let userSeasonScore = 0;
         let username = '';
-        
+
         try {
-            // Récupérer d'abord le score de l'utilisateur dans la saison
-            console.log(`📊 Récupération du score pour l'utilisateur ${userId} dans la saison ${season.id}...`);
-            const scoreRes = await fetch(`/api/seasons/${season.id}/scores/${encodeURIComponent(userId)}`);
+            // Récupérer directement le classement et le score de l'utilisateur dans la saison active
+            // Cette requête doit être exécutée côté serveur pour éviter de charger toute la liste
+            console.log(`📊 Récupération du classement pour l'utilisateur ${userId} dans la saison ${season.id}...`);
             
-            if (scoreRes.ok) {
-                const scoreData = await scoreRes.json();
-                userSeasonScore = scoreData.score || 0;
-                console.log(`✅ Score de saison récupéré: ${userSeasonScore}`);
-                
-                // Maintenant, calculer le rang de l'utilisateur en fonction de son score
-                // On utilise un endpoint spécifique qui calcule le rang côté serveur sans charger toute la liste
-                console.log(`🔢 Calcul du rang pour le score ${userSeasonScore} dans la saison ${season.id}...`);
-                const rankRes = await fetch(`/api/seasons/${season.id}/rank-for-score/${userSeasonScore}`);
-                
-                if (rankRes.ok) {
-                    const rankData = await rankRes.json();
-                    userRank = rankData.rank || '-';
-                    console.log(`✅ Rang calculé: ${userRank}`);
+            // Utiliser l'API user-ranking pour obtenir directement le classement
+            const rankRes = await fetch(`/api/seasons/${season.id}/user-ranking/${encodeURIComponent(userId)}`, {
+                method: 'GET',
+                headers: {
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache'
+                }
+            });
+            
+            if (rankRes.ok) {
+                const rankData = await rankRes.json();
+                // Si un rang est fourni directement, l'utiliser
+                if (rankData && rankData.rank) {
+                    userRank = rankData.rank;
+                    userSeasonScore = rankData.score || 0;
+                    console.log(`✅ Classement récupéré: ${userRank}, Score: ${userSeasonScore}`);
                 } else {
-                    // Méthode alternative si l'endpoint de rang n'existe pas
-                    console.log(`⚠️ Endpoint de rang non disponible, calcul alternatif...`);
-                    const countRes = await fetch(`/api/seasons/${season.id}/count-above-score/${userSeasonScore}`);
+                    // Si seul le score est fourni, le rang doit être calculé
+                    userSeasonScore = rankData.score || 0;
                     
-                    if (countRes.ok) {
-                        const countData = await countRes.json();
-                        userRank = (countData.count + 1) || '-';
-                        console.log(`✅ Rang calculé (méthode alternative): ${userRank}`);
+                    // Exécuter une requête spécifique pour obtenir le nombre d'utilisateurs ayant un meilleur score
+                    const betterScoresRes = await fetch(`/api/seasons/${season.id}/better-scores/${userSeasonScore}`);
+                    if (betterScoresRes.ok) {
+                        const betterScoresData = await betterScoresRes.json();
+                        // Le classement est égal au nombre d'utilisateurs ayant un meilleur score + 1
+                        userRank = (betterScoresData.count + 1) || '-';
+                        console.log(`✅ Classement calculé: ${userRank} (${betterScoresData.count} utilisateurs ont un meilleur score)`);
                     }
                 }
+            } else if (rankRes.status === 404) {
+                // Si l'utilisateur n'a pas de score dans cette saison
+                console.log(`⚠️ L'utilisateur ${userId} n'a pas de score dans la saison ${season.id}`);
+                userRank = '-';
+                userSeasonScore = 0;
+            } else {
+                throw new Error(`Erreur lors de la récupération du classement: ${rankRes.status}`);
             }
             
-            // Récupérer les informations de profil de l'utilisateur
-            const userDataRes = await fetch(`/api/users/${encodeURIComponent(userId)}`);
-            if (userDataRes.ok) {
-                userData = await userDataRes.json();
-                username = userData.gameUsername || 'You';
+            // Récupérer le nom d'utilisateur
+            // Utiliser le nom d'utilisateur global s'il est disponible
+            if (window.username) {
+                username = window.username;
+            } else {
+                // Sinon, faire une requête pour obtenir les informations de l'utilisateur
+                const userRes = await fetch(`/api/users/${encodeURIComponent(userId)}`);
+                if (userRes.ok) {
+                    const userData = await userRes.json();
+                    username = userData.gameUsername || 'You';
+                } else {
+                    username = 'You';
+                }
             }
-            
         } catch (error) {
-            console.error('❌ Erreur lors du calcul du rang:', error);
+            console.error('❌ Erreur lors de la récupération du classement:', error);
             userRank = '-';
         }
             
