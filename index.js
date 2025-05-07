@@ -358,7 +358,7 @@ bot.help((ctx) => {
 
 bot.start((ctx) => {
   console.log('Commande /start reçue de:', ctx.from.id, ctx.from.username);
-  ctx.reply('Let’s see how long you last here 😏', {
+  ctx.reply('Let's see how long you last here 😏', {
     reply_markup: {
       inline_keyboard: [
         [{ text: 'Play', web_app: { url: webAppUrl } }],
@@ -1180,43 +1180,35 @@ app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
       return res.status(404).json({ error: 'Season not found' });
     }
     
-    // Get all scores for this season, ordered by score descending
+    // Get all scores with user details in a single query using include
     const scores = await SeasonScore.findAll({
       where: { seasonId: seasonId },
+      include: [{
+        model: User,
+        attributes: ['gameId', 'gameUsername', 'avatarSrc']
+      }],
       order: [['score', 'DESC']]
     });
     
-    // Get user details for each score
-    const ranking = [];
-    for (const score of scores) {
-      try {
-        const user = await User.findByPk(score.userId);
-        if (user) {
-          let avatarSrc = user.avatarSrc;
-          if (!avatarSrc) {
-            avatarSrc = '/avatars/avatar_default.jpg';
-          } else if (!avatarSrc.startsWith('/') && !avatarSrc.startsWith('http')) {
-            avatarSrc = `/avatars/${avatarSrc}`;
-          }
-          
-          ranking.push({
-            userId: user.gameId,
-            username: user.gameUsername || 'Unknown User',
-            avatarSrc: avatarSrc,
-            score: score.score || 0
-          });
-          
-          console.log("[AVATAR DEBUG] Added user to ranking:", user.gameId, user.gameUsername, avatarSrc);
-        }
-      } catch (userError) {
-        console.error(`❌ Error fetching user ${score.userId}:`, userError);
-        // Continue with next score even if one user fails
+    // Format the response
+    const ranking = scores.map(score => {
+      const user = score.User;
+      let avatarSrc = user.avatarSrc;
+      if (!avatarSrc) {
+        avatarSrc = '/avatars/avatar_default.jpg';
+      } else if (!avatarSrc.startsWith('/') && !avatarSrc.startsWith('http')) {
+        avatarSrc = `/avatars/${avatarSrc}`;
       }
-    }
+      
+      return {
+        userId: user.gameId,
+        username: user.gameUsername || 'Unknown User',
+        avatarSrc: avatarSrc,
+        score: score.score || 0
+      };
+    });
     
     console.log(`✅ Found ${ranking.length} users in ranking for season ${seasonId}`);
-    
-    // Return as array, not object
     res.status(200).json(ranking);
   } catch (error) {
     console.error('❌ Error fetching season ranking:', error);

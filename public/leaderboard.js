@@ -41,28 +41,36 @@
     }
 
     // Fetch leaderboard for season with pagination
-    async function fetchSeasonRanking(seasonId, page = 0, limit = 10) {
-        // First fetch all data (server might not support pagination)
-        if (!window.fullRankingCache || !window.fullRankingCache[seasonId]) {
-            // If we don't have the data cached for this season, fetch it all
-            const res = await fetch(`/api/seasons/${seasonId}/ranking`);
-            if (!res.ok) throw new Error('Failed to fetch season ranking');
-            const fullData = await res.json();
-            
-            // Cache the full data for this season
-            window.fullRankingCache = window.fullRankingCache || {};
-            window.fullRankingCache[seasonId] = fullData;
+    async function fetchSeasonRanking(seasonId, page = 1, pageSize = 10) {
+        try {
+            // Si on a déjà les données en cache, on les utilise
+            if (window.fullRankingCache && window.fullRankingCache[seasonId]) {
+                const start = (page - 1) * pageSize;
+                const end = start + pageSize;
+                return window.fullRankingCache[seasonId].slice(start, end);
+            }
+
+            // Sinon, on charge les données par lots
+            const res = await fetch(`/api/seasons/${seasonId}/ranking?page=${page}&pageSize=${pageSize}`);
+            if (!res.ok) {
+                throw new Error('Failed to fetch ranking');
+            }
+            const data = await res.json();
+
+            // On met en cache les données reçues
+            if (!window.fullRankingCache) {
+                window.fullRankingCache = {};
+            }
+            if (!window.fullRankingCache[seasonId]) {
+                window.fullRankingCache[seasonId] = [];
+            }
+            window.fullRankingCache[seasonId].push(...data);
+
+            return data;
+        } catch (error) {
+            console.error('Error fetching season ranking:', error);
+            return [];
         }
-        
-        // Get the cached full data
-        const fullData = window.fullRankingCache[seasonId];
-        
-        // Implement client-side pagination
-        const start = page * limit;
-        const end = start + limit;
-        
-        // Return the requested slice of data
-        return fullData.slice(start, end);
     }
 
     // Utility: Robustly get and validate current user ID
