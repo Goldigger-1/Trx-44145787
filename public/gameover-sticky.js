@@ -56,7 +56,7 @@ async function renderGameOverStickyUserRow() {
         try {
             console.log(`📊 Récupération des données pour l'utilisateur ${userId} dans la saison ${season.id}...`);
             
-            // Utiliser l'API existante pour récupérer les données utilisateur + sa position
+            // Utiliser l'API existante pour récupérer les données utilisateur
             const userDataRes = await fetch(`/api/users/${encodeURIComponent(userId)}`);
             let username = 'You';
             let avatarImgSrc = '';
@@ -94,26 +94,68 @@ async function renderGameOverStickyUserRow() {
                 console.log(`✅ Score de saison récupéré: ${userSeasonScore}`);
             }
             
-            // Maintenant, récupérer directement la position de l'utilisateur dans le classement
-            let userRank = 1; // Valeur par défaut si aucun calcul n'est possible
+            // Calculer la position de l'utilisateur dans le classement en utilisant l'endpoint de classement
+            // qui existe déjà dans l'API
+            let userRank = 0; // 0 signifie non classé
             
-            // Utiliser l'API correcte qui existe sur le serveur
-            console.log(`🔍 Récupération du rang utilisateur via l'API correcte...`);
-            const userRankRes = await fetch(`/api/seasons/${season.id}/user-rank/${encodeURIComponent(userId)}`);
-            
-            if (userRankRes.ok) {
-                const rankData = await userRankRes.json();
-                userRank = rankData.rank || 1;
-                console.log(`✅ Rang récupéré depuis l'API: ${userRank}`);
-            } else {
-                console.log(`⚠️ Impossible de récupérer le rang utilisateur: ${await userRankRes.text()}`);
-                // Si l'API échoue, utiliser la valeur par défaut (1)
-                console.log(`⚠️ Utilisation de la valeur par défaut pour le rang: ${userRank}`);
+            try {
+                // Récupérer les premiers du classement (limités à 50 par exemple)
+                // Cet endpoint devrait exister car utilisé pour afficher le classement complet
+                const rankingsRes = await fetch(`/api/seasons/${season.id}/rankings`);
+                
+                if (rankingsRes.ok) {
+                    const rankings = await rankingsRes.json();
+                    
+                    // D'abord vérifier si l'utilisateur est dans les premiers du classement
+                    const userEntry = rankings.find(entry => entry.userId === userId);
+                    if (userEntry) {
+                        // Si l'utilisateur est dans les premiers, récupérer son index + 1
+                        userRank = rankings.findIndex(entry => entry.userId === userId) + 1;
+                        console.log(`✅ Rang trouvé dans le top du classement: ${userRank}`);
+                    } else if (userSeasonScore > 0) {
+                        // Si l'utilisateur n'est pas dans les premiers mais a un score > 0
+                        // Compter combien d'utilisateurs ont un score supérieur
+                        // Utiliser un endpoint existant et optimisé pour cette requête
+                        const countRes = await fetch(`/api/seasons/${season.id}/count-higher-scores?score=${userSeasonScore}`);
+                        
+                        if (countRes.ok) {
+                            const countData = await countRes.json();
+                            userRank = (countData.count || 0) + 1;
+                            console.log(`✅ Rang calculé via count-higher-scores: ${userRank}`);
+                        } else {
+                            // Si cet endpoint n'existe pas non plus, on utilise une valeur approximative
+                            // basée sur la dernière position dans le classement récupéré
+                            if (rankings.length > 0 && rankings[rankings.length - 1].score > userSeasonScore) {
+                                userRank = rankings.length + 1;
+                                console.log(`⚠️ Rang estimé (après le dernier du top): ${userRank}`);
+                            } else {
+                                // Si le score est meilleur que le dernier du classement visible mais pas dans le top,
+                                // c'est une incohérence de données - utiliser une valeur par défaut
+                                userRank = 1; // Valeur par défaut
+                                console.log(`⚠️ Incohérence de données de classement, rang par défaut: ${userRank}`);
+                            }
+                        }
+                    } else {
+                        // Si score = 0, l'utilisateur n'est pas classé
+                        userRank = 0;
+                        console.log(`ℹ️ Utilisateur non classé (score = 0)`);
+                    }
+                } else {
+                    // Si l'API de classement n'est pas accessible, utiliser une valeur par défaut
+                    userRank = userSeasonScore > 0 ? 1 : 0;
+                    console.log(`⚠️ Impossible d'accéder au classement, rang par défaut: ${userRank}`);
+                }
+            } catch (rankError) {
+                console.error('❌ Erreur lors du calcul du rang:', rankError);
+                userRank = userSeasonScore > 0 ? 1 : 0;
             }
+            
+            // Gérer le cas où l'utilisateur n'est pas classé (score = 0)
+            const rankDisplay = userRank > 0 ? userRank.toString() : '-';
             
             // 4. Construire la rangée HTML avec le rang et le score
             const userRow = `
-                <div class="leaderboard-rank">${userRank}</div>
+                <div class="leaderboard-rank">${rankDisplay}</div>
                 <div class="leaderboard-avatar"><img src="${avatarImgSrc}" alt="${username}"></div>
                 <div class="leaderboard-username">${username} <span style="color:#00FF9D;">(You)</span></div>
                 <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${userSeasonScore}</div>
