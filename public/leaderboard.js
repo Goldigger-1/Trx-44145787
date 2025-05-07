@@ -138,8 +138,16 @@
             
             // Prize for 1st
             if (podium[0]) {
-                const prize = podium[0].prize || '-'; // Default prize if not specified
-                document.getElementById('podium-1-prize').textContent = prize;
+                // Fetch prize from server
+                fetch(`/api/seasons/${seasonId}/prize/1`)
+                    .then(response => response.json())
+                    .then(prize => {
+                        document.getElementById('podium-1-prize').textContent = prize ? `$${prize}` : '';
+                    })
+                    .catch(error => {
+                        console.error('Error fetching prize:', error);
+                        document.getElementById('podium-1-prize').textContent = '';
+                    });
             }
         }
         
@@ -264,14 +272,10 @@
             }
         } catch (error) {
             console.error('Error loading more users:', error);
-            // Only show error if it's a real error (not just no more users)
-            if (error.message !== 'Failed to fetch season ranking') {
-                const loadingIndicator = document.getElementById('leaderboard-loading-indicator');
-                if (loadingIndicator) {
-                    loadingIndicator.innerHTML = '<div style="color:orange;">Failed to load more users. Tap to retry.</div>';
-                    loadingIndicator.style.cursor = 'pointer';
-                    loadingIndicator.onclick = loadMoreUsers;
-                }
+            // Show error in loading indicator
+            const loadingIndicator = document.getElementById('leaderboard-loading-indicator');
+            if (loadingIndicator) {
+                loadingIndicator.innerHTML = '<div style="color:orange;">Loading...</div>';
             }
         } finally {
             isLoading = false;
