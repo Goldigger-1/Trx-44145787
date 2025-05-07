@@ -152,27 +152,22 @@
         // Always render a maximum of 15 items at a time
         const maxItems = Math.min(ranking.length, 15);
         
-        // Create new fragment to append all items at a time
+        // Create new fragment to append all items at once
         const fragment = document.createDocumentFragment();
-        
-        // Calculate the global rank offset based on current page
-        const globalOffset = currentPage * 15; // 15 items per page
         
         // Append new rows to the fragment
         for (let i = 0; i < maxItems; i++) {
             const user = ranking[i];
-            const actualIdx = startIdx + i;
+            // Calculate rank based on page number and ITEMS_PER_PAGE
+            const actualIdx = (currentPage * ITEMS_PER_PAGE) + i;
             const row = document.createElement('div');
             row.className = 'leaderboard-row';
             
             // Use avatarSrc when available, otherwise use default
             const avatarSrc = user.avatarSrc || 'avatars/avatar_default.jpg';
             
-            // Calculate global rank (1-based)
-            const globalRank = globalOffset + actualIdx + 1;
-            
             row.innerHTML = `
-                <div class="leaderboard-rank">${globalRank}</div>
+                <div class="leaderboard-rank">${actualIdx+1}</div>
                 <div class="leaderboard-avatar"><img src="${avatarSrc}" alt="${user.gameUsername || user.username || 'Player'}"></div>
                 <div class="leaderboard-username">${user.gameUsername || user.username || 'Player'}</div>
                 <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${user.score || 0}</div>
