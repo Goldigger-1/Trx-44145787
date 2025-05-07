@@ -47,12 +47,13 @@
         if (!res.ok) throw new Error('Failed to fetch season ranking');
         const data = await res.json();
         
-        // Cache the data we received
+        // Cache the data we received (limit to 10 users)
         window.fullRankingCache = window.fullRankingCache || {};
         if (!window.fullRankingCache[seasonId]) {
             window.fullRankingCache[seasonId] = [];
         }
-        window.fullRankingCache[seasonId].push(...data);
+        // Only keep the first 10 users
+        window.fullRankingCache[seasonId] = [...data].slice(0, 10);
         
         return data;
     }
@@ -121,8 +122,8 @@
         if (isInitialLoad) {
             list.innerHTML = '';
             
-            // Store the ranking data for the sticky user row
-            allRanking = [...ranking];
+            // Store the ranking data for the sticky user row (limit to 10 users)
+            allRanking = [...ranking].slice(0, 10);
             
             // Podium
             const podium = [ranking[0], ranking[1], ranking[2]];
@@ -142,8 +143,8 @@
                 document.getElementById('podium-1-prize').textContent = podium[0].prize ? `$${podium[0].prize}` : '';
             }
         } else {
-            // For subsequent loads, append the new ranking data to our stored array
-            allRanking = [...allRanking, ...ranking];
+            // For subsequent loads, append the new ranking data but limit to 10 users
+            allRanking = [...allRanking, ...ranking].slice(0, 10);
         }
         
         // Calculate starting index based on initial load or append
