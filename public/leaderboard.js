@@ -122,7 +122,7 @@
     let allRanking = [];
     
     // Render leaderboard with progressive loading
-    async function renderLeaderboard(ranking, currentUserId, isInitialLoad = true) {
+    function renderLeaderboard(ranking, currentUserId, isInitialLoad = true) {
         const list = document.getElementById('leaderboard-list');
         
         // If this is the initial load, clear the list and render the podium
@@ -148,59 +148,6 @@
             // Prize for 1st
             if (podium[0]) {
                 document.getElementById('podium-1-prize').textContent = podium[0].prize ? `$${podium[0].prize}` : '';
-            }
-
-            // Render sticky user row (exact same logic as game over)
-            if (!currentUserId) {
-                document.getElementById('leaderboard-user-row').innerHTML = '<div style="color:orange;">Could not determine your user ID. Please log in again. ⚠️</div>';
-            } else {
-                // Sort and find user in ranking (exact game over logic)
-                let sortedRanking = [...allRanking].sort((a, b) => (b.bestScore ?? b.score ?? 0) - (a.bestScore ?? a.score ?? 0));
-                let userIndex = sortedRanking.findIndex(u => String(u.gameId ?? u.id ?? u.userId) === String(currentUserId));
-                let rank = userIndex !== -1 ? userIndex + 1 : '-';
-                let user = sortedRanking[userIndex];
-                let bestScore = 0;
-                let username = '';
-                let avatar = 'avatars/avatar_default.jpg';
-
-                if (user) {
-                    bestScore = user.bestScore || user.score || 0;
-                    username = user.gameUsername || user.username || 'You';
-                    avatar = user.avatarSrc || 'avatars/avatar_default.jpg';
-                } else {
-                    // Not ranked: fetch from server
-                    try {
-                        const res = await fetch(`/api/users/${encodeURIComponent(currentUserId)}`);
-                        if (res.ok) {
-                            user = await res.json();
-                            bestScore = user.bestScore || user.score || 0;
-                            username = user.gameUsername || user.username || 'You';
-                            avatar = user.avatarSrc || 'avatars/avatar_default.jpg';
-                        } else {
-                            username = 'You';
-                            bestScore = 0;
-                            avatar = 'avatars/avatar_default.jpg';
-                        }
-                    } catch (err) {
-                        username = 'You';
-                        bestScore = 0;
-                        avatar = 'avatars/avatar_default.jpg';
-                    }
-                }
-
-                // Add cache buster to avatar
-                if (avatar && !avatar.includes('?')) {
-                    avatar += '?t=' + new Date().getTime();
-                }
-
-                // Render sticky row (exact same format as game over)
-                const userRow = `
-                    <div class="leaderboard-rank">${rank}</div>
-                    <div class="leaderboard-avatar"><img src="${avatar}" alt="${username}"></div>
-                    <div class="leaderboard-username">${username} <span style="color:#00FF9D;">(You)</span></div>
-                    <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${bestScore}</div>
-                `;
-                document.getElementById('leaderboard-user-row').innerHTML = userRow;
             }
         } else {
             // For subsequent loads, append the new ranking data to our stored array
@@ -231,6 +178,15 @@
         // Add loading indicator at the end if there might be more users
         if (hasMoreUsers) {
             addLoadingIndicator();
+        }
+        
+        // Only render the sticky user row on initial load
+        if (isInitialLoad) {
+            // Current user row (sticky)
+            // --- Robust sticky user row rendering: always use server data ---
+            renderStickyUserRow(allRanking, currentUserId).catch(e => {
+                document.getElementById('leaderboard-user-row').innerHTML = '<div style="color:red;">Failed to load your info. Please refresh. ❌</div>';
+            });
         }
     }
     
@@ -293,7 +249,7 @@
             
             // If we got some users, render them
             if (newUsers.length > 0) {
-                await renderLeaderboard(newUsers, getCurrentUserId(), false);
+                renderLeaderboard(newUsers, getCurrentUserId(), false);
             } else {
                 // No more users, remove loading indicator
                 const loadingIndicator = document.getElementById('leaderboard-loading-indicator');
@@ -312,6 +268,76 @@
         } finally {
             isLoading = false;
         }
+    }
+    
+    // Current user row (sticky) - separated into its own function
+    async function renderStickyUserRow(ranking, currentUserId) {
+        // If user ID is missing or invalid, show error
+        if (!currentUserId) {
+            document.getElementById('leaderboard-user-row').innerHTML = '<div style="color:orange;">Could not determine your user ID. Please log in again. ⚠️</div>';
+            return;
+        }
+
+        // Fetch ranking directly from server (same as game over)
+        let fullRanking = [];
+        try {
+            const res = await fetch(`/api/seasons/${seasonId}/ranking`);
+            if (!res.ok) throw new Error('Failed to fetch season ranking');
+            fullRanking = await res.json();
+        } catch (e) {
+            document.getElementById('leaderboard-user-row').innerHTML = '<div style="color:orange;">Could not load ranking. ⚠️</div>';
+            return;
+        }
+
+        // Sort and find user in ranking (exact game over logic)
+        let sortedRanking = [...fullRanking].sort((a, b) => (b.bestScore ?? b.score ?? 0) - (a.bestScore ?? a.score ?? 0));
+        let userIndex = sortedRanking.findIndex(u => String(u.gameId ?? u.id ?? u.userId) === String(currentUserId));
+        let rank = userIndex !== -1 ? userIndex + 1 : '-';
+        let user = sortedRanking[userIndex];
+        let bestScore = 0;
+        let username = '';
+        let avatar = 'avatars/avatar_default.jpg';
+
+        if (user) {
+            // User is ranked
+            bestScore = user.bestScore || user.score || 0;
+            username = user.gameUsername || user.username || 'You';
+            avatar = user.avatarSrc || 'avatars/avatar_default.jpg';
+        } else {
+            // Not ranked: fetch from server
+            try {
+                const res = await fetch(`/api/users/${encodeURIComponent(currentUserId)}`);
+                if (res.ok) {
+                    user = await res.json();
+                    bestScore = user.bestScore || user.score || 0;
+                    username = user.gameUsername || user.username || 'You';
+                    avatar = user.avatarSrc || 'avatars/avatar_default.jpg';
+                } else {
+                    // User not found on server
+                    username = 'You';
+                    bestScore = 0;
+                    avatar = 'avatars/avatar_default.jpg';
+                }
+            } catch (err) {
+                username = 'You';
+                bestScore = 0;
+                avatar = 'avatars/avatar_default.jpg';
+            }
+        }
+
+        // Add cache buster to avatar
+        if (avatar && !avatar.includes('?')) {
+            avatar += '?t=' + new Date().getTime();
+        }
+
+        // Render sticky row (exact same format as game over)
+        const userRow = `
+            <div class="leaderboard-rank">${rank}</div>
+            <div class="leaderboard-avatar"><img src="${avatar}" alt="${username}"></div>
+            <div class="leaderboard-username">${username} <span style="color:#00FF9D;">(You)</span></div>
+            <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${bestScore}</div>
+        `;
+        document.getElementById('leaderboard-user-row').innerHTML = userRow;
     }
 
     // Show leaderboard page
@@ -370,7 +396,7 @@
             
             // Get current user id robustly
             let currentUserId = getCurrentUserId();
-            await renderLeaderboard(initialRanking, currentUserId, true);
+            renderLeaderboard(initialRanking, currentUserId, true);
 
             // Hide loading overlay when done
             if (loadingOverlay) loadingOverlay.style.display = 'none';
