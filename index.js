@@ -1247,97 +1247,66 @@ app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
   }
 });
 
-// --- FIX: Route optimisée pour récupérer le rang d'un utilisateur sans charger tout le classement ---
-app.get('/api/seasons/:seasonId/user-rank/:userId', async (req, res) => {
+// --- NOUVELLE SOLUTION OPTIMISÉE: Calculer le rang utilisateur sans charger de liste ---
+// Cette route utilise une requête SQL optimisée qui compte simplement les scores supérieurs
+app.get('/api/seasons/:seasonId/user-position', async (req, res) => {
   try {
-    const { seasonId, userId } = req.params;
+    const { seasonId } = req.params;
+    const { userId } = req.query;
     
-    console.log(`🔍 Fetching rank for user ${userId} in season ${seasonId}`);
+    if (!userId) {
+      return res.status(400).json({ error: 'userId query parameter is required' });
+    }
     
-    // Verify the season exists
+    console.log(`🔍 Calculating rank for user ${userId} in season ${seasonId}`);
+    
+    // Validate season
     const season = await Season.findByPk(seasonId);
     if (!season) {
       return res.status(404).json({ error: 'Season not found' });
     }
     
-    // Get user data
-    const user = await User.findByPk(userId);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    
-    // Get user's season score
-    const userSeasonScore = await SeasonScore.findOne({
+    // Get the user's score first
+    const userScore = await SeasonScore.findOne({
       where: { seasonId, userId }
     });
     
-    if (!userSeasonScore) {
-      // User has no score in this season, return rank as beyond last place
-      console.log(`⚠️ User ${userId} has no score in season ${seasonId}`);
-      
-      // Format avatar path for consistency
-      let avatarSrc = user.avatarSrc;
-      if (!avatarSrc) {
-        avatarSrc = '/avatars/avatar_default.jpg';
-      } else if (!avatarSrc.startsWith('/') && !avatarSrc.startsWith('http')) {
-        avatarSrc = `/avatars/${avatarSrc}`;
-      }
-      
-      return res.status(200).json({
-        userId,
-        username: user.gameUsername,
-        avatarSrc: avatarSrc,
-        rank: '-',
-        score: 0
-      });
+    if (!userScore) {
+      console.log(`⚠️ No score found for user ${userId} in season ${seasonId}`);
+      return res.status(200).json({ position: '-', score: 0 });
     }
     
-    // SQL optimisé pour calculer le rang précisément
+    // Use SQL COUNT to efficiently calculate the position - count how many scores are higher
     const rankQuery = `
-      SELECT COUNT(*) as rank
+      SELECT COUNT(*) as higherScores
       FROM "SeasonScores"
-      WHERE seasonId = ? AND score > ?
+      WHERE "seasonId" = ? AND "score" > ?
     `;
     
     const [rankResult] = await sequelize.query(rankQuery, {
-      replacements: [seasonId, userSeasonScore.score],
-      type: Sequelize.QueryTypes.SELECT,
-      plain: true
+      replacements: [seasonId, userScore.score],
+      type: Sequelize.QueryTypes.SELECT
     });
     
-    // Le rang est le nombre de scores plus élevés + 1
-    const rank = parseInt(rankResult.rank) + 1;
+    // Position is the number of scores that are higher + 1
+    const position = rankResult.higherScores + 1;
     
-    // Format avatar path for consistency
-    let avatarSrc = user.avatarSrc;
-    if (!avatarSrc) {
-      avatarSrc = '/avatars/avatar_default.jpg';
-    } else if (!avatarSrc.startsWith('/') && !avatarSrc.startsWith('http')) {
-      avatarSrc = `/avatars/${avatarSrc}`;
-    }
+    console.log(`✅ User ${userId} is ranked #${position} in season ${seasonId} with score ${userScore.score}`);
     
-    console.log(`✅ User ${userId} is ranked #${rank} in season ${seasonId} with score ${userSeasonScore.score}`);
-    
-    // Return user data with rank
+    // Return rank information
     res.status(200).json({
       userId,
-      username: user.gameUsername,
-      avatarSrc: avatarSrc,
-      rank,
-      score: userSeasonScore.score
+      position,
+      score: userScore.score
     });
   } catch (error) {
-    console.error('❌ Error calculating user rank:', error);
+    console.error('❌ Error calculating user position:', error);
     res.status(500).json({ 
-      error: 'Error calculating user rank', 
+      error: 'Error calculating user position', 
       details: error.message 
     });
   }
 });
-
-// --- FIX: Suppression de la route dupliquée qui causait des problèmes ---
-// La route '/api/seasons/:seasonId/paged-ranking' est maintenant supprimée
-// car la route '/api/seasons/:seasonId/ranking' est optimisée et suffit
 
 // Route pour récupérer le classement global
 app.get('/api/global-ranking', async (req, res) => {

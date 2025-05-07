@@ -123,18 +123,21 @@ async function renderLeaderboardUserRow() {
                 console.log(`✅ Score de saison récupéré: ${userSeasonScore}`);
     }
 
-            // Maintenant, récupérer directement la position de l'utilisateur dans le classement
-            let userRank = '-'; // Valeur par défaut si aucun calcul n'est possible
+            // SOLUTION OPTIMISÉE: Récupérer la position de l'utilisateur avec la nouvelle API
+            let userRank = '-';
             
-            // Utiliser l'endpoint correct qui existe sur le serveur
-            const userRankRes = await fetch(`/api/seasons/${season.id}/user-rank/${encodeURIComponent(userId)}`);
-            
-            if (userRankRes.ok) {
-                const rankData = await userRankRes.json();
-                userRank = rankData.rank || '-';
-                console.log(`✅ Rang récupéré depuis l'API: ${userRank}`);
-            } else {
-                console.log("⚠️ Impossible de récupérer le rang utilisateur, utilisation de la valeur par défaut");
+            try {
+                const userPositionRes = await fetch(`/api/seasons/${season.id}/user-position?userId=${encodeURIComponent(userId)}`);
+                
+                if (userPositionRes.ok) {
+                    const positionData = await userPositionRes.json();
+                    userRank = positionData.position || '-';
+                    console.log(`✅ Position utilisateur récupérée: ${userRank}`);
+                } else {
+                    console.log(`⚠️ Impossible de récupérer la position utilisateur, utilisation de la valeur par défaut`);
+                }
+            } catch (positionError) {
+                console.error('❌ Erreur lors de la récupération de la position utilisateur:', positionError);
             }
             
             // 4. Construire la rangée HTML avec le rang et le score

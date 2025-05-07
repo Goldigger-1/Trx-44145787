@@ -2985,31 +2985,55 @@
                 .then(season => {
                     console.log(`✅ Active season found: ${season.id}, Season ${season.seasonNumber}`);
                     
-                    // Fetch user's score directly without loading the full ranking
-                    return fetch(`/api/seasons/${season.id}/user-rank/${encodeURIComponent(userId)}`)
+                    // Récupérer le score de l'utilisateur directement
+                    return fetch(`/api/seasons/${season.id}/scores/${encodeURIComponent(userId)}`)
                         .then(response => {
                             if (response.ok) {
                                 return response.json();
                             } else {
-                                // If user-rank endpoint fails, try direct score lookup
-                                return fetch(`/api/seasons/${season.id}/scores/${userId}`)
-                                    .then(response => response.ok ? response.json() : { score: 0 });
+                                // Si l'API de score échoue, retourner un score par défaut
+                                console.log(`⚠️ Impossible de récupérer le score de saison, utilisation de la valeur par défaut`);
+                                return { score: 0 };
                             }
                         })
-                        .then(userData => {
-                            // Extract score from the response (either full user data or just score)
-                            const serverSeasonScore = userData.score || 0;
-                            console.log(`📊 Loaded user's season score: ${serverSeasonScore}`);
+                        .then(scoreData => {
+                            // Extraire le score
+                            const serverSeasonScore = scoreData.score || 0;
+                            console.log(`📊 Score de saison récupéré: ${serverSeasonScore}`);
                             
-                            // Update global variable
-                            seasonScore = serverSeasonScore;
-                            
-                            // Always update UI elements
-                            const seasonScoreElement = document.getElementById('season-score');
-                            if (seasonScoreElement) {
-                                seasonScoreElement.textContent = `Season Best: ${seasonScore}`;
-                            }
-                            return seasonScore;
+                            // Récupérer également la position (rang) de l'utilisateur pour l'affichage
+                            return fetch(`/api/seasons/${season.id}/user-position?userId=${encodeURIComponent(userId)}`)
+                                .then(rankResponse => {
+                                    // Même si la requête de position échoue, on a déjà le score
+                                    if (rankResponse.ok) {
+                                        return rankResponse.json().then(rankData => {
+                                            console.log(`📊 Position utilisateur récupérée: ${rankData.position}`);
+                                            return {
+                                                score: serverSeasonScore,
+                                                position: rankData.position
+                                            };
+                                        });
+                                    } else {
+                                        return { score: serverSeasonScore, position: '-' };
+                                    }
+                                })
+                                .catch(() => {
+                                    // En cas d'erreur, retourner au moins le score
+                                    return { score: serverSeasonScore, position: '-' };
+                                })
+                                .then(data => {
+                                    // Mettre à jour la variable globale avec le score
+                                    seasonScore = data.score;
+                                    
+                                    // Mettre à jour les éléments UI avec le score et la position
+                                    const seasonScoreElement = document.getElementById('season-score');
+                                    if (seasonScoreElement) {
+                                        seasonScoreElement.textContent = `Season Best: ${seasonScore}`;
+                                        // Stocker la position comme attribut data pour un usage ultérieur
+                                        seasonScoreElement.setAttribute('data-position', data.position);
+                                    }
+                                    return seasonScore;
+                                });
                         });
                 })
                 .catch(error => {
