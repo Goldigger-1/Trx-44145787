@@ -358,7 +358,7 @@ bot.help((ctx) => {
 
 bot.start((ctx) => {
   console.log('Commande /start reçue de:', ctx.from.id, ctx.from.username);
-  ctx.reply('Let's see how long you last here 😏', {
+  ctx.reply('Let\'s see how long you last here 😏', {
     reply_markup: {
       inline_keyboard: [
         [{ text: 'Play', web_app: { url: webAppUrl } }],
