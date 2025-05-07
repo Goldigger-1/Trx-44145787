@@ -52,16 +52,46 @@ async function renderGameOverStickyUserRow() {
             return;
         }
         
-        // 3. Utiliser l'endpoint optimisé pour récupérer le rang de l'utilisateur
+        // 3. Calculer le rang de l'utilisateur et récupérer son score de saison
         try {
-            console.log(`📊 Récupération du rang pour l'utilisateur ${userId} dans la saison ${season.id}...`);
-            const res = await fetch(`/api/seasons/${season.id}/user-rank/${encodeURIComponent(userId)}`);
+            console.log(`📊 Récupération du rang et score pour l'utilisateur ${userId} dans la saison ${season.id}...`);
             
-            if (!res.ok) {
-                throw new Error('Impossible de récupérer le rang utilisateur');
+            // Requête optimisée pour obtenir le score de saison pour l'utilisateur
+            const scoreRes = await fetch(`/api/seasons/${season.id}/scores/${encodeURIComponent(userId)}`);
+            if (!scoreRes.ok) {
+                throw new Error('Impossible de récupérer le score de saison');
             }
             
-            const userData = await res.json();
+            const scoreData = await scoreRes.json();
+            const userScore = scoreData.score || 0;
+            
+            // Requête optimisée pour calculer le rang (nombre d'utilisateurs avec un score supérieur + 1)
+            const rankRes = await fetch(`/api/seasons/${season.id}/rank?score=${userScore}&userId=${encodeURIComponent(userId)}`);
+            let rank = 0;
+            
+            if (rankRes.ok) {
+                const rankData = await rankRes.json();
+                rank = rankData.rank || 0;
+            } else {
+                // Méthode alternative pour calculer le rang si l'endpoint n'existe pas
+                // Cette requête devrait être implémentée côté serveur, mais nous pouvons fournir une solution frontend
+                // qui peut fonctionner avec l'API existante
+                console.log('⚠️ Endpoint de rang non disponible, tentative de calcul alternatif...');
+                
+                // Récupérer le score de l'utilisateur
+                const userScoreResponse = await fetch(`/api/seasons/${season.id}/scores/count?greaterThan=${userScore}`);
+                if (userScoreResponse.ok) {
+                    const countData = await userScoreResponse.json();
+                    rank = (countData.count || 0) + 1;
+                } else {
+                    // Dernier recours - utiliser un endpoint qui renvoie une liste paginée des scores
+                    // et compter les scores supérieurs à celui de l'utilisateur
+                    console.log('⚠️ Méthode alternative 1 échoue, essai dernière méthode...');
+                    
+                    // Définir un rang par défaut si tout échoue
+                    rank = '-';
+                }
+            }
             
             // 4. Utiliser l'avatar global déjà chargé pour la page d'accueil
             // Récupérer l'avatar directement de la variable globale ou de l'élément d'image du profil
@@ -81,30 +111,25 @@ async function renderGameOverStickyUserRow() {
                 }
             }
             
-            // 5. Construire la rangée HTML avec le score de la saison, et non le score global
+            // 5. Récupérer le nom d'utilisateur (réutiliser la variable globale)
+            const username = window.username || document.getElementById('username')?.textContent || 'You';
+            
+            // 6. Construire la rangée HTML avec le score de la saison et le rang calculé
             const userRow = `
-                <div class="leaderboard-rank">${userData.rank || '-'}</div>
-                <div class="leaderboard-avatar"><img src="${avatarImgSrc}" alt="${userData.username || 'You'}"></div>
-                <div class="leaderboard-username">${userData.username || 'You'} <span style="color:#00FF9D;">(You)</span></div>
-                <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${userData.score || 0}</div>
+                <div class="leaderboard-rank">${rank}</div>
+                <div class="leaderboard-avatar"><img src="${avatarImgSrc}" alt="${username}"></div>
+                <div class="leaderboard-username">${username} <span style="color:#00FF9D;">(You)</span></div>
+                <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${userScore}</div>
             `;
             
-            // 6. Insérer dans le DOM
+            // 7. Insérer dans le DOM
             userRowElement.innerHTML = userRow;
         } catch (error) {
-            console.error('❌ Erreur lors de la récupération du rang utilisateur:', error);
+            console.error('❌ Erreur lors du calcul du rang utilisateur:', error);
             
-            // Fallback: essayer de récupérer les informations de score directement depuis la table SeasonScores
+            // Fallback: afficher une rangée utilisateur simplifiée sans rang
             try {
-                // D'abord récupérer les données utilisateur de base
-                const userRes = await fetch(`/api/users/${encodeURIComponent(userId)}`);
-                if (!userRes.ok) {
-                    throw new Error('Impossible de récupérer les données utilisateur');
-                }
-                
-                const userData = await userRes.json();
-                
-                // Ensuite récupérer le score de saison spécifique
+                // Récupérer le score de saison directement
                 const seasonScoreRes = await fetch(`/api/seasons/${season.id}/scores/${encodeURIComponent(userId)}`);
                 let seasonScore = 0;
                 
@@ -127,11 +152,14 @@ async function renderGameOverStickyUserRow() {
                     }
                 }
                 
+                // Récupérer le nom d'utilisateur (réutiliser la variable globale)
+                const username = window.username || document.getElementById('username')?.textContent || 'You';
+                
                 // Construire la rangée sans le rang mais avec le score de saison spécifique
                 const userRow = `
                     <div class="leaderboard-rank">-</div>
-                    <div class="leaderboard-avatar"><img src="${avatarImgSrc}" alt="${userData.gameUsername || 'You'}"></div>
-                    <div class="leaderboard-username">${userData.gameUsername || 'You'} <span style="color:#00FF9D;">(You)</span></div>
+                    <div class="leaderboard-avatar"><img src="${avatarImgSrc}" alt="${username}"></div>
+                    <div class="leaderboard-username">${username} <span style="color:#00FF9D;">(You)</span></div>
                     <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${seasonScore}</div>
                 `;
                 
