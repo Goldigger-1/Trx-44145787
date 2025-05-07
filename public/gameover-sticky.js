@@ -63,16 +63,28 @@ async function renderGameOverStickyUserRow() {
             
             const userData = await res.json();
             
-            // 4. Préparer l'avatar avec un cache-buster
-            let avatarSrc = userData.avatarSrc || 'avatars/avatar_default.jpg';
-            if (avatarSrc && !avatarSrc.includes('?')) {
-                avatarSrc += '?t=' + new Date().getTime();
+            // 4. Utiliser l'avatar global déjà chargé pour la page d'accueil
+            // Récupérer l'avatar directement de la variable globale ou de l'élément d'image du profil
+            let avatarImgSrc;
+            if (window.avatarSrc) {
+                avatarImgSrc = window.avatarSrc;
+                console.log('✅ Utilisation de l\'avatar global:', avatarImgSrc);
+            } else {
+                const profileAvatarImg = document.getElementById('avatarImg');
+                if (profileAvatarImg && profileAvatarImg.src) {
+                    avatarImgSrc = profileAvatarImg.src;
+                    console.log('✅ Utilisation de l\'avatar du profil:', avatarImgSrc);
+                } else {
+                    // Fallback si aucun avatar n'est disponible
+                    avatarImgSrc = 'avatars/avatar_default.jpg';
+                    console.log('⚠️ Fallback sur l\'avatar par défaut');
+                }
             }
             
             // 5. Construire la rangée HTML avec le score de la saison, et non le score global
             const userRow = `
                 <div class="leaderboard-rank">${userData.rank || '-'}</div>
-                <div class="leaderboard-avatar"><img src="${avatarSrc}" alt="${userData.username || 'You'}"></div>
+                <div class="leaderboard-avatar"><img src="${avatarImgSrc}" alt="${userData.username || 'You'}"></div>
                 <div class="leaderboard-username">${userData.username || 'You'} <span style="color:#00FF9D;">(You)</span></div>
                 <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${userData.score || 0}</div>
             `;
@@ -101,16 +113,24 @@ async function renderGameOverStickyUserRow() {
                     seasonScore = seasonScoreData.score || 0;
                 }
                 
-                // Préparer l'avatar
-                let avatarSrc = userData.avatarSrc || 'avatars/avatar_default.jpg';
-                if (avatarSrc && !avatarSrc.includes('?')) {
-                    avatarSrc += '?t=' + new Date().getTime();
+                // Utiliser l'avatar global déjà chargé pour la page d'accueil
+                let avatarImgSrc;
+                if (window.avatarSrc) {
+                    avatarImgSrc = window.avatarSrc;
+                } else {
+                    const profileAvatarImg = document.getElementById('avatarImg');
+                    if (profileAvatarImg && profileAvatarImg.src) {
+                        avatarImgSrc = profileAvatarImg.src;
+                    } else {
+                        // Fallback si aucun avatar n'est disponible
+                        avatarImgSrc = 'avatars/avatar_default.jpg';
+                    }
                 }
                 
                 // Construire la rangée sans le rang mais avec le score de saison spécifique
                 const userRow = `
                     <div class="leaderboard-rank">-</div>
-                    <div class="leaderboard-avatar"><img src="${avatarSrc}" alt="${userData.gameUsername || 'You'}"></div>
+                    <div class="leaderboard-avatar"><img src="${avatarImgSrc}" alt="${userData.gameUsername || 'You'}"></div>
                     <div class="leaderboard-username">${userData.gameUsername || 'You'} <span style="color:#00FF9D;">(You)</span></div>
                     <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${seasonScore}</div>
                 `;
