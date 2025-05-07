@@ -3079,17 +3079,17 @@
                                     seasonScore = data.score;
                                     
                                     // Mettre à jour les éléments UI avec le score et la position
-                                    const seasonScoreElement = document.getElementById('season-score');
-                                    if (seasonScoreElement) {
-                                        seasonScoreElement.textContent = `Season Best: ${seasonScore}`;
+                            const seasonScoreElement = document.getElementById('season-score');
+                            if (seasonScoreElement) {
+                                seasonScoreElement.textContent = `Season Best: ${seasonScore}`;
                                         // Stocker la position comme attribut data pour un usage ultérieur
                                         seasonScoreElement.setAttribute('data-position', data.position);
-                                    }
+                            }
                                     
                                     // Afficher également le rang dans la console pour vérification
                                     console.log('%c RANG UTILISATEUR (fetchUserSeasonScore): ' + data.position, 'font-size: 24px; color: red; background-color: yellow;');
                                     
-                                    return seasonScore;
+                            return seasonScore;
                                 });
                         });
                 })

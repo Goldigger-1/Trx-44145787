@@ -9,6 +9,9 @@ function showLeaderboard() {
                 
         // Mettre à jour la rangée utilisateur
         renderLeaderboardUserRow();
+        
+        // Mettre à jour le compte à rebours de fin de saison
+        updateSeasonCountdown();
     }
 }
 
@@ -20,15 +23,113 @@ function hideLeaderboard() {
     }
 }
 
+// Fonction pour mettre à jour le compte à rebours de fin de saison
+async function updateSeasonCountdown() {
+    try {
+        console.log(`🕒 Mise à jour du compte à rebours...`);
+        
+        // Récupérer les éléments du compte à rebours
+        const daysElement = document.getElementById('leaderboard-countdown-days');
+        const hoursElement = document.getElementById('leaderboard-countdown-hours');
+        const minutesElement = document.getElementById('leaderboard-countdown-minutes');
+        
+        if (!daysElement || !hoursElement || !minutesElement) {
+            console.error('❌ Éléments du compte à rebours non trouvés');
+            return;
+        }
+        
+        // Détermine l'URL de base comme dans les autres fonctions
+        let baseUrl = window.location.origin;
+        const pathname = window.location.pathname;
+        const basePathMatch = pathname.match(/^\/([^\/]+)/);
+        const basePath = basePathMatch ? basePathMatch[1] : '';
+        
+        if (basePath) {
+            baseUrl = `${baseUrl}/${basePath}`;
+        }
+        
+        // Récupérer la saison active
+        const apiUrl = `${baseUrl}/api/seasons/active`;
+        console.log(`🔗 Récupération de la saison active: ${apiUrl}`);
+        
+        const response = await fetch(apiUrl);
+        
+        if (!response.ok) {
+            console.error(`❌ Erreur lors de la récupération de la saison active: ${response.status}`);
+            // Afficher "00" partout en cas d'erreur
+            daysElement.textContent = '00';
+            hoursElement.textContent = '00';
+            minutesElement.textContent = '00';
+            return;
+        }
+        
+        const season = await response.json();
+        console.log(`✅ Saison récupérée:`, season);
+        
+        if (!season.endDate) {
+            console.error('❌ La saison n\'a pas de date de fin');
+            // Afficher "00" partout si pas de date de fin
+            daysElement.textContent = '00';
+            hoursElement.textContent = '00';
+            minutesElement.textContent = '00';
+            return;
+        }
+        
+        // Calculer le temps restant
+        const now = new Date();
+        const endDate = new Date(season.endDate);
+        
+        console.log(`📅 Date actuelle: ${now.toISOString()}`);
+        console.log(`📅 Date de fin: ${endDate.toISOString()}`);
+        
+        // Si la date de fin est dépassée, afficher "00" partout
+        if (endDate <= now) {
+            console.log(`⏰ La saison est terminée`);
+            daysElement.textContent = '00';
+            hoursElement.textContent = '00';
+            minutesElement.textContent = '00';
+            return;
+        }
+        
+        // Calculer les jours, heures, minutes restants
+        const diffMs = endDate - now;
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+        
+        console.log(`⏱️ Temps restant: ${diffDays} jours, ${diffHours} heures, ${diffMinutes} minutes`);
+        
+        // Mettre à jour l'affichage avec formatage à deux chiffres
+        daysElement.textContent = String(diffDays).padStart(2, '0');
+        hoursElement.textContent = String(diffHours).padStart(2, '0');
+        minutesElement.textContent = String(diffMinutes).padStart(2, '0');
+        
+        // Mettre à jour le compte à rebours chaque minute
+        setTimeout(updateSeasonCountdown, 60000);
+        
+    } catch (error) {
+        console.error('❌ Erreur lors de la mise à jour du compte à rebours:', error);
+        
+        // En cas d'erreur, afficher "00" partout
+        const daysElement = document.getElementById('leaderboard-countdown-days');
+        const hoursElement = document.getElementById('leaderboard-countdown-hours');
+        const minutesElement = document.getElementById('leaderboard-countdown-minutes');
+        
+        if (daysElement) daysElement.textContent = '00';
+        if (hoursElement) hoursElement.textContent = '00';
+        if (minutesElement) minutesElement.textContent = '00';
+    }
+}
+
 // Fonction pour obtenir l'ID utilisateur actuel
-    function getCurrentUserId() {
+function getCurrentUserId() {
     // Essayer d'abord la variable globale
     let userId = window.userId || '';
     
     // Si userId n'est pas une chaîne, essayer d'autres méthodes
-        if (typeof userId !== 'string') {
+    if (typeof userId !== 'string') {
         userId = '';
-            }
+    }
     
     // Essayer de récupérer du localStorage
     if (!userId) {
@@ -36,7 +137,7 @@ function hideLeaderboard() {
     }
     
     return userId.trim();
-    }
+}
 
 // Fonction principale pour mettre à jour la rangée utilisateur dans le leaderboard
 async function renderLeaderboardUserRow() {
