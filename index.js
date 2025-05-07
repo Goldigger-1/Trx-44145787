@@ -1168,64 +1168,6 @@ app.post('/api/seasons/:id/close', async (req, res) => {
   }
 });
 
-// API endpoint to get season ranking
-app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
-  try {
-    const { seasonId } = req.params;
-    console.log(`🔍 Fetching ranking for season ${seasonId}`);
-    
-    // Find the season
-    const season = await Season.findByPk(seasonId);
-    if (!season) {
-      return res.status(404).json({ error: 'Season not found' });
-    }
-    
-    // Get all scores for this season, ordered by score descending
-    const scores = await SeasonScore.findAll({
-      where: { seasonId: seasonId },
-      order: [['score', 'DESC']]
-    });
-    
-    // Get user details for each score
-    const ranking = [];
-    for (const score of scores) {
-      try {
-        const user = await User.findByPk(score.userId);
-        if (user) {
-          let avatarSrc = user.avatarSrc;
-          if (!avatarSrc) {
-            avatarSrc = '/avatars/avatar_default.jpg';
-          } else if (!avatarSrc.startsWith('/') && !avatarSrc.startsWith('http')) {
-            avatarSrc = `/avatars/${avatarSrc}`;
-          }
-          
-          ranking.push({
-            userId: user.gameId,
-            username: user.gameUsername || 'Unknown User',
-            avatarSrc: avatarSrc,
-            score: score.score || 0
-          });
-          
-          console.log("[AVATAR DEBUG] Added user to ranking:", user.gameId, user.gameUsername, avatarSrc);
-        }
-      } catch (userError) {
-        console.error(`❌ Error fetching user ${score.userId}:`, userError);
-        // Continue with next score even if one user fails
-      }
-    }
-    
-    console.log(`✅ Found ${ranking.length} users in ranking for season ${seasonId}`);
-    
-    // Return as array, not object
-    res.status(200).json(ranking);
-  } catch (error) {
-    console.error('❌ Error fetching season ranking:', error);
-    res.status(500).json({ 
-      error: 'Error fetching season ranking', 
-      details: error.message 
-    });
-  }
-});
 
 // Route pour récupérer le classement global
 app.get('/api/global-ranking', async (req, res) => {
@@ -1761,18 +1703,18 @@ app.post('/api/seasons/:seasonId/scores', async (req, res) => {
 app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
   try {
     const { seasonId } = req.params;
-    console.log(`🔍 Fetching ranking for season ${seasonId}`);
+    const { page = 0, limit = 15 } = req.query;
+    const offset = parseInt(page) * parseInt(limit);
     
-    // Find the season
-    const season = await Season.findByPk(seasonId);
-    if (!season) {
-      return res.status(404).json({ error: 'Season not found' });
-    }
+    // Get total count first
+    const totalScores = await SeasonScore.count({ where: { seasonId: seasonId } });
     
-    // Get all scores for this season, ordered by score descending
+    // Get paginated scores
     const scores = await SeasonScore.findAll({
       where: { seasonId: seasonId },
-      order: [['score', 'DESC']]
+      order: [['score', 'DESC']],
+      limit: parseInt(limit),
+      offset: offset
     });
     
     // Get user details for each score
@@ -1794,27 +1736,29 @@ app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
             avatarSrc: avatarSrc,
             score: score.score || 0
           });
-          
-          console.log("[AVATAR DEBUG] Added user to ranking:", user.gameId, user.gameUsername, avatarSrc);
         }
-      } catch (userError) {
-        console.error(`❌ Error fetching user ${score.userId}:`, userError);
-        // Continue with next score even if one user fails
+      } catch (error) {
+        console.error(`Error fetching user ${score.userId}:`, error);
       }
     }
     
-    console.log(`✅ Found ${ranking.length} users in ranking for season ${seasonId}`);
-    
-    // Return as array, not object
-    res.status(200).json(ranking);
+    res.json({
+      ranking,
+      total: totalScores,
+      page: parseInt(page),
+      totalPages: Math.ceil(totalScores / parseInt(limit))
+    });
   } catch (error) {
-    console.error('❌ Error fetching season ranking:', error);
-    res.status(500).json({ 
-      error: 'Error fetching season ranking', 
-      details: error.message 
+    console.error('Error fetching season ranking:', error);
+    res.json({
+      ranking: [],
+      total: 0,
+      page: 0,
+      totalPages: 0
     });
   }
 });
+
 
 // API pour supprimer une saison
 app.delete('/api/seasons/:id', async (req, res) => {

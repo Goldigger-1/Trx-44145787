@@ -325,9 +325,6 @@
             isLoading = false;
             hasMoreUsers = true;
             
-            // Clear any existing ranking cache when (re)initializing
-            window.fullRankingCache = {};
-            
             // Show loading overlay at the start
             if (loadingOverlay) loadingOverlay.style.display = 'flex';
 
@@ -338,17 +335,19 @@
             
             // Fetch first page of ranking
             const ITEMS_PER_PAGE = 15;
-            let initialRanking = await fetchSeasonRanking(season.id, 0);
+            const response = await fetchSeasonRanking(season.id, 0);
+            const { ranking, total, totalPages } = response;
             
-            // If we got fewer users than requested, we've reached the end
-            hasMoreUsers = initialRanking.length === 15;
+            // Set pagination state
+            hasMoreUsers = totalPages > 1;
+            currentPage = 0;
             
             // Add prize to 1st place
             if (initialRanking[0]) initialRanking[0].prize = season.prizeMoney;
             
             // Get current user id robustly
             let currentUserId = getCurrentUserId();
-            renderLeaderboard(initialRanking, currentUserId, true);
+            renderLeaderboard(ranking, currentUserId, true);
 
             // Hide loading overlay when done
             if (loadingOverlay) loadingOverlay.style.display = 'none';
