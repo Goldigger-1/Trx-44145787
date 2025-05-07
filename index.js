@@ -1180,6 +1180,9 @@ app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
       return res.status(404).json({ error: 'Season not found' });
     }
     
+    // Log the prize money for debugging
+    console.log(`💰 Prize money for season ${season.id}: ${season.prizeMoney}`);
+    
     // Get all scores for this season, ordered by score descending
     const scores = await SeasonScore.findAll({
       where: { seasonId: seasonId },
@@ -1203,7 +1206,8 @@ app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
             userId: user.gameId,
             username: user.gameUsername || 'Unknown User',
             avatarSrc: avatarSrc,
-            score: score.score || 0
+            score: score.score || 0,
+            prize: ranking.length === 1 ? season.prizeMoney : null
           });
           
           console.log("[AVATAR DEBUG] Added user to ranking:", user.gameId, user.gameUsername, avatarSrc);
@@ -1299,6 +1303,9 @@ app.get('/api/seasons/:seasonId/scores/:userId', async (req, res) => {
     if (!season) {
       return res.status(404).json({ error: 'Season not found' });
     }
+    
+    // Log the prize money for debugging
+    console.log(`💰 Prize money for season ${season.id}: ${season.prizeMoney}`);
     
     // Find the season score
     const seasonScore = await SeasonScore.findOne({
@@ -1662,6 +1669,9 @@ app.post('/api/seasons/:seasonId/scores', async (req, res) => {
       return res.status(404).json({ error: 'Season not found' });
     }
     
+    // Log the prize money for debugging
+    console.log(`💰 Prize money for season ${season.id}: ${season.prizeMoney}`);
+    
     // Find the user
     const user = await User.findByPk(userId);
     if (!user) {
@@ -1711,6 +1721,9 @@ app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
       return res.status(404).json({ error: 'Season not found' });
     }
     
+    // Log the prize money for debugging
+    console.log(`💰 Prize money for season ${season.id}: ${season.prizeMoney}`);
+    
     // Get all scores for this season, ordered by score descending
     const scores = await SeasonScore.findAll({
       where: { seasonId: seasonId },
@@ -1734,7 +1747,8 @@ app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
             userId: user.gameId,
             username: user.gameUsername || 'Unknown User',
             avatarSrc: avatarSrc,
-            score: score.score || 0
+            score: score.score || 0,
+            prize: ranking.length === 1 ? season.prizeMoney : null
           });
           
           console.log("[AVATAR DEBUG] Added user to ranking:", user.gameId, user.gameUsername, avatarSrc);

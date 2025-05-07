@@ -138,10 +138,7 @@
             
             // Prize for 1st
             if (podium[0]) {
-                const prizeElement = document.getElementById('podium-1-prize');
-                if (prizeElement) {
-                    prizeElement.textContent = podium[0].prize ? `$${podium[0].prize}` : '';
-                }
+                document.getElementById('podium-1-prize').textContent = podium[0].prize ? `$${podium[0].prize}` : '';
             }
         }
         
