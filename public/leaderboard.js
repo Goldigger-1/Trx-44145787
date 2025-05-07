@@ -42,10 +42,27 @@
 
     // Fetch leaderboard for season with pagination
     async function fetchSeasonRanking(seasonId, page = 0, limit = 25) {
-        const offset = page * limit;
-        const res = await fetch(`/api/seasons/${seasonId}/ranking?offset=${offset}&limit=${limit}`);
-        if (!res.ok) throw new Error('Failed to fetch season ranking');
-        return res.json();
+        // First fetch all data (server might not support pagination)
+        if (!window.fullRankingCache || !window.fullRankingCache[seasonId]) {
+            // If we don't have the data cached for this season, fetch it all
+            const res = await fetch(`/api/seasons/${seasonId}/ranking`);
+            if (!res.ok) throw new Error('Failed to fetch season ranking');
+            const fullData = await res.json();
+            
+            // Cache the full data for this season
+            window.fullRankingCache = window.fullRankingCache || {};
+            window.fullRankingCache[seasonId] = fullData;
+        }
+        
+        // Get the cached full data
+        const fullData = window.fullRankingCache[seasonId];
+        
+        // Implement client-side pagination
+        const start = page * limit;
+        const end = start + limit;
+        
+        // Return the requested slice of data
+        return fullData.slice(start, end);
     }
 
     // Utility: Robustly get and validate current user ID
@@ -221,8 +238,12 @@
             const USERS_PER_PAGE = 25;
             const newUsers = await fetchSeasonRanking(seasonId, currentPage, USERS_PER_PAGE);
             
-            // If we received fewer users than requested, we've reached the end
-            if (newUsers.length < USERS_PER_PAGE) {
+            // Check if we've loaded all users
+            if (window.fullRankingCache && window.fullRankingCache[seasonId]) {
+                const fullLength = window.fullRankingCache[seasonId].length;
+                hasMoreUsers = (currentPage + 1) * USERS_PER_PAGE < fullLength;
+            } else if (newUsers.length < USERS_PER_PAGE) {
+                // If we received fewer users than requested, we've reached the end
                 hasMoreUsers = false;
             }
             
@@ -332,7 +353,9 @@
             currentPage = 0;
             isLoading = false;
             hasMoreUsers = true;
-            allRanking = [];
+            
+            // Clear any existing ranking cache when (re)initializing
+            window.fullRankingCache = {};
             
             // Show loading overlay at the start
             if (loadingOverlay) loadingOverlay.style.display = 'flex';
@@ -346,8 +369,11 @@
             const USERS_PER_PAGE = 25;
             let initialRanking = await fetchSeasonRanking(season.id, 0, USERS_PER_PAGE);
             
-            // If we received fewer users than requested, we've reached the end
-            if (initialRanking.length < USERS_PER_PAGE) {
+            // If we have the full data cached, check if there are more users
+            if (window.fullRankingCache && window.fullRankingCache[season.id]) {
+                hasMoreUsers = initialRanking.length < window.fullRankingCache[season.id].length;
+            } else if (initialRanking.length < USERS_PER_PAGE) {
+                // If we received fewer users than requested, we've reached the end
                 hasMoreUsers = false;
             }
             
