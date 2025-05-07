@@ -402,18 +402,23 @@
         console.log(`⏬ Loading more users, current page: ${currentPage}`);
         
         try {
-            const ranking = await fetchSeasonRanking(seasonId, currentPage);
+            // Incrémenter currentPage AVANT de faire la requête
+            const nextPage = currentPage + 1;
+            console.log(`📊 Fetching page ${nextPage}`);
+            
+            const ranking = await fetchSeasonRanking(seasonId, nextPage);
             
             // Detailed log of what we received
-            console.log(`📋 Received ${ranking.length} items for page ${currentPage}`);
+            console.log(`📋 Received ${ranking.length} items for page ${nextPage}`);
             
             // Check if we have more users
             if (ranking.length < 15) {
                 console.log(`🛑 No more users to fetch (received < 15 items)`);
                 hasMoreUsers = false;
             } else {
-                console.log(`✅ More users might be available, incrementing page to ${currentPage + 1}`);
-                currentPage++;
+                console.log(`✅ More users might be available, incrementing page to ${nextPage + 1}`);
+                // Mettre à jour la page actuelle uniquement si on a reçu des données
+                currentPage = nextPage;
             }
             
             // If we have items to render, add them
@@ -581,6 +586,12 @@
             const titleElement = document.getElementById('leaderboard-season-title');
             if (titleElement) {
                 titleElement.textContent = `Season ${activeSeason.seasonNumber}`;
+            }
+            
+            // Initialiser le compte à rebours avec la date de fin de saison
+            if (activeSeason.endDate) {
+                console.log(`⏰ Initializing countdown with end date: ${activeSeason.endDate}`);
+                renderCountdown(activeSeason.endDate);
             }
             
             console.log(`🔍 Step 2: Fetching first page of ranking for season ${seasonId}...`);
