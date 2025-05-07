@@ -1173,20 +1173,20 @@ app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
   try {
     const { seasonId } = req.params;
     
-    // Support pour pagination avec cache
+    console.log(`🔍 Fetching ranking for season ${seasonId}`);
+    
+    // Validation de l'ID de saison
+    if (!seasonId || isNaN(parseInt(seasonId))) {
+      console.error(`❌ Invalid season ID: ${seasonId}`);
+      return res.status(400).json({ error: 'Invalid season ID' });
+    }
+    
+    // Support pour pagination - FORCE une limite même si non spécifiée
     const page = parseInt(req.query.page) || 0;
-    const limit = Math.min(parseInt(req.query.limit) || 15, 15); // Maximum 15 éléments par page
+    const limit = Math.min(parseInt(req.query.limit) || 15, 15); // Force une limite max de 15
     const offset = page * limit;
     
-    // Clé de cache unique pour cette requête
-    const cacheKey = `ranking_${seasonId}_${page}_${limit}`;
-    
-    // Vérifier si nous avons un résultat en cache
-    const cachedResult = rankingCache.get(cacheKey);
-    if (cachedResult) {
-      console.log(`✅ Returning cached ranking for season ${seasonId} (page: ${page})`);
-      return res.status(200).json(cachedResult);
-    }
+    console.log(`🔍 Pagination: page=${page}, limit=${limit}, offset=${offset}`);
     
     // Find the season
     const season = await Season.findByPk(seasonId);
@@ -1195,45 +1195,48 @@ app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
       return res.status(404).json({ error: 'Season not found' });
     }
     
-    // Get scores with pagination and include user data in a single query
+    console.log(`✅ Found season: ${season.id} (Season ${season.seasonNumber})`);
+    
+    // Get all scores for this season, ordered by score descending WITH PAGINATION
     const scores = await SeasonScore.findAll({
-      where: { seasonId },
+      where: { seasonId: seasonId },
       order: [['score', 'DESC']],
-      limit,
-      offset,
-      include: [{
-        model: User,
-        required: true,
-        attributes: ['gameId', 'gameUsername', 'avatarSrc']
-      }]
+      limit: limit,
+      offset: offset
     });
     
-    // Format the results
-    const ranking = scores.map(score => {
-      const user = score.User;
-      let avatarSrc = user.avatarSrc;
-      
-      if (!avatarSrc) {
-        avatarSrc = '/avatars/avatar_default.jpg';
-      } else if (!avatarSrc.startsWith('/') && !avatarSrc.startsWith('http')) {
-        avatarSrc = `/avatars/${avatarSrc}`;
+    console.log(`✅ Found ${scores.length} scores for season ${seasonId}`);
+    
+    // Get user details for each score
+    const ranking = [];
+    for (const score of scores) {
+      try {
+        const user = await User.findByPk(score.userId);
+        if (user) {
+          let avatarSrc = user.avatarSrc;
+          if (!avatarSrc) {
+            avatarSrc = '/avatars/avatar_default.jpg';
+          } else if (!avatarSrc.startsWith('/') && !avatarSrc.startsWith('http')) {
+            avatarSrc = `/avatars/${avatarSrc}`;
+          }
+          
+          ranking.push({
+            userId: user.gameId,
+            username: user.gameUsername || 'Unknown User',
+            avatarSrc: avatarSrc,
+            score: score.score || 0
+          });
+        }
+      } catch (userError) {
+        console.error(`❌ Error fetching user ${score.userId}:`, userError);
+        // Continue with next score even if one user fails
       }
-      
-      return {
-        userId: user.gameId,
-        username: user.gameUsername || 'Unknown User',
-        avatarSrc,
-        score: score.score || 0,
-        rank: offset + scores.indexOf(score) + 1
-      };
-    });
-    
-    // Mettre en cache pour 30 secondes
-    rankingCache.set(cacheKey, ranking, 30);
+    }
     
     console.log(`✅ Found ${ranking.length} users in ranking for season ${seasonId} (page: ${page})`);
-    res.status(200).json(ranking);
     
+    // Return as array, not object
+    res.status(200).json(ranking);
   } catch (error) {
     console.error('❌ Error fetching season ranking:', error);
     res.status(500).json({ 
@@ -1242,10 +1245,6 @@ app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
     });
   }
 });
-
-// Cache simple pour le classement
-const rankingCache = new Map();
-setInterval(() => rankingCache.clear(), 30000); // Vider le cache toutes les 30 secondes
 
 // Route pour récupérer le classement global
 app.get('/api/global-ranking', async (req, res) => {
