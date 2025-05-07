@@ -338,7 +338,7 @@
             
             // Fetch first page of ranking
             const ITEMS_PER_PAGE = 15;
-            let initialRanking = await fetchSeasonRanking(season.id, 0, ITEMS_PER_PAGE);
+            let initialRanking = await fetchSeasonRanking(season.id, 0);
             
             // If we got fewer users than requested, we've reached the end
             hasMoreUsers = initialRanking.length === 15;
