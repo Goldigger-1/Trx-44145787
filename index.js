@@ -1172,7 +1172,11 @@ app.post('/api/seasons/:id/close', async (req, res) => {
 app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
   try {
     const { seasonId } = req.params;
-    console.log(`🔍 Fetching ranking for season ${seasonId}`);
+    const page = parseInt(req.query.page) || 1;
+    const pageSize = parseInt(req.query.pageSize) || 10;
+    const offset = (page - 1) * pageSize;
+    
+    console.log(`🔍 Fetching ranking for season ${seasonId} - Page: ${page}, Size: ${pageSize}`);
     
     // Find the season
     const season = await Season.findByPk(seasonId);
@@ -1180,14 +1184,21 @@ app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
       return res.status(404).json({ error: 'Season not found' });
     }
     
-    // Get all scores with user details in a single query using include
+    // Get total count of scores
+    const totalScores = await SeasonScore.count({
+      where: { seasonId: seasonId }
+    });
+    
+    // Get paginated scores with user details
     const scores = await SeasonScore.findAll({
       where: { seasonId: seasonId },
       include: [{
         model: User,
         attributes: ['gameId', 'gameUsername', 'avatarSrc']
       }],
-      order: [['score', 'DESC']]
+      order: [['score', 'DESC']],
+      limit: pageSize,
+      offset: offset
     });
     
     // Format the response
@@ -1208,8 +1219,18 @@ app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
       };
     });
     
-    console.log(`✅ Found ${ranking.length} users in ranking for season ${seasonId}`);
-    res.status(200).json(ranking);
+    console.log(`✅ Found ${ranking.length} users in ranking for season ${seasonId} (Page ${page})`);
+    
+    // Return paginated data with metadata
+    res.status(200).json({
+      ranking,
+      pagination: {
+        total: totalScores,
+        page,
+        pageSize,
+        totalPages: Math.ceil(totalScores / pageSize)
+      }
+    });
   } catch (error) {
     console.error('❌ Error fetching season ranking:', error);
     res.status(500).json({ 
