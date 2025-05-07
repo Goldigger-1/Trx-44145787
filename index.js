@@ -1173,21 +1173,18 @@ app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
   try {
     const { seasonId } = req.params;
     
-    // Support pour pagination
+    // Support pour pagination - FORCE une limite même si non spécifiée
     const page = parseInt(req.query.page) || 0;
-    const limit = parseInt(req.query.limit) || 15;
+    const limit = Math.min(parseInt(req.query.limit) || 15, 15); // Force une limite max de 15
     const offset = page * limit;
     
-    console.log(`🔍 Fetching ranking for season ${seasonId} (page: ${page}, limit: ${limit})`);
+    console.log(`🔍 Fetching ranking for season ${seasonId} (page: ${page}, limit: ${limit}, offset: ${offset})`);
     
     // Find the season
     const season = await Season.findByPk(seasonId);
     if (!season) {
       return res.status(404).json({ error: 'Season not found' });
     }
-    
-    // Log the prize money for debugging
-    console.log(`💰 Prize money for season ${season.id}: ${season.prizeMoney}`);
     
     // Get all scores for this season, ordered by score descending WITH PAGINATION
     const scores = await SeasonScore.findAll({
@@ -1216,8 +1213,6 @@ app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
             avatarSrc: avatarSrc,
             score: score.score || 0
           });
-          
-          console.log("[AVATAR DEBUG] Added user to ranking:", user.gameId, user.gameUsername, avatarSrc);
         }
       } catch (userError) {
         console.error(`❌ Error fetching user ${score.userId}:`, userError);
@@ -1993,6 +1988,67 @@ app.get('/api/seasons/:seasonId/user-rank/:userId', async (req, res) => {
       error: 'Error calculating user rank', 
       details: error.message 
     });
+  }
+});
+
+// Nouvel endpoint spécifique à la pagination
+app.get('/api/seasons/:seasonId/paged-ranking', async (req, res) => {
+  try {
+    const { seasonId } = req.params;
+    
+    // Support pour pagination - toujours avec limite
+    const page = parseInt(req.query.page) || 0;
+    const limit = parseInt(req.query.limit) || 15;
+    const offset = page * limit;
+    
+    console.log(`🔍 [PAGED] Fetching ranking for season ${seasonId} (page: ${page}, limit: ${limit})`);
+    
+    // Find the season
+    const season = await Season.findByPk(seasonId);
+    if (!season) {
+      return res.status(404).json({ error: 'Season not found' });
+    }
+    
+    // Get scores with pagination
+    const scores = await SeasonScore.findAll({
+      where: { seasonId: seasonId },
+      order: [['score', 'DESC']],
+      limit: limit,
+      offset: offset
+    });
+    
+    // Get user details for each score
+    const ranking = [];
+    for (const score of scores) {
+      try {
+        const user = await User.findByPk(score.userId);
+        if (user) {
+          let avatarSrc = user.avatarSrc;
+          if (!avatarSrc) {
+            avatarSrc = '/avatars/avatar_default.jpg';
+          } else if (!avatarSrc.startsWith('/') && !avatarSrc.startsWith('http')) {
+            avatarSrc = `/avatars/${avatarSrc}`;
+          }
+          
+          ranking.push({
+            userId: user.gameId,
+            username: user.gameUsername || 'Unknown User',
+            avatarSrc: avatarSrc,
+            score: score.score || 0
+          });
+        }
+      } catch (userError) {
+        console.error(`❌ Error fetching user ${score.userId}:`, userError);
+      }
+    }
+    
+    console.log(`✅ [PAGED] Found ${ranking.length} users for page ${page}`);
+    
+    // Return as array
+    res.status(200).json(ranking);
+  } catch (error) {
+    console.error('❌ Error fetching paged ranking:', error);
+    res.status(500).json({ error: 'Error fetching paged ranking' });
   }
 });
 

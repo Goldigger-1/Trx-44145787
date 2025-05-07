@@ -44,10 +44,17 @@
     async function fetchSeasonRanking(seasonId, page = 0) {
         // Fetch only the requested batch of data
         const ITEMS_PER_PAGE = 15;
-        const res = await fetch(`/api/seasons/${seasonId}/ranking?page=${page}&limit=${ITEMS_PER_PAGE}`);
+        console.log(`🔍 Fetching ranking page ${page} for season ${seasonId} with limit ${ITEMS_PER_PAGE}`);
+        
+        // Utiliser le nouvel endpoint dédié à la pagination
+        const url = `/api/seasons/${seasonId}/paged-ranking?page=${page}&limit=${ITEMS_PER_PAGE}`;
+        console.log(`🌐 Request URL: ${url}`);
+        
+        const res = await fetch(url);
         if (!res.ok) throw new Error('Failed to fetch season ranking');
         const data = await res.json();
         
+        console.log(`📦 Received ${data.length} items for page ${page}`);
         return data;
     }
 
@@ -110,8 +117,12 @@
     async function renderLeaderboard(ranking, currentUserId, isInitialLoad = true) {
         const list = document.getElementById('leaderboard-list');
         
+        console.log(`🎬 Rendering leaderboard (initialLoad: ${isInitialLoad}, items: ${ranking.length})`);
+        
         // If this is the initial load, clear the list and render the podium
         if (isInitialLoad) {
+            console.log('🧹 Initial load - clearing list');
+            
             // Clear list but keep loading indicator if present
             const loadingIndicator = document.getElementById('leaderboard-loading-indicator');
             if (loadingIndicator) {
@@ -124,16 +135,24 @@
             }
             
             // Podium
+            console.log('🏆 Setting up podium with top 3 users');
             const podium = [ranking[0], ranking[1], ranking[2]];
             [1,2,3].forEach(i => {
                 const user = podium[i-1];
                 if (!user) return;
-                document.getElementById(`podium-${i}-username`).textContent = user.gameUsername || user.username || `User${i}`;
+                
+                const podiumElement = document.getElementById(`podium-${i}-username`);
+                if (podiumElement) {
+                    podiumElement.textContent = user.gameUsername || user.username || `User${i}`;
+                }
                 
                 // Ensure we use avatarSrc when available
                 const avatarSrc = user.avatarSrc || 'avatars/avatar_default.jpg';
-                document.getElementById(`podium-${i}-avatar`).src = avatarSrc;
-                document.getElementById(`podium-${i}-avatar`).alt = user.gameUsername || user.username || `User${i}`;
+                const avatarElement = document.getElementById(`podium-${i}-avatar`);
+                if (avatarElement) {
+                    avatarElement.src = avatarSrc;
+                    avatarElement.alt = user.gameUsername || user.username || `User${i}`;
+                }
             });
             
             // Prize for 1st
@@ -141,16 +160,21 @@
                 // Get the season prize money
                 const season = await fetchActiveSeason();
                 if (season && season.prizeMoney) {
-                    document.getElementById('podium-1-prize').textContent = `$${season.prizeMoney}`;
+                    const prizeElement = document.getElementById('podium-1-prize');
+                    if (prizeElement) {
+                        prizeElement.textContent = `$${season.prizeMoney}`;
+                    }
                 }
             }
         }
         
         // Calculate starting index based on initial load or append
-        const startIdx = isInitialLoad ? 0 : list.children.length;
+        const startIdx = isInitialLoad ? 0 : document.querySelectorAll('.leaderboard-row').length;
+        console.log(`📊 Starting index for new items: ${startIdx}`);
         
         // Always render a maximum of 15 items at a time
         const maxItems = Math.min(ranking.length, 15);
+        console.log(`📋 Rendering ${maxItems} items`);
         
         // Create new fragment to append all items at once
         const fragment = document.createDocumentFragment();
@@ -158,7 +182,16 @@
         // Append new rows to the fragment
         for (let i = 0; i < maxItems; i++) {
             const user = ranking[i];
-            const actualIdx = startIdx + i;
+            if (!user) {
+                console.warn(`⚠️ Missing user data at index ${i}`);
+                continue;
+            }
+            
+            // Dans la première page, on affiche les rangs 1-15
+            // Dans la deuxième page (page=1), on affiche les rangs 16-30, etc.
+            const actualRank = startIdx + i + 1;
+            console.log(`👤 Adding user ${user.username || 'Unknown'} at rank ${actualRank}`);
+            
             const row = document.createElement('div');
             row.className = 'leaderboard-row';
             
@@ -166,7 +199,7 @@
             const avatarSrc = user.avatarSrc || 'avatars/avatar_default.jpg';
             
             row.innerHTML = `
-                <div class="leaderboard-rank">${actualIdx+1}</div>
+                <div class="leaderboard-rank">${actualRank}</div>
                 <div class="leaderboard-avatar"><img src="${avatarSrc}" alt="${user.gameUsername || user.username || 'Player'}"></div>
                 <div class="leaderboard-username">${user.gameUsername || user.username || 'Player'}</div>
                 <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${user.score || 0}</div>
@@ -176,17 +209,22 @@
         
         // Append all items at once
         list.appendChild(fragment);
+        console.log(`✅ Appended ${maxItems} items to the list`);
         
         // Add loading indicator at the end if there might be more users
         if (hasMoreUsers) {
+            console.log('🔄 Adding loading indicator for more users');
             addLoadingIndicator();
+        } else {
+            console.log('🛑 No more users available, not adding loading indicator');
         }
         
         // Only render the sticky user row on initial load
         if (isInitialLoad) {
-            // Current user row (sticky)
+            console.log('👤 Rendering sticky user row');
             // --- Robust sticky user row rendering: always use server data ---
             renderStickyUserRow(ranking, currentUserId).catch(e => {
+                console.error('❌ Error rendering sticky user row:', e);
                 document.getElementById('leaderboard-user-row').innerHTML = '<div style="color:red;">Failed to load your info. Please refresh. ❌</div>';
             });
         }
@@ -245,25 +283,36 @@
         if (isLoading || !hasMoreUsers) return;
         
         isLoading = true;
+        console.log(`⏬ Loading more users, current page: ${currentPage}`);
+        
         try {
             const ranking = await fetchSeasonRanking(seasonId, currentPage);
             
+            // Detailed log of what we received
+            console.log(`📋 Received ${ranking.length} items for page ${currentPage}`);
+            
             // Check if we have more users
             if (ranking.length < 15) {
+                console.log(`🛑 No more users to fetch (received < 15 items)`);
                 hasMoreUsers = false;
             } else {
+                console.log(`✅ More users might be available, incrementing page to ${currentPage + 1}`);
                 currentPage++;
             }
             
-            // Only render new items, don't re-render existing ones
-            const existingCount = document.querySelectorAll('.leaderboard-row').length;
-            const newItems = ranking.slice(existingCount);
-            
-            // If we have new items to render
-            if (newItems.length > 0) {
-                renderLeaderboard(newItems, getCurrentUserId(), false);
+            // If we have items to render, add them
+            if (ranking.length > 0) {
+                console.log(`🧩 Rendering ${ranking.length} new items`);
+                renderLeaderboard(ranking, getCurrentUserId(), false);
             } else {
-                console.log('No new items to render');
+                console.log('❌ No items to render, all users may have been fetched');
+                hasMoreUsers = false;
+                
+                // Remove loading indicator if no more users
+                const loadingIndicator = document.getElementById('leaderboard-loading-indicator');
+                if (loadingIndicator) {
+                    loadingIndicator.remove();
+                }
             }
         } catch (error) {
             console.error('Error loading more users:', error);
@@ -383,54 +432,86 @@
     async function initLeaderboard() {
         const loadingOverlay = document.getElementById('leaderboard-loading-overlay');
         try {
+            console.log('🚀 Initializing leaderboard...');
+            
             // Reset pagination variables
             currentPage = 0;
             isLoading = false;
             hasMoreUsers = true;
             
-            // Clear any existing ranking cache when (re)initializing
-            window.fullRankingCache = {};
+            console.log('🧹 Reset pagination - currentPage: 0');
+            
+            // Clear existing content
+            const listElement = document.getElementById('leaderboard-list');
+            if (listElement) {
+                listElement.innerHTML = '';
+                console.log('🧹 Cleared leaderboard list');
+            }
             
             // Show loading overlay at the start
-            if (loadingOverlay) loadingOverlay.style.display = 'flex';
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'flex';
+                console.log('🔄 Showing loading overlay');
+            }
 
+            // Get active season
+            console.log('🔍 Fetching active season...');
             const season = await fetchActiveSeason();
             if (!season) {
                 throw new Error('No active season found');
             }
+            console.log(`✅ Active season found: ${season.id} (Season ${season.seasonNumber})`);
             
+            // Set season ID and update title
             seasonId = season.id;
-            document.getElementById('leaderboard-season-title').textContent = `Season ${season.seasonNumber}`;
-            renderCountdown(season.endDate);
-            
-            // Fetch first page of ranking
-            const ranking = await fetchSeasonRanking(season.id, currentPage);
-            if (ranking.length < 15) {
-                hasMoreUsers = false;
-            } else {
-                currentPage++;
+            const titleElement = document.getElementById('leaderboard-season-title');
+            if (titleElement) {
+                titleElement.textContent = `Season ${season.seasonNumber}`;
             }
             
-            // Add loading indicator and setup observer
-            addLoadingIndicator();
-            setupIntersectionObserver();
+            // Initialize countdown
+            renderCountdown(season.endDate);
+            
+            // Fetch first page of ranking (page 0)
+            console.log('📋 Fetching first page of ranking (page 0)...');
+            const ranking = await fetchSeasonRanking(season.id, 0);
+            console.log(`✅ Received ${ranking.length} items for first page`);
+            
+            // Check if we have more pages
+            if (ranking.length < 15) {
+                console.log('🛑 No more pages available (received < 15 items)');
+                hasMoreUsers = false;
+            } else {
+                console.log('✅ More pages might be available, setting currentPage to 1');
+                // Set currentPage to 1 so next fetch will get page 1
+                currentPage = 1;
+            }
             
             // Get current user id
             const currentUserId = getCurrentUserId();
             
-            // Render initial data with prize for 1st place
-            if (ranking[0]) {
-                ranking[0].prize = season.prizeMoney;
-            }
+            // Render initial data
             renderLeaderboard(ranking, currentUserId, true);
+            
+            // Add loading indicator if more users might be available
+            if (hasMoreUsers) {
+                console.log('🔄 Setting up loading indicator and scroll observer');
+                addLoadingIndicator();
+                setupIntersectionObserver();
+            }
 
             // Hide loading overlay when done
-            if (loadingOverlay) loadingOverlay.style.display = 'none';
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'none';
+                console.log('✅ Hidden loading overlay, initialization complete');
+            }
         } catch (e) {
             // Hide loading overlay on error as well
-            if (loadingOverlay) loadingOverlay.style.display = 'none';
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'none';
+            }
+            console.error('❌ Failed to initialize leaderboard:', e);
             alert('Failed to load leaderboard. Please try again later.');
-            console.error(e);
         }
     }
 
