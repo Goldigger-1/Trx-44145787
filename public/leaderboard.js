@@ -1,11 +1,12 @@
 // Leaderboard Page Logic
 // Réimplémentation minimale pour afficher seulement la rangée utilisateur
 
-// Variables globales pour l'infinite scroll
-let currentPage = 0;
-let isLoading = false;
-let hasMoreData = true;
+// Variables globales pour le chargement progressif
 let currentSeasonId = null;
+let isLoadingScores = false;
+let currentPage = 0;
+let hasMoreScores = true;
+const SCORES_PER_PAGE = 15;
 
 // Fonction pour afficher/masquer le leaderboard
 function showLeaderboard() {
@@ -13,25 +14,203 @@ function showLeaderboard() {
     if (leaderboardScreen) {
         leaderboardScreen.style.display = 'flex';
         
-        // Réinitialiser les variables d'infinite scroll
+        // Réinitialiser les variables de pagination
         currentPage = 0;
-        isLoading = false;
-        hasMoreData = true;
+        hasMoreScores = true;
         
-        // Vider la liste de classement existante
-        const leaderboardList = document.getElementById('leaderboard-list');
-        if (leaderboardList) {
-            leaderboardList.innerHTML = '';
+        // Vider le conteneur de scores existant
+        const scoresContainer = document.getElementById('leaderboard-scores-container');
+        if (scoresContainer) {
+            scoresContainer.innerHTML = '';
+        }
+                
+        // Mettre à jour la rangée utilisateur et initialiser le compte à rebours
+        renderLeaderboardUserRow()
+            .then(() => {
+                // Charger les premiers scores après avoir récupéré les données de saison
+                loadLeaderboardScores();
+            });
+            
+        // Configurer l'écouteur d'événements pour le défilement
+        setupInfiniteScroll();
+    }
+}
+
+// Fonction pour configurer le défilement infini
+function setupInfiniteScroll() {
+    const scoresContainer = document.getElementById('leaderboard-scores-container');
+    if (!scoresContainer) return;
+    
+    // Vérifier si un écouteur existe déjà et le supprimer
+    if (scoresContainer._scrollListener) {
+        scoresContainer.removeEventListener('scroll', scoresContainer._scrollListener);
+    }
+    
+    // Créer un nouvel écouteur d'événements
+    scoresContainer._scrollListener = function() {
+        // Déterminer si l'utilisateur est proche du bas
+        if (scoresContainer.scrollHeight - scoresContainer.scrollTop <= scoresContainer.clientHeight * 1.5) {
+            // Charger plus de scores si nécessaire et pas déjà en cours de chargement
+            if (hasMoreScores && !isLoadingScores) {
+                loadLeaderboardScores();
+            }
+        }
+    };
+    
+    // Ajouter l'écouteur d'événements
+    scoresContainer.addEventListener('scroll', scoresContainer._scrollListener);
+}
+
+// Fonction pour charger les scores du leaderboard progressivement
+async function loadLeaderboardScores() {
+    // Vérifier si le conteneur existe
+    const scoresContainer = document.getElementById('leaderboard-scores-container');
+    if (!scoresContainer) {
+        console.error('❌ Conteneur de scores non trouvé dans le DOM');
+        return;
+    }
+    
+    // Vérifier si on a déjà atteint la fin des scores ou si un chargement est en cours
+    if (!hasMoreScores || isLoadingScores) return;
+    
+    // Marquer comme en cours de chargement
+    isLoadingScores = true;
+    
+    try {
+        // Si c'est la première page, afficher un indicateur de chargement
+        if (currentPage === 0) {
+            scoresContainer.innerHTML = '<div class="leaderboard-loading">Chargement...</div>';
         }
         
-        // Mettre à jour la rangée utilisateur et initialiser le compte à rebours
-        renderLeaderboardUserRow();
+        // Calculer les paramètres de pagination
+        const limit = SCORES_PER_PAGE;
+        const offset = currentPage * SCORES_PER_PAGE;
         
-        // Charger la première page du classement
-        loadLeaderboardPage();
+        // Obtenir l'ID de la saison active si pas déjà récupéré
+        if (!currentSeasonId) {
+            try {
+                const res = await fetch('/api/seasons/active');
+                if (res.ok) {
+                    const season = await res.json();
+                    currentSeasonId = season.id;
+                } else {
+                    // Solution de secours
+                    const fallbackRes = await fetch('/api/active-season');
+                    if (fallbackRes.ok) {
+                        const season = await fallbackRes.json();
+                        currentSeasonId = season.id;
+                    } else {
+                        throw new Error('Impossible de récupérer la saison active');
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Erreur lors de la récupération de l\'ID de saison:', error);
+                scoresContainer.innerHTML = '<div style="color:orange;">Impossible de charger le classement. ⚠️</div>';
+                isLoadingScores = false;
+                return;
+            }
+        }
         
-        // Configurer l'infinite scroll pour le conteneur de la liste
-        setupInfiniteScroll();
+        // URL de l'API pour obtenir les scores paginés
+        let baseUrl = window.location.origin;
+        const pathname = window.location.pathname;
+        const basePathMatch = pathname.match(/^\/([^\/]+)/);
+        const basePath = basePathMatch ? basePathMatch[1] : '';
+        
+        if (basePath) {
+            baseUrl = `${baseUrl}/${basePath}`;
+        }
+        
+        const apiUrl = `${baseUrl}/api/seasons/${currentSeasonId}/scores?limit=${limit}&offset=${offset}`;
+        console.log(`📊 Chargement des scores: page ${currentPage + 1}, offset ${offset}, limit ${limit}`);
+        
+        // Faire la requête API
+        const response = await fetch(apiUrl);
+        
+        // Si la réponse n'est pas OK, afficher une erreur
+        if (!response.ok) {
+            console.error(`❌ Erreur API: ${response.status} ${response.statusText}`);
+            
+            if (currentPage === 0) {
+                scoresContainer.innerHTML = '<div style="color:orange;">Impossible de charger le classement. ⚠️</div>';
+            }
+            
+            isLoadingScores = false;
+            return;
+        }
+        
+        // Récupérer les données de score
+        const data = await response.json();
+        
+        // Vérifier si nous avons des scores
+        if (!Array.isArray(data.scores) || data.scores.length === 0) {
+            console.log('ℹ️ Aucun score supplémentaire disponible');
+            hasMoreScores = false;
+            
+            // Si c'est la première page et qu'il n'y a pas de scores, afficher un message
+            if (currentPage === 0) {
+                scoresContainer.innerHTML = '<div class="leaderboard-no-scores">Aucun score disponible pour cette saison.</div>';
+            }
+            
+            isLoadingScores = false;
+            return;
+        }
+        
+        // Supprimer l'indicateur de chargement si c'est la première page
+        if (currentPage === 0) {
+            scoresContainer.innerHTML = '';
+        }
+        
+        // Ajouter chaque score au conteneur
+        data.scores.forEach((scoreData, index) => {
+            // Calculer le rang global
+            const rank = offset + index + 1;
+            
+            // Créer l'élément de ligne
+            const scoreRow = document.createElement('div');
+            scoreRow.className = 'leaderboard-row';
+            
+            // Déterminer si c'est un podium (top 3)
+            const isPodium = rank <= 3;
+            if (isPodium) {
+                scoreRow.classList.add('leaderboard-podium');
+                scoreRow.classList.add(`leaderboard-rank-${rank}`);
+            }
+            
+            // Obtenir l'URL de l'avatar ou utiliser l'avatar par défaut
+            const avatarSrc = scoreData.avatarSrc || 'avatars/avatar_default.jpg';
+            
+            // Construire le contenu HTML de la ligne
+            scoreRow.innerHTML = `
+                <div class="leaderboard-rank">${rank}</div>
+                <div class="leaderboard-avatar"><img src="${avatarSrc}" alt="${scoreData.username}"></div>
+                <div class="leaderboard-username">${scoreData.username}</div>
+                <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${scoreData.score}</div>
+            `;
+            
+            // Ajouter la ligne au conteneur
+            scoresContainer.appendChild(scoreRow);
+        });
+        
+        // Mettre à jour la page courante
+        currentPage++;
+        
+        // Vérifier si nous avons atteint la fin des données
+        if (data.scores.length < SCORES_PER_PAGE) {
+            console.log('ℹ️ Fin des scores atteinte');
+            hasMoreScores = false;
+        }
+        
+    } catch (error) {
+        console.error('❌ Erreur lors du chargement des scores:', error);
+        
+        // Afficher un message d'erreur seulement si c'est la première page
+        if (currentPage === 0) {
+            scoresContainer.innerHTML = '<div style="color:orange;">Erreur lors du chargement du classement. ⚠️</div>';
+        }
+    } finally {
+        // Marquer comme plus en cours de chargement
+        isLoadingScores = false;
     }
 }
 
@@ -40,6 +219,13 @@ function hideLeaderboard() {
     const leaderboardScreen = document.getElementById('leaderboard-screen');
     if (leaderboardScreen) {
         leaderboardScreen.style.display = 'none';
+        
+        // Supprimer l'écouteur d'événements de défilement
+        const scoresContainer = document.getElementById('leaderboard-scores-container');
+        if (scoresContainer && scoresContainer._scrollListener) {
+            scoresContainer.removeEventListener('scroll', scoresContainer._scrollListener);
+            scoresContainer._scrollListener = null;
+        }
     }
 }
 
@@ -134,196 +320,6 @@ function updateCountdown(endDateStr) {
     }
 }
 
-// Fonction pour configurer l'infinite scroll
-function setupInfiniteScroll() {
-    const container = document.querySelector('.leaderboard-list-container');
-    if (!container) return;
-    
-    // Nettoyer les écouteurs existants pour éviter les doublons
-    container.removeEventListener('scroll', handleScroll);
-    container.addEventListener('scroll', handleScroll);
-    
-    console.log('🔄 Configuration de l\'infinite scroll activée');
-}
-
-// Gestionnaire d'événement de défilement
-function handleScroll(event) {
-    const container = event.target;
-    
-    // Calculer la distance jusqu'à la fin du conteneur
-    const scrollPosition = container.scrollTop + container.clientHeight;
-    const scrollThreshold = container.scrollHeight - 100; // Charger quand on est à 100px de la fin
-    
-    // Si on approche de la fin et qu'on n'est pas déjà en train de charger et qu'il y a plus de données
-    if (scrollPosition > scrollThreshold && !isLoading && hasMoreData) {
-        console.log('🔄 Déclenchement du chargement de plus de données');
-        loadLeaderboardPage();
-    }
-}
-
-// Fonction pour charger une page de classement
-async function loadLeaderboardPage() {
-    if (isLoading || !hasMoreData) return;
-    
-    const leaderboardList = document.getElementById('leaderboard-list');
-    if (!leaderboardList) return;
-    
-    try {
-        isLoading = true;
-        
-        // Indicateur de chargement
-        const loadingIndicator = document.createElement('div');
-        loadingIndicator.className = 'leaderboard-loading';
-        loadingIndicator.textContent = 'Chargement...';
-        leaderboardList.appendChild(loadingIndicator);
-        
-        // Si c'est la première page, charger aussi le podium
-        if (currentPage === 0) {
-            try {
-                // Récupérer la saison active
-                const res = await fetch('/api/seasons/active');
-                if (!res.ok) {
-                    // Solution de secours
-                    const fallbackRes = await fetch('/api/active-season');
-                    if (!fallbackRes.ok) {
-                        throw new Error('Impossible de récupérer la saison active');
-                    }
-                    season = await fallbackRes.json();
-                } else {
-                    season = await res.json();
-                }
-                
-                currentSeasonId = season.id;
-                console.log(`✅ Saison active trouvée: ${season.id} (Saison ${season.seasonNumber})`);
-                
-                // Mettre à jour le titre de la saison
-                const titleElement = document.getElementById('leaderboard-season-title');
-                if (titleElement) {
-                    titleElement.textContent = `Season ${season.seasonNumber}`;
-                }
-                
-                // Initialiser le compte à rebours avec la date de fin
-                updateCountdown(season.endDate);
-                
-                // Afficher le prix pour le premier du podium
-                updatePrizeDisplay(season.prizeMoney);
-            } catch (error) {
-                console.error('❌ Erreur lors de la récupération de la saison active:', error);
-                leaderboardList.innerHTML = '<div style="color:orange;">Impossible de charger les informations de saison. ⚠️</div>';
-                isLoading = false;
-                return;
-            }
-        }
-        
-        // Récupérer la page actuelle du classement
-        const apiUrl = `/api/seasons/${currentSeasonId}/ranking?page=${currentPage}&limit=15`;
-        console.log(`🔍 Chargement de la page ${currentPage} du classement: ${apiUrl}`);
-        
-        const response = await fetch(apiUrl);
-        if (!response.ok) {
-            throw new Error(`Erreur HTTP: ${response.status}`);
-        }
-        
-        // Analyser les données
-        const seasonScores = await response.json();
-        console.log(`✅ ${seasonScores.length} entrées récupérées pour la page ${currentPage}`);
-        
-        // Supprimer l'indicateur de chargement
-        if (loadingIndicator && loadingIndicator.parentNode) {
-            loadingIndicator.parentNode.removeChild(loadingIndicator);
-        }
-        
-        // Si c'est la première page, mettre à jour le podium
-        if (currentPage === 0 && seasonScores.length > 0) {
-            updatePodium(seasonScores);
-        }
-        
-        // Calculer le rang de départ pour cette page
-        const startRank = currentPage * 15 + 1;
-        
-        // Générer les entrées HTML pour chaque score (sauf le podium pour la première page)
-        let startIndex = currentPage === 0 ? 3 : 0; // Ignorer les 3 premiers utilisateurs à la page 0
-        
-        if (seasonScores.length > startIndex) {
-            for (let i = startIndex; i < seasonScores.length; i++) {
-                const user = seasonScores[i];
-                const rank = startRank + i;
-                
-                // Créer l'élément de rangée
-                const rankElement = document.createElement('div');
-                rankElement.className = 'leaderboard-rank-item';
-                rankElement.innerHTML = `
-                    <div class="leaderboard-rank">${rank}</div>
-                    <div class="leaderboard-avatar"><img src="${user.avatarSrc}" alt="${user.username}"></div>
-                    <div class="leaderboard-username">${user.username}</div>
-                    <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${user.score}</div>
-                `;
-                
-                leaderboardList.appendChild(rankElement);
-            }
-            
-            // Incrémenter la page pour le prochain chargement
-            currentPage++;
-        }
-        
-        // Déterminer s'il y a plus de données
-        hasMoreData = seasonScores.length >= 15;
-        
-        if (!hasMoreData) {
-            console.log('🏁 Plus de données à charger');
-        }
-        
-    } catch (error) {
-        console.error('❌ Erreur lors du chargement des données de classement:', error);
-        
-        // Créer un message d'erreur
-        const errorElement = document.createElement('div');
-        errorElement.style.color = 'orange';
-        errorElement.textContent = 'Impossible de charger le classement. ⚠️';
-        leaderboardList.appendChild(errorElement);
-        
-    } finally {
-        isLoading = false;
-    }
-}
-
-// Fonction pour mettre à jour le podium avec les trois premiers utilisateurs
-function updatePodium(topUsers) {
-    try {
-        // Vérifier s'il y a suffisamment d'utilisateurs
-        if (!topUsers || topUsers.length === 0) {
-            console.log('⚠️ Pas de données pour le podium');
-            return;
-        }
-        
-        // Mettre à jour le premier utilisateur
-        if (topUsers.length >= 1) {
-            const user1 = topUsers[0];
-            document.getElementById('podium-1-avatar').src = user1.avatarSrc;
-            document.getElementById('podium-1-username').textContent = user1.username;
-        }
-        
-        // Mettre à jour le deuxième utilisateur
-        if (topUsers.length >= 2) {
-            const user2 = topUsers[1];
-            document.getElementById('podium-2-avatar').src = user2.avatarSrc;
-            document.getElementById('podium-2-username').textContent = user2.username;
-        }
-        
-        // Mettre à jour le troisième utilisateur
-        if (topUsers.length >= 3) {
-            const user3 = topUsers[2];
-            document.getElementById('podium-3-avatar').src = user3.avatarSrc;
-            document.getElementById('podium-3-username').textContent = user3.username;
-        }
-        
-        console.log('✅ Podium mis à jour avec succès');
-        
-    } catch (error) {
-        console.error('❌ Erreur lors de la mise à jour du podium:', error);
-    }
-}
-
 // Fonction principale pour mettre à jour la rangée utilisateur dans le leaderboard
 async function renderLeaderboardUserRow() {
     const userRowElement = document.getElementById('leaderboard-user-row');
@@ -337,6 +333,8 @@ async function renderLeaderboardUserRow() {
             const res = await fetch('/api/seasons/active');
             if (res.ok) {
                 season = await res.json();
+                // Stocker l'ID de la saison pour le chargement des scores
+                currentSeasonId = season.id;
             } else {
                 // Solution de secours
                 const fallbackRes = await fetch('/api/active-season');
@@ -344,13 +342,12 @@ async function renderLeaderboardUserRow() {
                     throw new Error('Impossible de récupérer la saison active');
                 }
                 season = await fallbackRes.json();
+                // Stocker l'ID de la saison pour le chargement des scores
+                currentSeasonId = season.id;
             }
             
             console.log(`✅ Saison active trouvée: ${season.id} (Saison ${season.seasonNumber})`);
             console.log(`📅 Date de fin de saison: ${season.endDate}`);
-            
-            // Stocker l'ID de saison pour l'infinite scroll
-            currentSeasonId = season.id;
             
             // Mettre à jour le titre de la saison
             const titleElement = document.getElementById('leaderboard-season-title');
