@@ -2987,38 +2987,26 @@
                 .then(season => {
                     console.log(`✅ Active season found: ${season.id}, Season ${season.seasonNumber}`);
                     
-                    // Fetch full ranking to ensure we get the correct score
-                    return fetch(`/api/seasons/${season.id}/ranking`)
+                    // Fetch user's score directly without loading the full ranking
+                    return fetch(`/api/seasons/${season.id}/user-rank/${encodeURIComponent(userId)}`)
                         .then(response => {
-                            if (!response.ok) throw new Error('Failed to fetch season ranking');
-                            return response.json();
-                        })
-                        .then(ranking => {
-                            // Find user in ranking
-                            let user = ranking.find(u => String(u.gameId || u.id || u.userId) === String(userId));
-                            
-                            if (user) {
-                                // User found in ranking
-                                const serverSeasonScore = user.score || 0;
-                                console.log(`📊 Found user in season ranking. Score: ${serverSeasonScore}`);
-                                
-                                // Update global variable
-                                seasonScore = serverSeasonScore;
+                            if (response.ok) {
+                                return response.json();
                             } else {
-                                // User not found in ranking, try direct score lookup
+                                // If user-rank endpoint fails, try direct score lookup
                                 return fetch(`/api/seasons/${season.id}/scores/${userId}`)
-                                    .then(response => response.ok ? response.json() : { score: 0 })
-                                    .then(scoreData => {
-                                        const serverSeasonScore = scoreData && scoreData.score ? parseInt(scoreData.score) : 0;
-                                        console.log(`📊 Loaded user's season score from direct API: ${serverSeasonScore}`);
-                                        
-                                        // Update global variable
-                                        seasonScore = serverSeasonScore;
-                                    });
+                                    .then(response => response.ok ? response.json() : { score: 0 });
                             }
                         })
-                        .then(() => {
-                            // Always update UI elements regardless of data source
+                        .then(userData => {
+                            // Extract score from the response (either full user data or just score)
+                            const serverSeasonScore = userData.score || 0;
+                            console.log(`📊 Loaded user's season score: ${serverSeasonScore}`);
+                            
+                            // Update global variable
+                            seasonScore = serverSeasonScore;
+                            
+                            // Always update UI elements
                             const seasonScoreElement = document.getElementById('season-score');
                             if (seasonScoreElement) {
                                 seasonScoreElement.textContent = `Season Best: ${seasonScore}`;

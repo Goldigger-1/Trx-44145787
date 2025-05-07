@@ -23,16 +23,7 @@ async function renderGameOverStickyUserRow() {
         document.getElementById('gameover-user-row').innerHTML = '<div style="color:orange;">Could not load season info. ⚠️</div>';
         return;
     }
-    // Fetch ranking
-    let ranking = [];
-    try {
-        const res = await fetch(`/api/seasons/${season.id}/ranking`);
-        if (!res.ok) throw new Error('Failed to fetch season ranking');
-        ranking = await res.json();
-    } catch (e) {
-        document.getElementById('gameover-user-row').innerHTML = '<div style="color:orange;">Could not load ranking. ⚠️</div>';
-        return;
-    }
+
     // Get current user ID (robust)
     let userId = window.userId || localStorage.getItem('userId') || '';
     if (typeof userId !== 'string') {
@@ -47,50 +38,52 @@ async function renderGameOverStickyUserRow() {
         document.getElementById('gameover-user-row').innerHTML = '<div style="color:orange;">Could not determine your user ID. Please log in again. ⚠️</div>';
         return;
     }
-    // Sort and find user in ranking (exact leaderboard logic)
-    let sortedRanking = [...ranking].sort((a, b) => (b.bestScore ?? b.score ?? 0) - (a.bestScore ?? a.score ?? 0));
-    let userIndex = sortedRanking.findIndex(u => String(u.gameId ?? u.id ?? u.userId) === String(userId));
-    let rank = userIndex !== -1 ? userIndex + 1 : '-';
-    let user = sortedRanking[userIndex];
-    let bestScore = 0;
-    let username = '';
-    let avatar = 'avatars/avatar_default.jpg';
-    if (user) {
-        bestScore = user.bestScore || user.score || 0;
-        username = user.gameUsername || user.username || 'You';
-        avatar = user.avatarSrc || 'avatars/avatar_default.jpg';
-    } else {
-        // Not ranked: fetch from server (/api/users/:id)
+
+    // Use the dedicated endpoint to get user rank
+    try {
+        const res = await fetch(`/api/seasons/${season.id}/user-rank/${encodeURIComponent(userId)}`);
+        if (!res.ok) throw new Error('Failed to fetch user rank');
+        const userData = await res.json();
+        
+        // Add cache buster to avatar
+        let avatar = userData.avatarSrc || 'avatars/avatar_default.jpg';
+        if (avatar && !avatar.includes('?')) {
+            avatar += '?t=' + new Date().getTime();
+        }
+        
+        // Render sticky row (Game Over: with rank)
+        const userRow = `
+            <div class=\"leaderboard-rank\">${userData.rank || '-'}</div>
+            <div class=\"leaderboard-avatar\"><img src=\"${avatar}\" alt=\"${userData.username || 'You'}\"></div>
+            <div class=\"leaderboard-username\">${userData.username || 'You'} <span style=\"color:#00FF9D;\">(You)</span></div>
+            <div class=\"leaderboard-score\"><img src=\"ressources/trophy.png\" alt=\"🏆\">${userData.score || 0}</div>
+        `;
+        document.getElementById('gameover-user-row').innerHTML = userRow;
+    } catch (err) {
+        console.error('Error fetching user rank:', err);
+        // Fallback: try to get user data directly
         try {
             const res = await fetch(`/api/users/${encodeURIComponent(userId)}`);
-            if (res.ok) {
-                user = await res.json();
-                bestScore = user.bestScore || user.score || 0;
-                username = user.gameUsername || user.username || 'You';
-                avatar = user.avatarSrc || 'avatars/avatar_default.jpg';
-            } else {
-                username = 'You';
-                bestScore = 0;
-                avatar = 'avatars/avatar_default.jpg';
+            const userData = res.ok ? await res.json() : { gameUsername: 'You', bestScore: 0 };
+            
+            // Add cache buster to avatar
+            let avatar = userData.avatarSrc || 'avatars/avatar_default.jpg';
+            if (avatar && !avatar.includes('?')) {
+                avatar += '?t=' + new Date().getTime();
             }
-        } catch (err) {
-            username = 'You';
-            bestScore = 0;
-            avatar = 'avatars/avatar_default.jpg';
+            
+            // Render sticky row without rank
+            const userRow = `
+                <div class=\"leaderboard-rank\">-</div>
+                <div class=\"leaderboard-avatar\"><img src=\"${avatar}\" alt=\"${userData.gameUsername || 'You'}\"></div>
+                <div class=\"leaderboard-username\">${userData.gameUsername || 'You'} <span style=\"color:#00FF9D;\">(You)</span></div>
+                <div class=\"leaderboard-score\"><img src=\"ressources/trophy.png\" alt=\"🏆\">${userData.bestScore || 0}</div>
+            `;
+            document.getElementById('gameover-user-row').innerHTML = userRow;
+        } catch (userErr) {
+            document.getElementById('gameover-user-row').innerHTML = '<div style="color:orange;">Could not load your ranking. ⚠️</div>';
         }
     }
-    // Add cache buster to avatar
-    if (avatar && !avatar.includes('?')) {
-        avatar += '?t=' + new Date().getTime();
-    }
-    // Render sticky row (Game Over: with rank)
-    const userRow = `
-        <div class=\"leaderboard-rank\">${rank}</div>
-        <div class=\"leaderboard-avatar\"><img src=\"${avatar}\" alt=\"${username}\"></div>
-        <div class=\"leaderboard-username\">${username} <span style=\"color:#00FF9D;\">(You)</span></div>
-        <div class=\"leaderboard-score\"><img src=\"ressources/trophy.png\" alt=\"🏆\">${bestScore}</div>
-    `;
-    document.getElementById('gameover-user-row').innerHTML = userRow;
 }
 
 // Call this when showing the Game Over screen

@@ -717,7 +717,8 @@ function fetchActiveSeason() {
 
 // Récupérer le classement d'une saison
 function fetchSeasonRanking(seasonId) {
-    fetch(`/api/seasons/${seasonId}/ranking`)
+    // For admin panel, we'll use pagination with a larger limit
+    fetch(`/api/seasons/${seasonId}/ranking?page=0&limit=100`)
         .then(response => {
             // Check if the response is ok (status in the range 200-299)
             if (!response.ok) {
@@ -831,7 +832,7 @@ function viewSeasonScores(season) {
     seasonScoresModal.style.display = 'flex';
     
     // Récupérer les scores de la saison
-    fetch(`/api/seasons/${season.id}/ranking`)
+    fetch(`/api/seasons/${season.id}/ranking?page=0&limit=100`)
         .then(response => response.json())
         .then(data => {
             // Vider le tableau

@@ -1923,6 +1923,79 @@ app.post('/api/promo-banner', upload.single('image'), async (req, res) => {
   }
 });
 
+// New API endpoint to get user rank for a season without fetching full ranking
+app.get('/api/seasons/:seasonId/user-rank/:userId', async (req, res) => {
+  try {
+    const { seasonId, userId } = req.params;
+    
+    console.log(`🔍 Fetching rank for user ${userId} in season ${seasonId}`);
+    
+    // Verify the season exists
+    const season = await Season.findByPk(seasonId);
+    if (!season) {
+      return res.status(404).json({ error: 'Season not found' });
+    }
+    
+    // Get user data
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    // Get user's season score
+    const userSeasonScore = await SeasonScore.findOne({
+      where: { seasonId, userId }
+    });
+    
+    if (!userSeasonScore) {
+      // User has no score in this season, return rank as beyond last place
+      return res.status(200).json({
+        userId,
+        username: user.gameUsername,
+        avatarSrc: user.avatarSrc || 'avatars/avatar_default.jpg',
+        rank: '-',
+        score: 0
+      });
+    }
+    
+    // Calculate rank by counting scores higher than user's
+    const higherScoresCount = await SeasonScore.count({
+      where: {
+        seasonId,
+        score: { [Op.gt]: userSeasonScore.score }
+      }
+    });
+    
+    // User's rank is count of higher scores + 1
+    const rank = higherScoresCount + 1;
+    
+    // Format avatar path for consistency
+    let avatarSrc = user.avatarSrc;
+    if (!avatarSrc) {
+      avatarSrc = '/avatars/avatar_default.jpg';
+    } else if (!avatarSrc.startsWith('/') && !avatarSrc.startsWith('http')) {
+      avatarSrc = `/avatars/${avatarSrc}`;
+    }
+    
+    console.log(`✅ User ${userId} is ranked #${rank} in season ${seasonId} with score ${userSeasonScore.score}`);
+    
+    // Return user data with rank
+    res.status(200).json({
+      userId,
+      username: user.gameUsername,
+      avatarSrc: avatarSrc,
+      rank,
+      score: userSeasonScore.score
+    });
+  } catch (error) {
+    console.error('❌ Error calculating user rank:', error);
+    res.status(500).json({ 
+      error: 'Error calculating user rank', 
+      details: error.message 
+    });
+  }
+});
+
 // Démarrer le serveur
 app.listen(port, '0.0.0.0', () => {
   console.log(`Serveur démarré sur le port ${port}`);

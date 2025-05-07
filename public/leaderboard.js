@@ -287,55 +287,77 @@
             return;
         }
 
-        // Find user in current ranking first
+        // First, try to find user in the current page of the ranking
         let userIndex = ranking.findIndex(u => String(u.gameId ?? u.id ?? u.userId) === String(currentUserId));
-        let rank = userIndex !== -1 ? userIndex + 1 : '-';
-        let user = ranking[userIndex];
-        let bestScore = 0;
-        let username = '';
-        let avatar = 'avatars/avatar_default.jpg';
-
-        if (user) {
-            // User is in current ranking
-            bestScore = user.bestScore || user.score || 0;
-            username = user.gameUsername || user.username || 'You';
-            avatar = user.avatarSrc || 'avatars/avatar_default.jpg';
+        
+        if (userIndex !== -1) {
+            // User is in current ranking page - use that data
+            const user = ranking[userIndex];
+            const rank = userIndex + 1;
+            const bestScore = user.bestScore || user.score || 0;
+            const username = user.gameUsername || user.username || 'You';
+            let avatar = user.avatarSrc || 'avatars/avatar_default.jpg';
+            
+            // Add cache buster to avatar
+            if (avatar && !avatar.includes('?')) {
+                avatar += '?t=' + new Date().getTime();
+            }
+            
+            // Render sticky row
+            const userRow = `
+                <div class="leaderboard-rank">${rank}</div>
+                <div class="leaderboard-avatar"><img src="${avatar}" alt="${username}"></div>
+                <div class="leaderboard-username">${username} <span style="color:#00FF9D;">(You)</span></div>
+                <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${bestScore}</div>
+            `;
+            document.getElementById('leaderboard-user-row').innerHTML = userRow;
         } else {
-            // Not in current ranking: fetch user's position
+            // User not in current ranking page - use the dedicated API endpoint
             try {
                 const res = await fetch(`/api/seasons/${seasonId}/user-rank/${encodeURIComponent(currentUserId)}`);
-                if (res.ok) {
-                    const userData = await res.json();
-                    rank = userData.rank || '-';
-                    bestScore = userData.bestScore || userData.score || 0;
-                    username = userData.gameUsername || userData.username || 'You';
-                    avatar = userData.avatarSrc || 'avatars/avatar_default.jpg';
-                } else {
-                    // User not found on server
-                    username = 'You';
-                    bestScore = 0;
-                    avatar = 'avatars/avatar_default.jpg';
+                if (!res.ok) throw new Error('Failed to fetch user rank');
+                const userData = await res.json();
+                
+                // Add cache buster to avatar
+                let avatar = userData.avatarSrc || 'avatars/avatar_default.jpg';
+                if (avatar && !avatar.includes('?')) {
+                    avatar += '?t=' + new Date().getTime();
                 }
+                
+                // Render sticky row
+                const userRow = `
+                    <div class="leaderboard-rank">${userData.rank || '-'}</div>
+                    <div class="leaderboard-avatar"><img src="${avatar}" alt="${userData.username || 'You'}"></div>
+                    <div class="leaderboard-username">${userData.username || 'You'} <span style="color:#00FF9D;">(You)</span></div>
+                    <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${userData.score || 0}</div>
+                `;
+                document.getElementById('leaderboard-user-row').innerHTML = userRow;
             } catch (err) {
-                username = 'You';
-                bestScore = 0;
-                avatar = 'avatars/avatar_default.jpg';
+                console.error('Error fetching user rank:', err);
+                // Fallback to basic user info
+                try {
+                    const res = await fetch(`/api/users/${encodeURIComponent(currentUserId)}`);
+                    const userData = res.ok ? await res.json() : { gameUsername: 'You', bestScore: 0 };
+                    
+                    // Add cache buster to avatar
+                    let avatar = userData.avatarSrc || 'avatars/avatar_default.jpg';
+                    if (avatar && !avatar.includes('?')) {
+                        avatar += '?t=' + new Date().getTime();
+                    }
+                    
+                    // Render sticky row without rank
+                    const userRow = `
+                        <div class="leaderboard-rank">-</div>
+                        <div class="leaderboard-avatar"><img src="${avatar}" alt="${userData.gameUsername || 'You'}"></div>
+                        <div class="leaderboard-username">${userData.gameUsername || 'You'} <span style="color:#00FF9D;">(You)</span></div>
+                        <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${userData.bestScore || 0}</div>
+                    `;
+                    document.getElementById('leaderboard-user-row').innerHTML = userRow;
+                } catch (userErr) {
+                    document.getElementById('leaderboard-user-row').innerHTML = '<div style="color:orange;">Could not load your ranking. ⚠️</div>';
+                }
             }
         }
-
-        // Add cache buster to avatar
-        if (avatar && !avatar.includes('?')) {
-            avatar += '?t=' + new Date().getTime();
-        }
-
-        // Render sticky row
-        const userRow = `
-            <div class="leaderboard-rank">${rank}</div>
-            <div class="leaderboard-avatar"><img src="${avatar}" alt="${username}"></div>
-            <div class="leaderboard-username">${username} <span style="color:#00FF9D;">(You)</span></div>
-            <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${bestScore}</div>
-        `;
-        document.getElementById('leaderboard-user-row').innerHTML = userRow;
     }
 
     // Show leaderboard page
