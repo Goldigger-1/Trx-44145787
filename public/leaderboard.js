@@ -278,15 +278,22 @@
             return;
         }
 
-        // Fetch ranking directly from server (same as game over)
-        let fullRanking = [];
-        try {
-            const res = await fetch(`/api/seasons/${seasonId}/ranking`);
-            if (!res.ok) throw new Error('Failed to fetch season ranking');
-            fullRanking = await res.json();
-        } catch (e) {
-            document.getElementById('leaderboard-user-row').innerHTML = '<div style="color:orange;">Could not load ranking. ⚠️</div>';
-            return;
+        // Use cached ranking if available, otherwise fetch from server
+        let fullRanking;
+        if (window.fullRankingCache && window.fullRankingCache[seasonId]) {
+            fullRanking = window.fullRankingCache[seasonId];
+        } else {
+            try {
+                const res = await fetch(`/api/seasons/${seasonId}/ranking`);
+                if (!res.ok) throw new Error('Failed to fetch season ranking');
+                fullRanking = await res.json();
+                // Cache the result for future use
+                window.fullRankingCache = window.fullRankingCache || {};
+                window.fullRankingCache[seasonId] = fullRanking;
+            } catch (e) {
+                document.getElementById('leaderboard-user-row').innerHTML = '<div style="color:orange;">Could not load ranking. ⚠️</div>';
+                return;
+            }
         }
 
         // Sort and find user in ranking (exact game over logic)
