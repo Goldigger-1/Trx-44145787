@@ -1,5 +1,6 @@
 // Leaderboard Page Logic
-// Réimplémentation minimale pour afficher seulement la rangée utilisateur
+// Ce fichier a été complètement vidé pour réimplémenter à zéro la logique du leaderboard
+// Toutes les fonctions précédentes de chargement des utilisateurs ont été supprimées
 
 // Fonction pour afficher/masquer le leaderboard
 function showLeaderboard() {
@@ -81,73 +82,65 @@ async function renderLeaderboardUserRow() {
             return;
         }
         
-        // 3. Récupérer le rang de l'utilisateur directement depuis la table SeasonScores
-        let userRank = '-';
+        // 3. Récupérer à la fois le score et le rang de l'utilisateur dans la saison active
+        let userData = null;
+        let userRank = null;
         let userSeasonScore = 0;
-        let username = 'You';
-
+        let username = '';
+        
         try {
-            // 3.1 D'abord, récupérer le username pour l'affichage
-            const userRes = await fetch(`/api/users/${encodeURIComponent(userId)}`);
-            if (userRes.ok) {
-                const userData = await userRes.json();
-                username = userData.gameUsername || 'You';
-            }
+            // Récupérer d'abord le score de l'utilisateur dans la saison
+            console.log(`📊 Récupération du score pour l'utilisateur ${userId} dans la saison ${season.id}...`);
+            const scoreRes = await fetch(`/api/seasons/${season.id}/scores/${encodeURIComponent(userId)}`);
             
-            // 3.2 Utiliser un endpoint direct qui calcule le rang dans la table SeasonScores
-            // Cet endpoint spécial doit utiliser une requête SQL comme:
-            // SELECT COUNT(*) + 1 FROM SeasonScores WHERE seasonId = ? AND score > (SELECT score FROM SeasonScores WHERE seasonId = ? AND userId = ?)
-            console.log(`🔢 Calcul du rang direct pour l'utilisateur ${userId} dans la saison ${season.id}...`);
-            
-            // Option 1: Tenter d'utiliser une API directe qui calcule le rang avec un seul appel
-            const rankingRes = await fetch(`/api/season-ranking/${season.id}/user-rank/${encodeURIComponent(userId)}`);
-            
-            if (rankingRes.ok) {
-                const rankData = await rankingRes.json();
-                userRank = rankData.rank || '-';
-                userSeasonScore = rankData.score || 0;
-                console.log(`✅ Rang calculé par l'API: ${userRank}, Score: ${userSeasonScore}`);
-            } else {
-                // Option 2: Méthode alternative - prendre le tableau des top scores et chercher la position
-                console.log(`⚠️ API de rang direct non disponible, tentative de méthode de secours...`);
+            if (scoreRes.ok) {
+                const scoreData = await scoreRes.json();
+                userSeasonScore = scoreData.score || 0;
+                console.log(`✅ Score de saison récupéré: ${userSeasonScore}`);
                 
-                // D'abord, récupérer le score de l'utilisateur
-                const userScoreRes = await fetch(`/api/seasons/${season.id}/scores/${encodeURIComponent(userId)}`);
-                if (userScoreRes.ok) {
-                    const userScoreData = await userScoreRes.json();
-                    userSeasonScore = userScoreData.score || 0;
-                    console.log(`✅ Score récupéré: ${userSeasonScore}`);
+                // Méthode directe: calculer le rang avec une requête SQL count(*) + 1 
+                // où score > userScore dans la saison active
+                console.log(`🔢 Calcul du rang pour le score ${userSeasonScore} dans la saison ${season.id}...`);
+                
+                // Utiliser l'endpoint qui exécute: SELECT COUNT(*) + 1 FROM SeasonScores WHERE seasonId = seasonId AND score > userSeasonScore
+                const rankingRes = await fetch(`/api/seasons/${season.id}/rank-by-score/${userSeasonScore}`);
+                
+                if (rankingRes.ok) {
+                    const rankingData = await rankingRes.json();
+                    userRank = rankingData.rank;
+                    console.log(`✅ Rang calculé avec COUNT(*) + 1: ${userRank}`);
+                } else {
+                    // Si l'endpoint spécifique n'existe pas, utiliser une méthode alternative
+                    const countAboveRes = await fetch(`/api/count-season-scores-above?seasonId=${season.id}&score=${userSeasonScore}`);
                     
-                    // Ensuite, demander le nombre d'utilisateurs ayant un score supérieur
-                    // URL formatée pour l'API qui exécute: SELECT COUNT(*) + 1 FROM SeasonScores WHERE seasonId = :seasonId AND score > :userScore
-                    const countAboveRes = await fetch(`/api/seasons/${season.id}/count-scores-above/${userSeasonScore}`);
                     if (countAboveRes.ok) {
-                        const countData = await countAboveRes.json();
-                        userRank = countData.rank || '-';
-                        console.log(`✅ Rang calculé: ${userRank}`);
+                        const countAboveData = await countAboveRes.json();
+                        userRank = countAboveData.count + 1;
+                        console.log(`✅ Rang calculé avec méthode alternative: ${userRank}`);
                     } else {
-                        // Option 3: Dernière tentative - créer un calcul direct basé sur une mini-liste
-                        console.log(`⚠️ Comptage d'utilisateurs supérieurs non disponible, dernière tentative...`);
+                        // Dernier recours: endpoint générique avec query params
+                        const genericRankRes = await fetch(`/api/sql-query?q=SELECT COUNT(*) + 1 AS rank FROM SeasonScores WHERE seasonId = ${season.id} AND score > ${userSeasonScore}`);
                         
-                        // Récupérer le top 100 (limité) pour trouver le rang approximatif
-                        // Cette requête devrait être limitée pour éviter de charger trop de données
-                        const topScoresRes = await fetch(`/api/seasons/${season.id}/scores?limit=100`);
-                        if (topScoresRes.ok) {
-                            const topScores = await topScoresRes.json();
-                            // Chercher la position de l'utilisateur dans cette liste partielle
-                            const userIndex = topScores.findIndex(score => score.userId === userId);
-                            if (userIndex !== -1) {
-                                userRank = userIndex + 1;
-                                console.log(`✅ Rang trouvé dans la liste partielle: ${userRank}`);
-                            } else if (topScores.length > 0 && userSeasonScore > 0) {
-                                // Si l'utilisateur n'est pas dans le top 100 mais a un score
-                                userRank = topScores.length + "+";
-                                console.log(`✅ Utilisateur hors liste partielle: ${userRank}`);
-                            }
+                        if (genericRankRes.ok) {
+                            const genericRankData = await genericRankRes.json();
+                            userRank = genericRankData.rank || 1;
+                            console.log(`✅ Rang calculé avec requête SQL générique: ${userRank}`);
+                        } else {
+                            // Si tout échoue, afficher un tiret
+                            userRank = '-';
+                            console.log(`⚠️ Impossible de calculer le rang, utilisation d'un tiret`);
                         }
                     }
                 }
             }
+            
+            // Récupérer les informations de profil de l'utilisateur
+            const userDataRes = await fetch(`/api/users/${encodeURIComponent(userId)}`);
+            if (userDataRes.ok) {
+                userData = await userDataRes.json();
+                username = userData.gameUsername || 'You';
+            }
+            
         } catch (error) {
             console.error('❌ Erreur lors du calcul du rang:', error);
             userRank = '-';
@@ -158,13 +151,16 @@ async function renderLeaderboardUserRow() {
         let avatarImgSrc;
         if (window.avatarSrc) {
             avatarImgSrc = window.avatarSrc;
+            console.log('✅ Utilisation de l\'avatar global:', avatarImgSrc);
         } else {
             const profileAvatarImg = document.getElementById('avatarImg');
             if (profileAvatarImg && profileAvatarImg.src) {
                 avatarImgSrc = profileAvatarImg.src;
+                console.log('✅ Utilisation de l\'avatar du profil:', avatarImgSrc);
             } else {
                 // Fallback si aucun avatar n'est disponible
                 avatarImgSrc = 'avatars/avatar_default.jpg';
+                console.log('⚠️ Fallback sur l\'avatar par défaut');
             }
         }
         
