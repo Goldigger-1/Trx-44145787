@@ -125,30 +125,23 @@
             
             // Podium
             const podium = [ranking[0], ranking[1], ranking[2]];
-            [1,2,3].forEach(i => {
-                const user = podium[i-1];
+            podium.forEach((user, i) => {
                 if (!user) return;
-                document.getElementById(`podium-${i}-username`).textContent = user.gameUsername || user.username || `User${i}`;
                 
-                // Ensure we use avatarSrc when available
+                // Get user info
+                const username = user.gameUsername || user.username || `User${i+1}`;
                 const avatarSrc = user.avatarSrc || 'avatars/avatar_default.jpg';
-                document.getElementById(`podium-${i}-avatar`).src = avatarSrc;
-                document.getElementById(`podium-${i}-avatar`).alt = user.gameUsername || user.username || `User${i}`;
+                
+                // Update podium elements
+                document.getElementById(`podium-${i+1}-username`).textContent = username;
+                document.getElementById(`podium-${i+1}-avatar`).src = avatarSrc;
+                document.getElementById(`podium-${i+1}-avatar`).alt = username;
+                
+                // Special handling for 1st place prize
+                if (i === 0 && user.prize) {
+                    document.getElementById('podium-1-prize').textContent = `$${user.prize}`;
+                }
             });
-            
-            // Prize for 1st
-            if (podium[0]) {
-                // Fetch prize from server
-                fetch(`/api/seasons/${seasonId}/prize/1`)
-                    .then(response => response.json())
-                    .then(prize => {
-                        document.getElementById('podium-1-prize').textContent = prize ? `$${prize}` : '';
-                    })
-                    .catch(error => {
-                        console.error('Error fetching prize:', error);
-                        document.getElementById('podium-1-prize').textContent = '';
-                    });
-            }
         }
         
         // Calculate starting index based on initial load or append
@@ -275,7 +268,9 @@
             // Show error in loading indicator
             const loadingIndicator = document.getElementById('leaderboard-loading-indicator');
             if (loadingIndicator) {
-                loadingIndicator.innerHTML = '<div style="color:orange;">Loading...</div>';
+                loadingIndicator.innerHTML = '<div style="color:orange;">Failed to load more users. Tap to retry.</div>';
+                loadingIndicator.style.cursor = 'pointer';
+                loadingIndicator.onclick = loadMoreUsers;
             }
         } finally {
             isLoading = false;
