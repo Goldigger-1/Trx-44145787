@@ -107,7 +107,7 @@
     let seasonId = null;
     
     // Render leaderboard with progressive loading
-    function renderLeaderboard(ranking, currentUserId, isInitialLoad = true) {
+    async function renderLeaderboard(ranking, currentUserId, isInitialLoad = true) {
         const list = document.getElementById('leaderboard-list');
         
         // If this is the initial load, clear the list and render the podium
@@ -125,23 +125,31 @@
             
             // Podium
             const podium = [ranking[0], ranking[1], ranking[2]];
-            podium.forEach((user, i) => {
+            [1,2,3].forEach(i => {
+                const user = podium[i-1];
                 if (!user) return;
+                document.getElementById(`podium-${i}-username`).textContent = user.gameUsername || user.username || `User${i}`;
                 
-                // Get user info
-                const username = user.gameUsername || user.username || `User${i+1}`;
+                // Ensure we use avatarSrc when available
                 const avatarSrc = user.avatarSrc || 'avatars/avatar_default.jpg';
-                
-                // Update podium elements
-                document.getElementById(`podium-${i+1}-username`).textContent = username;
-                document.getElementById(`podium-${i+1}-avatar`).src = avatarSrc;
-                document.getElementById(`podium-${i+1}-avatar`).alt = username;
-                
-                // Special handling for 1st place prize
-                if (i === 0 && user.prize) {
-                    document.getElementById('podium-1-prize').textContent = `$${user.prize}`;
-                }
+                document.getElementById(`podium-${i}-avatar`).src = avatarSrc;
+                document.getElementById(`podium-${i}-avatar`).alt = user.gameUsername || user.username || `User${i}`;
             });
+            
+            // Prize for 1st
+            if (podium[0]) {
+                // Fetch prize from server
+                try {
+                    const prizeRes = await fetch(`/api/seasons/${seasonId}/prize/1`);
+                    if (prizeRes.ok) {
+                        const prizeData = await prizeRes.json();
+                        document.getElementById('podium-1-prize').textContent = prizeData.prize ? `$${prizeData.prize}` : '';
+                    }
+                } catch (error) {
+                    console.error('Error fetching prize:', error);
+                    document.getElementById('podium-1-prize').textContent = '';
+                }
+            }
         }
         
         // Calculate starting index based on initial load or append
@@ -259,7 +267,7 @@
             
             // If we have new items to render
             if (newItems.length > 0) {
-                renderLeaderboard(newItems, getCurrentUserId(), false);
+                await renderLeaderboard(newItems, getCurrentUserId(), false);
             } else {
                 console.log('No new items to render');
             }
@@ -394,7 +402,7 @@
             setupIntersectionObserver();
             
             // Render initial data
-            renderLeaderboard(ranking, getCurrentUserId(), true);
+            await renderLeaderboard(ranking, getCurrentUserId(), true);
             
             // If we got fewer users than requested, we've reached the end
             hasMoreUsers = initialRanking.length === 15;
