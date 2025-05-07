@@ -41,8 +41,9 @@
     }
 
     // Fetch leaderboard for season with pagination
-    async function fetchSeasonRanking(seasonId, page = 0, limit = 50) {
-        const res = await fetch(`/api/seasons/${seasonId}/ranking?page=${page}&limit=${limit}`);
+    async function fetchSeasonRanking(seasonId, page = 0, limit = 25) {
+        const offset = page * limit;
+        const res = await fetch(`/api/seasons/${seasonId}/ranking?offset=${offset}&limit=${limit}`);
         if (!res.ok) throw new Error('Failed to fetch season ranking');
         return res.json();
     }
@@ -217,7 +218,7 @@
         currentPage++;
         
         try {
-            const USERS_PER_PAGE = 50;
+            const USERS_PER_PAGE = 25;
             const newUsers = await fetchSeasonRanking(seasonId, currentPage, USERS_PER_PAGE);
             
             // If we received fewer users than requested, we've reached the end
@@ -331,6 +332,7 @@
             currentPage = 0;
             isLoading = false;
             hasMoreUsers = true;
+            allRanking = [];
             
             // Show loading overlay at the start
             if (loadingOverlay) loadingOverlay.style.display = 'flex';
@@ -341,7 +343,7 @@
             renderCountdown(season.endDate);
             
             // Fetch first page of ranking
-            const USERS_PER_PAGE = 50;
+            const USERS_PER_PAGE = 25;
             let initialRanking = await fetchSeasonRanking(season.id, 0, USERS_PER_PAGE);
             
             // If we received fewer users than requested, we've reached the end
