@@ -270,47 +270,29 @@
             return;
         }
 
-        // Use cached ranking if available, otherwise fetch from server
-        let fullRanking;
-        if (window.fullRankingCache && window.fullRankingCache[seasonId]) {
-            fullRanking = window.fullRankingCache[seasonId];
-        } else {
-            try {
-                const res = await fetch(`/api/seasons/${seasonId}/ranking`);
-                if (!res.ok) throw new Error('Failed to fetch season ranking');
-                fullRanking = await res.json();
-                // Cache the result for future use
-                window.fullRankingCache = window.fullRankingCache || {};
-                window.fullRankingCache[seasonId] = fullRanking;
-            } catch (e) {
-                document.getElementById('leaderboard-user-row').innerHTML = '<div style="color:orange;">Could not load ranking. ⚠️</div>';
-                return;
-            }
-        }
-
-        // Sort and find user in ranking (exact game over logic)
-        let sortedRanking = [...fullRanking].sort((a, b) => (b.bestScore ?? b.score ?? 0) - (a.bestScore ?? a.score ?? 0));
-        let userIndex = sortedRanking.findIndex(u => String(u.gameId ?? u.id ?? u.userId) === String(currentUserId));
+        // Find user in current ranking first
+        let userIndex = ranking.findIndex(u => String(u.gameId ?? u.id ?? u.userId) === String(currentUserId));
         let rank = userIndex !== -1 ? userIndex + 1 : '-';
-        let user = sortedRanking[userIndex];
+        let user = ranking[userIndex];
         let bestScore = 0;
         let username = '';
         let avatar = 'avatars/avatar_default.jpg';
 
         if (user) {
-            // User is ranked
+            // User is in current ranking
             bestScore = user.bestScore || user.score || 0;
             username = user.gameUsername || user.username || 'You';
             avatar = user.avatarSrc || 'avatars/avatar_default.jpg';
         } else {
-            // Not ranked: fetch from server
+            // Not in current ranking: fetch user's position
             try {
-                const res = await fetch(`/api/users/${encodeURIComponent(currentUserId)}`);
+                const res = await fetch(`/api/seasons/${seasonId}/user-rank/${encodeURIComponent(currentUserId)}`);
                 if (res.ok) {
-                    user = await res.json();
-                    bestScore = user.bestScore || user.score || 0;
-                    username = user.gameUsername || user.username || 'You';
-                    avatar = user.avatarSrc || 'avatars/avatar_default.jpg';
+                    const userData = await res.json();
+                    rank = userData.rank || '-';
+                    bestScore = userData.bestScore || userData.score || 0;
+                    username = userData.gameUsername || userData.username || 'You';
+                    avatar = userData.avatarSrc || 'avatars/avatar_default.jpg';
                 } else {
                     // User not found on server
                     username = 'You';
@@ -329,7 +311,7 @@
             avatar += '?t=' + new Date().getTime();
         }
 
-        // Render sticky row (exact same format as game over)
+        // Render sticky row
         const userRow = `
             <div class="leaderboard-rank">${rank}</div>
             <div class="leaderboard-avatar"><img src="${avatar}" alt="${username}"></div>
@@ -382,13 +364,8 @@
             const USERS_PER_PAGE = 10;
             let initialRanking = await fetchSeasonRanking(season.id, 0, USERS_PER_PAGE);
             
-            // If we have the full data cached, check if there are more users
-            if (window.fullRankingCache && window.fullRankingCache[season.id]) {
-                hasMoreUsers = initialRanking.length < window.fullRankingCache[season.id].length;
-            } else if (initialRanking.length < USERS_PER_PAGE) {
-                // If we received fewer users than requested, we've reached the end
-                hasMoreUsers = false;
-            }
+            // If we got fewer users than requested, we've reached the end
+            hasMoreUsers = initialRanking.length === USERS_PER_PAGE;
             
             // Add prize to 1st place
             if (initialRanking[0]) initialRanking[0].prize = season.prizeMoney;
