@@ -1240,10 +1240,11 @@ app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
       FROM "SeasonScores"
       WHERE seasonId = ?
     `;
-    const [[{ count: totalCount }]] = await sequelize.query(countQuery, {
+    const countResult = await sequelize.query(countQuery, {
       replacements: [seasonId],
       type: Sequelize.QueryTypes.SELECT,
     });
+    const totalCount = countResult[0]?.count || 0;
     
     console.log(`✅ Found ${ranking.length} users in ranking for season ${seasonId} (page: ${page}), totalCount: ${totalCount}`);
     
