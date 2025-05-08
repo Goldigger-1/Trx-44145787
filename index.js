@@ -1394,31 +1394,6 @@ app.get('/api/global-ranking', async (req, res) => {
   }
 });
 
-// New API endpoint to get the active season
-app.get('/api/seasons/active', async (req, res) => {
-  try {
-    console.log('🔍 Fetching active season');
-    
-    // Find the active season
-    const activeSeason = await Season.findOne({ 
-      where: { isActive: true }
-    });
-    
-    if (!activeSeason) {
-      console.log('⚠️ No active season found');
-      return res.status(404).json({ error: 'No active season found' });
-    }
-    
-    console.log(`✅ Active season found: ${activeSeason.id}, Season ${activeSeason.seasonNumber}`);
-    res.status(200).json(activeSeason);
-  } catch (error) {
-    console.error('❌ Error retrieving active season:', error);
-    res.status(500).json({ 
-      error: 'Error retrieving active season', 
-      details: error.message 
-    });
-  }
-});
 
 // New API endpoint to get season scores
 app.get('/api/seasons/:seasonId/scores/:userId', async (req, res) => {
