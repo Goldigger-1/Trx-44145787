@@ -237,14 +237,14 @@ async function loadLeaderboardPageData(page) {
         }
         
         // Utilisation directe des données paginées du backend
-        const paginatedData = responseData.items || [];
-        const totalCount = responseData.pagination ? responseData.pagination.totalCount : undefined;
+        const paginatedData = rankingData.items || [];
+        const totalCount = rankingData.pagination ? rankingData.pagination.totalCount : undefined;
         
         console.log(`📊 Nombre total d'éléments reçus (totalCount): ${totalCount}`);
         console.log(`📊 Nombre d'éléments dans la page reçue: ${paginatedData.length}`);
         
         // hasMoreData déterminé à partir de la pagination backend
-        hasMoreData = responseData.pagination ? responseData.pagination.hasMore : false;
+        hasMoreData = rankingData.pagination ? rankingData.pagination.hasMore : false;
         console.log(`📊 A plus de données (hasMore): ${hasMoreData}`);
         
         // Update the leaderboard UI
