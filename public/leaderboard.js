@@ -6,12 +6,10 @@ let currentPage = 0;
 let isLoadingMore = false;
 let hasMoreData = true;
 let activeSeason = null;
-let isMobileDevice = false; // Flag pour détecter les appareils mobiles
-let scrollTimeout = null; // Pour le debounce du scroll
 
 // Fonction pour afficher/masquer le leaderboard
 function showLeaderboard() {
-    console.log('🔄 DÉBUT AFFICHAGE LEADERBOARD');
+    console.log('🔄🔄🔄 DÉBUT AFFICHAGE LEADERBOARD 🔄🔄🔄');
     
     const leaderboardScreen = document.getElementById('leaderboard-screen');
     if (!leaderboardScreen) {
@@ -19,21 +17,23 @@ function showLeaderboard() {
         return;
     }
     
-    // Détection des appareils mobiles
-    detectMobileDevice();
-    
     leaderboardScreen.style.display = 'flex';
+    console.log('✅ Leaderboard affiché (display: flex)');
     
     // Reset pagination variables
     currentPage = 0;
     isLoadingMore = false;
     hasMoreData = true;
     activeSeason = null; // Reset season to force reload
+    console.log('✅ Variables de pagination réinitialisées');
     
     // Show loading overlay
     const loadingOverlay = document.getElementById('leaderboard-loading-overlay');
     if (loadingOverlay) {
         loadingOverlay.style.display = 'flex';
+        console.log('✅ Overlay de chargement affiché');
+    } else {
+        console.warn('⚠️ Élément #leaderboard-loading-overlay non trouvé');
     }
     
     // Make sure the leaderboard list has proper styling for scrolling
@@ -44,34 +44,41 @@ function showLeaderboard() {
         leaderboardList.style.maxHeight = '100%';
         leaderboardList.style.height = '100%';
         leaderboardList.innerHTML = ''; // Clear old content
-        
-        // Sur mobile, préallouer une hauteur pour éviter les sauts de scroll
-        if (isMobileDevice) {
-            leaderboardList.style.minHeight = '500px';
-        }
+        console.log('✅ Styles de scroll appliqués à #leaderboard-list');
+    } else {
+        console.error('❌ Élément #leaderboard-list non trouvé dans le DOM');
     }
+    
+    console.log('⏳ Initialisation du chargement des données...');
     
     // Get active season and then load only the first page of data
     getActiveSeason().then(season => {
+        console.log(`✅ Saison active récupérée: ID=${season.id}, Numéro=${season.seasonNumber}`);
+        
         // Set active season
         activeSeason = season;
         
         // Load only first page (15 users)
+        console.log('⏳ Chargement de la première page de données (15 utilisateurs max)...');
         return loadLeaderboardPageData(0);
     }).then(data => {
+        console.log(`✅ Première page chargée avec succès: ${data ? data.length : 0} utilisateurs`);
+        
         // Hide loading overlay after initial load
         if (loadingOverlay) {
             loadingOverlay.style.display = 'none';
+            console.log('✅ Overlay de chargement masqué');
         }
         
-        // Set up scroll listener for infinite scrolling - avec un délai pour mobile
-        setTimeout(() => {
-            setupInfiniteScroll();
-        }, isMobileDevice ? 300 : 0);
+        // Set up scroll listener for infinite scrolling
+        setupInfiniteScroll();
     }).catch(error => {
-        console.error('❌ Error during leaderboard initialization:', error);
+        console.error('❌❌❌ ERREUR pendant initialisation du leaderboard:', error);
+        if (error.stack) console.error(`🔍 STACK TRACE: ${error.stack}`);
+        
         if (loadingOverlay) {
             loadingOverlay.style.display = 'none';
+            console.log('✅ Overlay de chargement masqué (après erreur)');
         }
         
         // Afficher un message d'erreur dans la liste
@@ -81,19 +88,15 @@ function showLeaderboard() {
                     Une erreur est survenue lors du chargement du classement.<br>
                     Détails: ${error.message || 'Erreur inconnue'}
                 </div>`;
+            console.log('✅ Message d\'erreur affiché dans la liste');
         }
     });
-            
+    
     // Mettre à jour la rangée utilisateur et initialiser le compte à rebours
+    console.log('⏳ Chargement de la ligne utilisateur...');
     renderLeaderboardUserRow();
-}
-
-// Detect mobile device
-function detectMobileDevice() {
-    // Simple détection basée sur la largeur de l'écran et les caractéristiques de l'agent
-    isMobileDevice = (window.innerWidth <= 768) || 
-                     (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
-    console.log(`📱 Détection appareil: ${isMobileDevice ? 'Mobile' : 'Desktop'}`);
+    
+    console.log('🔄🔄🔄 FIN INITIALISATION LEADERBOARD 🔄🔄🔄');
 }
 
 // Fonction pour cacher le leaderboard
@@ -106,7 +109,6 @@ function hideLeaderboard() {
         const leaderboardList = document.getElementById('leaderboard-list');
         if (leaderboardList) {
             leaderboardList.removeEventListener('scroll', handleScroll);
-            leaderboardList.removeEventListener('scroll', handleScrollMobile);
         }
     }
 }
@@ -283,11 +285,6 @@ async function loadNextLeaderboardPage() {
         // Show loading indicator at the bottom of the list
         showLoadingIndicator();
         
-        // Sur mobile, ajouter un petit délai pour éviter les saccades
-        if (isMobileDevice) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-        }
-        
         await loadLeaderboardPageData(currentPage);
         
         // Increment page for next fetch
@@ -450,24 +447,24 @@ function updatePodium(rankingData) {
     }
 }
 
-// Setup infinite scroll with device optimizations
+// Setup infinite scroll
 function setupInfiniteScroll() {
     const leaderboardList = document.getElementById('leaderboard-list');
     if (!leaderboardList) return;
     
+    console.log('📜 Setting up infinite scroll event listener');
+    
     // Remove existing scroll listener if any
     leaderboardList.removeEventListener('scroll', handleScroll);
-    leaderboardList.removeEventListener('scroll', handleScrollMobile);
     
-    // Add appropriate scroll listener based on device
-    if (isMobileDevice) {
-        leaderboardList.addEventListener('scroll', handleScrollMobile);
-    } else {
-        leaderboardList.addEventListener('scroll', handleScroll);
-    }
+    // Add scroll listener
+    leaderboardList.addEventListener('scroll', handleScroll);
+    
+    // Log to confirm the setup
+    console.log('✅ Infinite scroll event listener attached to leaderboard-list');
 }
 
-// Handle scroll event for infinite loading (version standard)
+// Handle scroll event for infinite loading
 function handleScroll(event) {
     const leaderboardList = document.getElementById('leaderboard-list');
     if (!leaderboardList) return;
@@ -480,33 +477,10 @@ function handleScroll(event) {
     // Calculate how close we are to the bottom (as a percentage)
     const scrollPercentage = (scrollPosition + visibleHeight) / totalHeight;
     
-    // Desktop: Déclencher à 75% du scroll
+    // Load more data when user scrolls to 75% of the list
     if (scrollPercentage > 0.75 && !isLoadingMore && hasMoreData) {
         loadNextLeaderboardPage();
     }
-}
-
-// Handle scroll event for mobile with debounce
-function handleScrollMobile(event) {
-    if (scrollTimeout) clearTimeout(scrollTimeout);
-    
-    scrollTimeout = setTimeout(() => {
-        const leaderboardList = document.getElementById('leaderboard-list');
-        if (!leaderboardList) return;
-        
-        // Check if we're near the bottom of the scroll area
-        const scrollPosition = leaderboardList.scrollTop;
-        const visibleHeight = leaderboardList.clientHeight;
-        const totalHeight = leaderboardList.scrollHeight;
-        
-        // Calculate how close we are to the bottom (as a percentage)
-        const scrollPercentage = (scrollPosition + visibleHeight) / totalHeight;
-        
-        // Mobile: Déclencher plus tôt - à 65% du scroll
-        if (scrollPercentage > 0.65 && !isLoadingMore && hasMoreData) {
-            loadNextLeaderboardPage();
-        }
-    }, 50); // 50ms debounce pour éviter trop d'appels
 }
 
 // Fonction pour obtenir l'ID utilisateur actuel
