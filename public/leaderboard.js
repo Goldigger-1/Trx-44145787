@@ -230,20 +230,15 @@ async function loadLeaderboardPageData(page) {
         let rankingData;
         try {
             rankingData = JSON.parse(responseText);
-            console.log(`🔍 Structure des données reçues:`, typeof rankingData, Array.isArray(rankingData) ? 'Array' : 'Not Array');
-            if (!Array.isArray(rankingData)) {
-                console.log(`🔍 Propriétés de l'objet:`, Object.keys(rankingData));
-                // Si c'est un objet avec une propriété 'data' ou 'ranking', utilisons-la
-                if (rankingData.data && Array.isArray(rankingData.data)) {
-                    console.log(`🔍 Utilisation de rankingData.data (${rankingData.data.length} éléments)`);
-                    rankingData = rankingData.data;
-                } else if (rankingData.ranking && Array.isArray(rankingData.ranking)) {
-                    console.log(`🔍 Utilisation de rankingData.ranking (${rankingData.ranking.length} éléments)`);
-                    rankingData = rankingData.ranking;
-                } else if (rankingData.users && Array.isArray(rankingData.users)) {
-                    console.log(`🔍 Utilisation de rankingData.users (${rankingData.users.length} éléments)`);
-                    rankingData = rankingData.users;
-                }
+            console.log(`🔍 Type de rankingData: ${typeof rankingData}`);
+            console.log(`🔍 Est un tableau: ${Array.isArray(rankingData)}`);
+            console.log(`🔍 Structure: ${JSON.stringify(Object.keys(rankingData).slice(0, 10))}`);
+            if (!Array.isArray(rankingData) && rankingData.data && Array.isArray(rankingData.data)) {
+                console.log(`🔍 Structure détectée: objet avec propriété 'data' qui est un tableau`);
+                console.log(`🔍 Longueur du tableau data: ${rankingData.data.length}`);
+                // Si rankingData est un objet avec une propriété 'data' qui est un tableau,
+                // utiliser cette propriété comme source de données
+                rankingData = rankingData.data;
             }
         } catch (e) {
             console.error(`❌ Erreur parsing JSON:`, e);
@@ -390,14 +385,9 @@ function renderLeaderboardItems(items, clearList) {
     }
     
     // Exit if no items
-    console.log(`🔍 renderLeaderboardItems - Type de items: ${typeof items}, Est un tableau: ${Array.isArray(items)}, Longueur: ${Array.isArray(items) ? items.length : 'N/A'}`);    
-    console.log(`🔍 renderLeaderboardItems - Items reçus:`, JSON.stringify(items).substring(0, 500));    
-    
     if (!Array.isArray(items) || items.length === 0) {
-        console.error(`❌ Aucun élément à afficher dans le leaderboard: ${!Array.isArray(items) ? 'items n\'est pas un tableau' : 'tableau vide'}`);        
         if (clearList) {
             // Show empty state if this is the first load and no data
-            console.log(`⚠️ Affichage du message "No players in this season yet"`);            
             leaderboardList.innerHTML = `
                 <div class="leaderboard-empty-message">
                     <img src="ressources/empty-ranking.png" alt="Empty ranking">
