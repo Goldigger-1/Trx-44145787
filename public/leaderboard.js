@@ -9,77 +9,94 @@ let activeSeason = null;
 
 // Fonction pour afficher/masquer le leaderboard
 function showLeaderboard() {
+    console.log('🔄🔄🔄 DÉBUT AFFICHAGE LEADERBOARD 🔄🔄🔄');
+    
     const leaderboardScreen = document.getElementById('leaderboard-screen');
-    if (leaderboardScreen) {
-        console.log('📌 Opening leaderboard view');
-        leaderboardScreen.style.display = 'flex';
-        
-        // Reset pagination variables
-        currentPage = 0;
-        isLoadingMore = false;
-        hasMoreData = true;
-        activeSeason = null; // Reset season to force reload
-        
-        // Show loading overlay
-        const loadingOverlay = document.getElementById('leaderboard-loading-overlay');
-        if (loadingOverlay) {
-            console.log('⏳ Showing loading overlay');
-            loadingOverlay.style.display = 'flex';
-        }
-        
-        // Clear existing leaderboard data
-        const leaderboardList = document.getElementById('leaderboard-list');
-        if (leaderboardList) {
-            // Clear content
-            leaderboardList.innerHTML = '';
-            
-            // Ensure proper height and scroll behavior
-            leaderboardList.style.height = '400px';
-            leaderboardList.style.maxHeight = '400px';
-            leaderboardList.style.overflowY = 'auto';
-        }
-        
-        // First get the active season
-        console.log('🔍 Fetching active season info...');
-        fetch('/api/active-season')
-            .then(response => {
-                if (!response.ok) throw new Error('Failed to fetch active season');
-                return response.json();
-            })
-            .then(season => {
-                console.log(`✅ Active season found: ${season.id} (Season ${season.seasonNumber})`);
-                activeSeason = season;
-                
-                // Update season info in UI
-                updateSeasonInfo(season);
-                
-                // Load first batch of leaderboard data (just 15 records)
-                return fetchLeaderboardPage(0);
-            })
-            .then(() => {
-                console.log('✅ Initial leaderboard data loaded');
-                
-                // Hide loading overlay
-                if (loadingOverlay) {
-                    loadingOverlay.style.display = 'none';
-                }
-                
-                // Add scroll event listener
-                setupInfiniteScroll();
-            })
-            .catch(error => {
-                console.error('❌ Error loading leaderboard:', error);
-                if (loadingOverlay) {
-                    loadingOverlay.style.display = 'none';
-                }
-                if (leaderboardList) {
-                    leaderboardList.innerHTML = '<div class="leaderboard-error">Failed to load leaderboard data</div>';
-                }
-            });
-        
-        // User row can load in parallel
-        renderLeaderboardUserRow();
+    if (!leaderboardScreen) {
+        console.error('❌ Élément #leaderboard-screen non trouvé dans le DOM');
+        return;
     }
+    
+    leaderboardScreen.style.display = 'flex';
+    console.log('✅ Leaderboard affiché (display: flex)');
+    
+    // Reset pagination variables
+    currentPage = 0;
+    isLoadingMore = false;
+    hasMoreData = true;
+    activeSeason = null; // Reset season to force reload
+    console.log('✅ Variables de pagination réinitialisées');
+    
+    // Show loading overlay
+    const loadingOverlay = document.getElementById('leaderboard-loading-overlay');
+    if (loadingOverlay) {
+        loadingOverlay.style.display = 'flex';
+        console.log('✅ Overlay de chargement affiché');
+    } else {
+        console.warn('⚠️ Élément #leaderboard-loading-overlay non trouvé');
+    }
+    
+    // Make sure the leaderboard list has proper styling for scrolling
+    const leaderboardList = document.getElementById('leaderboard-list');
+    if (leaderboardList) {
+        // Ensure the list is scrollable
+        leaderboardList.style.overflowY = 'auto';
+        leaderboardList.style.maxHeight = '100%';
+        leaderboardList.style.height = '100%';
+        leaderboardList.innerHTML = ''; // Clear old content
+        console.log('✅ Styles de scroll appliqués à #leaderboard-list');
+    } else {
+        console.error('❌ Élément #leaderboard-list non trouvé dans le DOM');
+    }
+    
+    console.log('⏳ Initialisation du chargement des données...');
+    
+    // Get active season and then load only the first page of data
+    getActiveSeason().then(season => {
+        console.log(`✅ Saison active récupérée: ID=${season.id}, Numéro=${season.seasonNumber}`);
+        
+        // Set active season
+        activeSeason = season;
+        
+        // Load only first page (15 users)
+        console.log('⏳ Chargement de la première page de données (15 utilisateurs max)...');
+        return loadLeaderboardPageData(0);
+    }).then(data => {
+        console.log(`✅ Première page chargée avec succès: ${data ? data.length : 0} utilisateurs`);
+        
+        // Hide loading overlay after initial load
+        if (loadingOverlay) {
+            loadingOverlay.style.display = 'none';
+            console.log('✅ Overlay de chargement masqué');
+        }
+        
+        // Set up scroll listener for infinite scrolling
+        setupInfiniteScroll();
+    }).catch(error => {
+        console.error('❌❌❌ ERREUR pendant initialisation du leaderboard:', error);
+        if (error.stack) console.error(`🔍 STACK TRACE: ${error.stack}`);
+        
+        if (loadingOverlay) {
+            loadingOverlay.style.display = 'none';
+            console.log('✅ Overlay de chargement masqué (après erreur)');
+        }
+        
+        // Afficher un message d'erreur dans la liste
+        if (leaderboardList) {
+            leaderboardList.innerHTML = `
+                <div style="color:red; padding:20px; text-align:center;">
+                    Une erreur est survenue lors du chargement du classement.<br>
+                    Détails: ${error.message || 'Erreur inconnue'}
+                </div>`;
+            console.log('✅ Message d\'erreur affiché dans la liste');
+        }
+    });
+    
+    // Mettre à jour la rangée utilisateur et initialiser le compte à rebours
+    console.log('⏳ Chargement de la ligne utilisateur...');
+    renderLeaderboardUserRow();
+    
+    console.log('🔄🔄🔄 FIN INITIALISATION LEADERBOARD 🔄🔄🔄');
 }
 
 // Fonction pour cacher le leaderboard
@@ -96,100 +113,212 @@ function hideLeaderboard() {
     }
 }
 
-// Update season info in the UI
-function updateSeasonInfo(season) {
-    // Update title
-    const titleElement = document.getElementById('leaderboard-season-title');
-    if (titleElement) {
-        titleElement.textContent = `Season ${season.seasonNumber}`;
+// Function to get active season
+async function getActiveSeason() {
+    console.log('🔍🔍🔍 DÉBUT RÉCUPÉRATION SAISON ACTIVE 🔍🔍🔍');
+    
+    try {
+        console.log('⏳ Envoi requête à /api/active-season...');
+        // Use the correct working endpoint for active season
+        const res = await fetch('/api/active-season');
+        
+        console.log(`🔍 Statut réponse: ${res.status} ${res.statusText}`);
+        console.log(`🔍 Headers: ${JSON.stringify(Object.fromEntries([...res.headers]))}`);
+        
+        if (!res.ok) {
+            console.error(`❌ Échec requête saison active: ${res.status} ${res.statusText}`);
+            throw new Error(`Failed to fetch active season: ${res.status}`);
+        }
+        
+        const responseText = await res.text();
+        console.log(`🔍 Réponse brute: ${responseText.substring(0, 200)}${responseText.length > 200 ? '...' : ''}`);
+        
+        let season;
+        try {
+            season = JSON.parse(responseText);
+        } catch (e) {
+            console.error(`❌ Erreur parsing JSON:`, e);
+            console.error(`🔍 Contenu non parsable: ${responseText}`);
+            throw new Error('Invalid JSON response from season endpoint');
+        }
+        
+        console.log(`✅ Données saison: ${JSON.stringify(season)}`);
+        
+        if (!season || !season.id) {
+            console.error(`❌ Données saison invalides: ID manquant`);
+            throw new Error('Invalid season data: missing ID');
+        }
+        
+        console.log(`✅ Saison active trouvée: ${season.id} (Saison ${season.seasonNumber})`);
+        
+        // Update podium prize
+        updatePrizeDisplay(season.prizeMoney);
+        
+        // Update season title
+        const titleElement = document.getElementById('leaderboard-season-title');
+        if (titleElement) {
+            titleElement.textContent = `Season ${season.seasonNumber}`;
+            console.log(`✅ Titre de saison mis à jour: Season ${season.seasonNumber}`);
+        } else {
+            console.warn('⚠️ Élément #leaderboard-season-title non trouvé');
+        }
+        
+        // Initialize countdown with end date
+        updateCountdown(season.endDate);
+        
+        console.log('🔍🔍🔍 FIN RÉCUPÉRATION SAISON ACTIVE 🔍🔍🔍');
+        return season;
+    } catch (error) {
+        console.error('❌❌❌ ERREUR lors de la récupération de la saison active:', error);
+        if (error.stack) console.error(`🔍 STACK TRACE: ${error.stack}`);
+        throw error;
     }
-    
-    // Update prize display
-    updatePrizeDisplay(season.prizeMoney);
-    
-    // Update countdown
-    updateCountdown(season.endDate);
 }
 
-// Function to fetch a specific page of leaderboard data
-function fetchLeaderboardPage(page) {
+// Function to load a specific page of leaderboard data
+async function loadLeaderboardPageData(page) {
+    console.log(`🔎🔎🔎 DÉBUT CHARGEMENT PAGE ${page} 🔎🔎🔎`);
+    
     if (!activeSeason) {
-        console.error('❌ No active season found for fetching leaderboard');
-        return Promise.reject(new Error('No active season'));
+        console.error('❌ Aucune saison active trouvée');
+        throw new Error('No active season found');
     }
     
-    if (isLoadingMore) {
-        console.log('⏳ Already loading data, ignoring request');
-        return Promise.resolve(); // Already loading
+    console.log(`🔍 Chargement UNIQUEMENT de la page ${page} (limite 15) pour la saison ${activeSeason.id}`);
+    
+    try {
+        // Construire l'URL avec les paramètres
+        const apiUrl = `/api/leaderboard/paginated/${activeSeason.id}?page=${page}&limit=15`;
+        console.log(`🔍 URL API: ${apiUrl}`);
+        
+        // Enregistrer le temps de début pour mesurer la performance
+        const startTime = Date.now();
+        
+        // Utiliser la nouvelle API spécifique pour la pagination stricte
+        console.log('⏳ Envoi de la requête...');
+        const rankingRes = await fetch(apiUrl);
+        
+        // Calculer le temps de réponse
+        const responseTime = Date.now() - startTime;
+        console.log(`⏱️ Temps de réponse: ${responseTime}ms`);
+        
+        // Vérifier le statut de la réponse
+        console.log(`🔍 Statut de la réponse: ${rankingRes.status} ${rankingRes.statusText}`);
+        console.log(`🔍 Headers: ${JSON.stringify(Object.fromEntries([...rankingRes.headers]))}`);
+        
+        if (!rankingRes.ok) {
+            console.error(`❌ Échec de la requête: ${rankingRes.status} ${rankingRes.statusText}`);
+            
+            // Tenter de récupérer le corps d'erreur pour plus de détails
+            try {
+                const errorText = await rankingRes.text();
+                console.error(`🔍 Corps de l'erreur: ${errorText}`);
+            } catch (e) {
+                console.error('❌ Impossible de lire le corps de l\'erreur');
+            }
+            
+            throw new Error(`Failed to fetch leaderboard data: ${rankingRes.status}`);
+        }
+        
+        // Récupérer le corps de la réponse
+        const responseText = await rankingRes.text();
+        
+        // Afficher les premiers caractères du corps (pour éviter des logs trop longs)
+        console.log(`🔍 Début de la réponse: ${responseText.substring(0, 200)}${responseText.length > 200 ? '...' : ''}`);
+        
+        let responseData;
+        try {
+            responseData = JSON.parse(responseText);
+        } catch (e) {
+            console.error(`❌ Erreur parsing JSON:`, e);
+            console.error(`🔍 Contenu non parsable: ${responseText}`);
+            throw new Error('Invalid JSON response from leaderboard endpoint');
+        }
+        
+        // Vérifier la structure de la réponse
+        if (!responseData || !responseData.items || !Array.isArray(responseData.items)) {
+            console.error('❌ Format de réponse invalide de l\'API paginée:', JSON.stringify(responseData));
+            throw new Error('Invalid response format from server');
+        }
+        
+        console.log(`📊 Reçu ${responseData.items.length} éléments pour la page ${page}`);
+        console.log(`📊 Métadonnées de pagination: ${JSON.stringify(responseData.pagination)}`);
+        
+        // Si disponible, afficher des infos sur le total pour diagnostic
+        if (responseData.pagination && responseData.pagination.totalCount) {
+            console.log(`📊 Nombre total d'éléments dans la base: ${responseData.pagination.totalCount}`);
+        }
+        
+        // Utiliser les métadonnées de pagination pour savoir s'il y a plus de données
+        hasMoreData = responseData.pagination && responseData.pagination.hasMore;
+        console.log(`📊 A plus de données: ${hasMoreData}`);
+        
+        // Utiliser les items plutôt que la réponse complète
+        const rankingData = responseData.items;
+        
+        // Update the leaderboard UI
+        renderLeaderboardItems(rankingData, page === 0);
+        
+        // Update podium if this is the first page
+        if (page === 0 && rankingData.length > 0) {
+            updatePodium(rankingData);
+        }
+        
+        console.log(`🔎🔎🔎 FIN CHARGEMENT PAGE ${page} 🔎🔎🔎`);
+        return rankingData;
+    } catch (error) {
+        console.error(`❌❌❌ ERREUR lors du chargement de la page ${page}:`, error);
+        if (error.stack) console.error(`🔍 STACK TRACE: ${error.stack}`);
+        throw error;
     }
+}
+
+// Function to load next page of leaderboard data (used by infinite scroll)
+async function loadNextLeaderboardPage() {
+    if (isLoadingMore || !hasMoreData) return;
     
-    if (!hasMoreData && page > 0) {
-        console.log('ℹ️ No more data to load');
-        return Promise.resolve(); // No more data
+    try {
+        isLoadingMore = true;
+        console.log(`📊 Loading NEXT page ${currentPage} for infinite scroll`);
+        
+        await loadLeaderboardPageData(currentPage);
+        
+        // Increment page for next fetch
+        currentPage++;
+    } catch (error) {
+        console.error('❌ Error loading leaderboard data:', error);
+    } finally {
+        isLoadingMore = false;
     }
-    
-    console.log(`🔄 Fetching ONLY page ${page} (limit 15) for season ${activeSeason.id}`);
-    isLoadingMore = true;
-    
-    return fetch(`/api/seasons/${activeSeason.id}/ranking?page=${page}&limit=15`)
-        .then(response => {
-            if (!response.ok) throw new Error(`Failed to fetch page ${page}: ${response.status}`);
-            return response.json();
-        })
-        .then(data => {
-            console.log(`✅ Got ${data.length} items for page ${page}`);
-            
-            // Check if we've reached the end
-            if (!Array.isArray(data) || data.length < 15) {
-                console.log('🏁 Reached end of data (received less than 15 items)');
-                hasMoreData = false;
-            }
-            
-            // Render the items
-            renderLeaderboardItems(data, page === 0);
-            
-            // Update podium if this is first page
-            if (page === 0 && data.length > 0) {
-                updatePodium(data);
-            }
-            
-            // Update page counter for next time
-            if (page === currentPage) {
-                currentPage++;
-            }
-            
-            return data;
-        })
-        .finally(() => {
-            isLoadingMore = false;
-        });
 }
 
 // Function to render leaderboard items
 function renderLeaderboardItems(items, clearList) {
-    console.log(`⚡ Rendering ${items?.length || 0} leaderboard items to the DOM, clearList: ${clearList}`);
+    console.log(`🖌️🖌️🖌️ DÉBUT RENDU LISTE (${items ? items.length : 0} éléments, clearList=${clearList}) 🖌️🖌️🖌️`);
     
     const leaderboardList = document.getElementById('leaderboard-list');
     if (!leaderboardList) {
-        console.error('❌ Leaderboard list element not found');
+        console.error('❌ Élément #leaderboard-list non trouvé dans le DOM');
         return;
     }
     
-    // Important: Set max height to enforce scroll behavior
-    leaderboardList.style.maxHeight = '400px';
-    leaderboardList.style.overflowY = 'auto';
+    // Mesurer taille initiale de la liste
+    const initialHeight = leaderboardList.scrollHeight;
+    console.log(`📏 Hauteur initiale de la liste: ${initialHeight}px`);
     
     // Clear the list if this is the first page
     if (clearList) {
-        console.log('🗑️ Clearing existing leaderboard content');
+        console.log('🧹 Effacement de la liste existante');
         leaderboardList.innerHTML = '';
     }
     
     // Exit if no items
     if (!Array.isArray(items) || items.length === 0) {
+        console.log('⚠️ Aucun élément à afficher');
+        
         if (clearList) {
+            console.log('🖌️ Affichage du message "liste vide"');
             // Show empty state if this is the first load and no data
-            console.log('⚠️ No items to display, showing empty state');
             leaderboardList.innerHTML = `
                 <div class="leaderboard-empty-message">
                     <img src="ressources/empty-ranking.png" alt="Empty ranking">
@@ -199,13 +328,15 @@ function renderLeaderboardItems(items, clearList) {
         return;
     }
     
-    // Create a document fragment to improve performance
-    const fragment = document.createDocumentFragment();
+    console.log(`⏳ Ajout de ${items.length} éléments à la liste`);
     
-    // Add each item to the fragment
+    // Add each item to the list
     items.forEach((item, index) => {
-        // Calculate the actual rank
+        // Calculate the actual rank (page * limit + index + 1)
+        // For page 0, ranks are 1-15, for page 1, ranks are 16-30, etc.
         const rank = currentPage > 0 ? (currentPage - 1) * 15 + index + 1 : index + 1;
+        
+        // Include all players in the list, including top 3
         
         // Ensure avatar path is properly formatted
         let avatarSrc = item.avatarSrc || 'avatars/avatar_default.jpg';
@@ -223,13 +354,14 @@ function renderLeaderboardItems(items, clearList) {
             <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${item.score}</div>
         `;
         
-        // Add to fragment instead of directly to DOM
-        fragment.appendChild(rowElement);
+        leaderboardList.appendChild(rowElement);
     });
     
-    // Add all rows to the DOM in one operation
-    leaderboardList.appendChild(fragment);
-    console.log(`✅ Added ${items.length} items to leaderboard`);
+    // Mesurer la nouvelle taille après ajout
+    const newHeight = leaderboardList.scrollHeight;
+    console.log(`📏 Nouvelle hauteur après ajout: ${newHeight}px (différence: ${newHeight - initialHeight}px)`);
+    
+    console.log(`🖌️🖌️🖌️ FIN RENDU LISTE 🖌️🖌️🖌️`);
 }
 
 // Function to update podium with top 3 players
@@ -264,38 +396,49 @@ function updatePodium(rankingData) {
     }
 }
 
-// Setup infinite scroll properly
+// Setup infinite scroll
 function setupInfiniteScroll() {
     const leaderboardList = document.getElementById('leaderboard-list');
     if (!leaderboardList) return;
     
     console.log('📜 Setting up infinite scroll event listener');
     
-    // Remove any existing listeners to prevent duplicates
+    // Remove existing scroll listener if any
     leaderboardList.removeEventListener('scroll', handleScroll);
     
-    // Add the scroll listener
+    // Add scroll listener
     leaderboardList.addEventListener('scroll', handleScroll);
-    console.log('✅ Scroll listener attached');
+    
+    // Log to confirm the setup
+    console.log('✅ Infinite scroll event listener attached to leaderboard-list');
 }
 
-// Handle scroll event
-function handleScroll() {
+// Handle scroll event for infinite loading
+function handleScroll(event) {
     const leaderboardList = document.getElementById('leaderboard-list');
     if (!leaderboardList) return;
     
-    // Calculate scroll position
+    // Check if we're near the bottom of the scroll area
     const scrollPosition = leaderboardList.scrollTop;
     const visibleHeight = leaderboardList.clientHeight;
     const totalHeight = leaderboardList.scrollHeight;
     
-    // Calculate percentage scrolled
-    const scrolledPercentage = (scrollPosition + visibleHeight) / totalHeight;
+    // Log scroll information for debugging
+    console.log(`📊 INFO SCROLL - position: ${scrollPosition}, visible: ${visibleHeight}, total: ${totalHeight}`);
     
-    // Only load more if we're not already loading and have more data
-    if (scrolledPercentage > 0.70 && !isLoadingMore && hasMoreData) {
-        console.log(`📊 Scroll at ${(scrolledPercentage * 100).toFixed(1)}% - loading next page ${currentPage}`);
-        fetchLeaderboardPage(currentPage);
+    // Calculate how close we are to the bottom (as a percentage)
+    const scrollPercentage = (scrollPosition + visibleHeight) / totalHeight;
+    console.log(`📊 Pourcentage de défilement: ${(scrollPercentage * 100).toFixed(2)}%`);
+    
+    // Check if totalHeight seems too large (signe que tous les éléments ont été chargés)
+    if (totalHeight > 5000) {
+        console.warn(`⚠️⚠️⚠️ ALERTE: Hauteur totale très grande (${totalHeight}px) - Possible que toute la liste ait été chargée`);
+    }
+    
+    // Load more data when user scrolls to 75% of the list
+    if (scrollPercentage > 0.75 && !isLoadingMore && hasMoreData) {
+        console.log(`📜📜📜 DÉCLENCHEMENT CHARGEMENT PAGE ${currentPage} (scroll=${scrollPercentage.toFixed(2)})`);
+        loadNextLeaderboardPage();
     }
 }
 

@@ -2036,3 +2036,120 @@ process.once('SIGTERM', () => {
 });
 
 console.log('TiDash Game Bot is running...');
+
+// NOUVELLE API spécifique pour la pagination stricte du leaderboard
+app.get('/api/leaderboard/paginated/:seasonId', async (req, res) => {
+  try {
+    const { seasonId } = req.params;
+    const page = parseInt(req.query.page) || 0;
+    const limit = Math.min(parseInt(req.query.limit) || 15, 15); // Hard limit at 15 items per page
+    const offset = page * limit;
+    
+    console.log('🔎🔎🔎 DÉBUT API PAGINATION 🔎🔎🔎');
+    console.log(`📋 URL COMPLÈTE APPELÉE: ${req.originalUrl}`);
+    console.log(`📋 MÉTHODE: ${req.method}`);
+    console.log(`📋 PARAMS: ${JSON.stringify(req.params)}`);
+    console.log(`📋 QUERY: ${JSON.stringify(req.query)}`);
+    console.log(`📋 PAGINATION CALCULÉE: page=${page}, limit=${limit}, offset=${offset}`);
+    
+    // Validation de l'ID de saison
+    if (!seasonId || isNaN(parseInt(seasonId))) {
+      console.error(`❌ ID DE SAISON INVALIDE: ${seasonId}`);
+      return res.status(400).json({ error: 'Invalid season ID' });
+    }
+    
+    // Find the season
+    const season = await Season.findByPk(seasonId);
+    if (!season) {
+      console.error(`❌ SAISON NON TROUVÉE: ${seasonId}`);
+      return res.status(404).json({ error: 'Season not found' });
+    }
+    
+    console.log(`✅ SAISON TROUVÉE: ID=${season.id}, Numéro=${season.seasonNumber}`);
+    
+    // Obtenir le nombre total d'enregistrements pour cette saison (pour le débogage)
+    const totalCount = await SeasonScore.count({ where: { seasonId } });
+    console.log(`📊 TOTAL DES SCORES POUR CETTE SAISON: ${totalCount}`);
+    
+    // Use direct SQL query with LIMIT and OFFSET for strict pagination
+    const query = `
+      SELECT ss.id, ss.userId, ss.score, u.gameUsername, u.avatarSrc
+      FROM "SeasonScores" ss
+      JOIN "Users" u ON ss.userId = u.gameId
+      WHERE ss.seasonId = ?
+      ORDER BY ss.score DESC
+      LIMIT ? OFFSET ?
+    `;
+    
+    console.log(`🔍 EXÉCUTION REQUÊTE SQL: ${query.replace(/\s+/g, ' ')}`);
+    console.log(`🔍 PARAMÈTRES: [${seasonId}, ${limit}, ${offset}]`);
+    
+    // Capture le temps avant la requête
+    const startTime = Date.now();
+    
+    const [scores] = await sequelize.query(query, {
+      replacements: [seasonId, limit, offset],
+      type: Sequelize.QueryTypes.SELECT,
+      raw: true
+    });
+    
+    // Calcule le temps d'exécution
+    const execTime = Date.now() - startTime;
+    console.log(`⏱️ TEMPS D'EXÉCUTION DE LA REQUÊTE: ${execTime}ms`);
+    
+    // Log the actual number of results
+    console.log(`✅ RÉSULTATS PAGINÉS: ${scores ? scores.length : 0} utilisateurs`);
+    
+    if (scores && scores.length > 0) {
+      console.log(`📋 PREMIER RÉSULTAT: ${JSON.stringify(scores[0])}`);
+      console.log(`📋 DERNIER RÉSULTAT: ${JSON.stringify(scores[scores.length - 1])}`);
+    } else {
+      console.log(`❌ AUCUN RÉSULTAT TROUVÉ POUR CETTE PAGE`);
+    }
+    
+    // Transform data to expected format
+    const ranking = Array.isArray(scores) ? scores.map(score => {
+      // Normalize avatar path
+      let avatarSrc = score.avatarSrc;
+      if (!avatarSrc) {
+        avatarSrc = '/avatars/avatar_default.jpg';
+      } else if (!avatarSrc.startsWith('/') && !avatarSrc.startsWith('http')) {
+        avatarSrc = `/avatars/${avatarSrc}`;
+      }
+      
+      return {
+        userId: score.userId,
+        username: score.gameUsername || 'Unknown User',
+        avatarSrc: avatarSrc,
+        score: score.score || 0
+      };
+    }) : [];
+    
+    // Prépare la réponse
+    const response = {
+      items: ranking,
+      pagination: {
+        page: page,
+        limit: limit,
+        totalCount: totalCount,
+        offset: offset,
+        hasMore: ranking.length === limit // If we got less than requested, there are no more
+      }
+    };
+    
+    console.log(`📤 ENVOI RÉPONSE: ${ranking.length} items, hasMore=${response.pagination.hasMore}`);
+    console.log('🔎🔎🔎 FIN API PAGINATION 🔎🔎🔎');
+    
+    // Return paginated data with pagination metadata
+    res.status(200).json(response);
+  } catch (error) {
+    console.error('❌❌❌ ERREUR API PAGINATION:', error);
+    console.error(`🔍 STACK TRACE: ${error.stack}`);
+    
+    res.status(500).json({ 
+      error: 'Error fetching paginated leaderboard', 
+      details: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
