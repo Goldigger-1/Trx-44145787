@@ -1,11 +1,39 @@
 // Leaderboard Page Logic
 // Réimplémentation minimale pour afficher seulement la rangée utilisateur
 
+// Variables for infinite scrolling
+let currentPage = 0;
+let isLoadingMore = false;
+let hasMoreData = true;
+let activeSeason = null;
+
 // Fonction pour afficher/masquer le leaderboard
 function showLeaderboard() {
     const leaderboardScreen = document.getElementById('leaderboard-screen');
     if (leaderboardScreen) {
         leaderboardScreen.style.display = 'flex';
+        
+        // Reset pagination variables
+        currentPage = 0;
+        isLoadingMore = false;
+        hasMoreData = true;
+        
+        // Show loading overlay
+        const loadingOverlay = document.getElementById('leaderboard-loading-overlay');
+        if (loadingOverlay) {
+            loadingOverlay.style.display = 'flex';
+        }
+        
+        // Load initial leaderboard data and then user row
+        loadLeaderboardData().then(() => {
+            // Hide loading overlay after initial load
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'none';
+            }
+            
+            // Set up scroll listener for infinite scrolling
+            setupInfiniteScroll();
+        });
                 
         // Mettre à jour la rangée utilisateur et initialiser le compte à rebours
         renderLeaderboardUserRow();
@@ -17,6 +45,185 @@ function hideLeaderboard() {
     const leaderboardScreen = document.getElementById('leaderboard-screen');
     if (leaderboardScreen) {
         leaderboardScreen.style.display = 'none';
+        
+        // Remove scroll listener when leaderboard is hidden
+        const leaderboardList = document.getElementById('leaderboard-list');
+        if (leaderboardList) {
+            leaderboardList.removeEventListener('scroll', handleScroll);
+        }
+    }
+}
+
+// Function to load leaderboard data with pagination
+async function loadLeaderboardData() {
+    if (isLoadingMore || !hasMoreData) return;
+    
+    try {
+        isLoadingMore = true;
+        
+        // Get active season if not already fetched
+        if (!activeSeason) {
+            const res = await fetch('/api/seasons/active');
+            if (!res.ok) {
+                throw new Error('Failed to fetch active season');
+            }
+            activeSeason = await res.json();
+            console.log(`✅ Active season found for leaderboard: ${activeSeason.id} (Season ${activeSeason.seasonNumber})`);
+            
+            // Update podium prize
+            updatePrizeDisplay(activeSeason.prizeMoney);
+            
+            // Update season title
+            const titleElement = document.getElementById('leaderboard-season-title');
+            if (titleElement) {
+                titleElement.textContent = `Season ${activeSeason.seasonNumber}`;
+            }
+            
+            // Initialize countdown with end date
+            updateCountdown(activeSeason.endDate);
+        }
+        
+        // Fetch page of leaderboard data
+        console.log(`📊 Loading leaderboard page ${currentPage} for season ${activeSeason.id}`);
+        const rankingRes = await fetch(`/api/seasons/${activeSeason.id}/ranking?page=${currentPage}&limit=15`);
+        
+        if (!rankingRes.ok) {
+            throw new Error(`Failed to fetch leaderboard data: ${rankingRes.status}`);
+        }
+        
+        const rankingData = await rankingRes.json();
+        
+        // If we got fewer items than requested, there are no more pages
+        if (!Array.isArray(rankingData) || rankingData.length < 15) {
+            hasMoreData = false;
+        }
+        
+        // Update the leaderboard UI
+        renderLeaderboardItems(rankingData, currentPage === 0);
+        
+        // Update podium if this is the first page
+        if (currentPage === 0 && rankingData.length > 0) {
+            updatePodium(rankingData);
+        }
+        
+        // Increment page for next fetch
+        currentPage++;
+        
+    } catch (error) {
+        console.error('❌ Error loading leaderboard data:', error);
+    } finally {
+        isLoadingMore = false;
+    }
+}
+
+// Function to render leaderboard items
+function renderLeaderboardItems(items, clearList) {
+    const leaderboardList = document.getElementById('leaderboard-list');
+    if (!leaderboardList) return;
+    
+    // Clear the list if this is the first page
+    if (clearList) {
+        leaderboardList.innerHTML = '';
+    }
+    
+    // Exit if no items
+    if (!Array.isArray(items) || items.length === 0) {
+        if (clearList) {
+            // Show empty state if this is the first load and no data
+            leaderboardList.innerHTML = `
+                <div class="leaderboard-empty-message">
+                    <img src="ressources/empty-ranking.png" alt="Empty ranking">
+                    <p>No players in this season yet.<br>Be the first to score!</p>
+                </div>`;
+        }
+        return;
+    }
+    
+    // Add each item to the list
+    items.forEach((item, index) => {
+        // Calculate the actual rank (page * limit + index + 1)
+        // For page 0, ranks are 1-15, for page 1, ranks are 16-30, etc.
+        const rank = currentPage > 0 ? (currentPage - 1) * 15 + index + 1 : index + 1;
+        
+        // Skip top 3 players if this is the first page (they're shown in the podium)
+        if (clearList && rank <= 3) return;
+        
+        // Ensure avatar path is properly formatted
+        let avatarSrc = item.avatarSrc || 'avatars/avatar_default.jpg';
+        if (!avatarSrc.startsWith('http') && !avatarSrc.startsWith('/')) {
+            avatarSrc = '/avatars/' + avatarSrc;
+        }
+        
+        // Create the row element
+        const rowElement = document.createElement('div');
+        rowElement.className = 'leaderboard-row';
+        rowElement.innerHTML = `
+            <div class="leaderboard-rank">${rank}</div>
+            <div class="leaderboard-avatar"><img src="${avatarSrc}" alt="${item.username}"></div>
+            <div class="leaderboard-username">${item.username}</div>
+            <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${item.score}</div>
+        `;
+        
+        leaderboardList.appendChild(rowElement);
+    });
+}
+
+// Function to update podium with top 3 players
+function updatePodium(rankingData) {
+    // Get the top 3 players
+    const topPlayers = rankingData.slice(0, 3);
+    
+    // Update each podium position
+    for (let i = 0; i < 3; i++) {
+        const position = i + 1;
+        const player = topPlayers[i] || null;
+        
+        // Elements for this position
+        const avatarElement = document.getElementById(`podium-${position}-avatar`);
+        const usernameElement = document.getElementById(`podium-${position}-username`);
+        
+        if (player) {
+            // Ensure avatar path is properly formatted
+            let avatarSrc = player.avatarSrc || 'avatars/avatar_default.jpg';
+            if (!avatarSrc.startsWith('http') && !avatarSrc.startsWith('/')) {
+                avatarSrc = '/avatars/' + avatarSrc;
+            }
+            
+            // Update elements
+            if (avatarElement) avatarElement.src = avatarSrc;
+            if (usernameElement) usernameElement.textContent = player.username;
+        } else {
+            // No player for this position
+            if (avatarElement) avatarElement.src = 'avatars/avatar_default.jpg';
+            if (usernameElement) usernameElement.textContent = '-';
+        }
+    }
+}
+
+// Setup infinite scroll
+function setupInfiniteScroll() {
+    const leaderboardList = document.getElementById('leaderboard-list');
+    if (!leaderboardList) return;
+    
+    // Remove existing scroll listener if any
+    leaderboardList.removeEventListener('scroll', handleScroll);
+    
+    // Add scroll listener
+    leaderboardList.addEventListener('scroll', handleScroll);
+}
+
+// Handle scroll event for infinite loading
+function handleScroll() {
+    const leaderboardList = document.getElementById('leaderboard-list');
+    if (!leaderboardList) return;
+    
+    // Check if we're near the bottom of the scroll area
+    const scrollPosition = leaderboardList.scrollTop + leaderboardList.clientHeight;
+    const scrollHeight = leaderboardList.scrollHeight;
+    
+    // Load more data when user scrolls to 80% of the list
+    if (scrollPosition > scrollHeight * 0.8 && !isLoadingMore && hasMoreData) {
+        loadLeaderboardData();
     }
 }
 
@@ -124,6 +331,8 @@ async function renderLeaderboardUserRow() {
             const res = await fetch('/api/seasons/active');
             if (res.ok) {
                 season = await res.json();
+                // Store the season in the global variable for later use
+                activeSeason = season;
             } else {
                 // Solution de secours
                 const fallbackRes = await fetch('/api/active-season');
@@ -131,6 +340,8 @@ async function renderLeaderboardUserRow() {
                     throw new Error('Impossible de récupérer la saison active');
                 }
                 season = await fallbackRes.json();
+                // Store the season in the global variable for later use
+                activeSeason = season;
             }
             
             console.log(`✅ Saison active trouvée: ${season.id} (Saison ${season.seasonNumber})`);
@@ -249,112 +460,58 @@ async function renderLeaderboardUserRow() {
                     let positionData;
                     try {
                         positionData = JSON.parse(responseText);
-                        console.log(`🔄 Données JSON parsées:`, positionData);
-                    } catch (parseError) {
-                        console.error(`❌ Erreur de parsing JSON:`, parseError);
-                        console.log(`⚠️ La réponse n'est pas un JSON valide`);
-                        userRank = '-';
-                        throw new Error('Réponse non-JSON: ' + responseText);
-                    }
-                    
-                    // Vérifier si la position est bien présente dans la réponse
-                    if (positionData && positionData.hasOwnProperty('position')) {
-                        userRank = positionData.position;
-                        console.log(`✅ Position utilisateur récupérée: ${userRank}`);
-                    } else {
-                        console.warn(`⚠️ La réponse ne contient pas de propriété 'position':`, positionData);
-                        userRank = '-';
+                        console.log(`✅ Rang utilisateur récupéré:`, positionData);
+                        
+                        if (positionData && positionData.position) {
+                            userRank = positionData.position;
+                            console.log(`🏆 Position finale de l'utilisateur: ${userRank}`);
+                        }
+                    } catch (jsonError) {
+                        console.error(`❌ Erreur lors du parsing JSON pour le rang utilisateur:`, jsonError);
+                        console.log(`📄 Réponse qui a causé l'erreur:`, responseText);
                     }
                 } else {
-                    // Essayer de récupérer le message d'erreur pour diagnostiquer
-                    try {
-                        const errorText = await userPositionRes.text();
-                        console.error(`❌ Erreur de l'API (${userPositionRes.status}): ${errorText}`);
-                    } catch (e) {
-                        console.error(`❌ Erreur HTTP: ${userPositionRes.status} ${userPositionRes.statusText}`);
-                    }
-                    
-                    console.log(`⚠️ Impossible de récupérer la position utilisateur, utilisation de la valeur par défaut`);
+                    console.error(`❌ Échec de récupération du rang: HTTP ${userPositionRes.status}`);
                 }
-            } catch (positionError) {
-                console.error('❌ Erreur lors de la récupération de la position utilisateur:', positionError);
+                
+            } catch (posError) {
+                console.error(`❌ Erreur lors de la récupération du rang utilisateur:`, posError);
             }
             
-            // S'assurer que userRank est toujours une valeur valide pour l'affichage
-            if (userRank === undefined || userRank === null) {
-                console.warn('⚠️ userRank est undefined ou null, utilisation de la valeur par défaut');
-                userRank = '-';
-            }
-            
-            // Forcer le type de userRank en string pour l'affichage
-            userRank = String(userRank);
-            
-            console.log(`🏆 Valeur finale de userRank pour affichage: "${userRank}"`);
-            
-            // Écrire également la valeur dans la console du navigateur en gros pour vérification
-            console.log('%c RANG UTILISATEUR: ' + userRank, 'font-size: 24px; color: red; background-color: yellow;');
-            
-            // 4. Construire la rangée HTML avec le rang et le score
-            const userRow = `
+            // Génération du HTML de la ligne utilisateur
+            userRowElement.innerHTML = `
                 <div class="leaderboard-rank">${userRank}</div>
                 <div class="leaderboard-avatar"><img src="${avatarImgSrc}" alt="${username}"></div>
                 <div class="leaderboard-username">${username} <span style="color:#00FF9D;">(You)</span></div>
                 <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${userSeasonScore}</div>
             `;
             
-            // 5. Insérer dans le DOM
-            userRowElement.innerHTML = userRow;
-            
         } catch (error) {
             console.error('❌ Erreur lors de la récupération des données utilisateur:', error);
-            userRowElement.innerHTML = '<div style="color:orange;">Impossible de charger votre classement. ⚠️</div>';
-            }
-            
+            userRowElement.innerHTML = '<div style="color:orange;">Erreur lors du chargement de vos données. ⚠️</div>';
+        }
+        
     } catch (error) {
         console.error('❌ Erreur globale dans renderLeaderboardUserRow:', error);
-        userRowElement.innerHTML = '<div style="color:orange;">Une erreur s\'est produite. ⚠️</div>';
+        if (userRowElement) {
+            userRowElement.innerHTML = '<div style="color:orange;">Une erreur est survenue. ⚠️</div>';
         }
-    }
-
-// Exposer les fonctions nécessaires globalement
-    window.showLeaderboard = showLeaderboard;
-window.hideLeaderboard = hideLeaderboard;
-
-// Fonction pour afficher le prix de la saison pour le gagnant (1er du podium)
-function updatePrizeDisplay(prizeMoney) {
-    const prizeElement = document.getElementById('podium-1-prize');
-    if (!prizeElement) {
-        console.error('❌ Élément de prix du podium non trouvé dans le DOM');
-        return;
-    }
-    
-    try {
-        // Vérifier si prizeMoney est valide
-        if (prizeMoney === undefined || prizeMoney === null) {
-            console.warn('⚠️ Montant du prix non défini, utilisation de la valeur par défaut');
-            prizeElement.textContent = '$0';
-            return;
-        }
-        
-        // Convertir en nombre si c'est une chaîne
-        const prizeValue = typeof prizeMoney === 'string' ? parseFloat(prizeMoney) : prizeMoney;
-        
-        // Vérifier si le montant est un nombre valide
-        if (isNaN(prizeValue)) {
-            console.error('❌ Montant du prix invalide:', prizeMoney);
-            prizeElement.textContent = '$0';
-            return;
-        }
-        
-        // Formater le montant avec le symbole $ sans décimales
-        const formattedPrize = `$${Math.floor(prizeValue)}`;
-        console.log(`💰 Prix de la saison formaté: ${formattedPrize}`);
-        
-        // Mettre à jour l'élément dans le DOM
-        prizeElement.textContent = formattedPrize;
-        
-    } catch (error) {
-        console.error('❌ Erreur lors de l\'affichage du prix:', error);
-        prizeElement.textContent = '$0';
     }
 }
+
+// Function to update prize display
+function updatePrizeDisplay(prizeMoney) {
+    const prizeElement = document.getElementById('podium-1-prize');
+    if (prizeElement) {
+        // Format prize money nicely with 2 decimal places if it's not a whole number
+        const formattedPrize = Number.isInteger(prizeMoney) ? 
+            `$${prizeMoney}` : 
+            `$${parseFloat(prizeMoney).toFixed(2)}`;
+        
+        prizeElement.textContent = formattedPrize;
+    }
+}
+
+// Export functions for global access
+window.showLeaderboard = showLeaderboard;
+window.hideLeaderboard = hideLeaderboard;
