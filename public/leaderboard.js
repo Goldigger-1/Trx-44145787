@@ -189,7 +189,7 @@ async function loadLeaderboardPageData(page) {
     try {
         // Utiliser l'API existante qui supporte la pagination
         // Mais il est possible qu'elle ignore les paramètres de pagination et renvoie tout
-        const apiUrl = `/api/leaderboard/paginated/${activeSeason.id}?page=${page}&limit=15`;
+        const apiUrl = `/api/seasons/${activeSeason.id}/ranking?page=${page}&limit=15`;
         console.log(`🔍 URL API EXISTANTE: ${apiUrl}`);
         
         // Enregistrer le temps de début pour mesurer la performance
@@ -230,22 +230,42 @@ async function loadLeaderboardPageData(page) {
         let rankingData;
         try {
             rankingData = JSON.parse(responseText);
+            console.log(`🔍 Structure des données reçues:`, typeof rankingData, Array.isArray(rankingData) ? 'Array' : 'Not Array');
+            if (!Array.isArray(rankingData)) {
+                console.log(`🔍 Propriétés de l'objet:`, Object.keys(rankingData));
+                // Si c'est un objet avec une propriété 'data' ou 'ranking', utilisons-la
+                if (rankingData.data && Array.isArray(rankingData.data)) {
+                    console.log(`🔍 Utilisation de rankingData.data (${rankingData.data.length} éléments)`);
+                    rankingData = rankingData.data;
+                } else if (rankingData.ranking && Array.isArray(rankingData.ranking)) {
+                    console.log(`🔍 Utilisation de rankingData.ranking (${rankingData.ranking.length} éléments)`);
+                    rankingData = rankingData.ranking;
+                } else if (rankingData.users && Array.isArray(rankingData.users)) {
+                    console.log(`🔍 Utilisation de rankingData.users (${rankingData.users.length} éléments)`);
+                    rankingData = rankingData.users;
+                }
+            }
         } catch (e) {
             console.error(`❌ Erreur parsing JSON:`, e);
             console.error(`🔍 Contenu non parsable: ${responseText}`);
             throw new Error('Invalid JSON response from leaderboard endpoint');
         }
         
-        // Utiliser les données paginées de la nouvelle API
-        const items = Array.isArray(rankingData.items) ? rankingData.items : [];
-        const totalCount = rankingData.pagination ? rankingData.pagination.totalCount : undefined;
+        // SIMULATION DE PAGINATION CÔTÉ CLIENT
+        // Même si l'API renvoie tout, on ne prend que 15 éléments à la fois
+        console.log(`📊 Nombre total d'éléments reçus: ${rankingData.length}`);
         
-        console.log(`📊 Nombre total d'éléments reçus: ${items.length}`);
+        if (rankingData.length > 500) {
+            console.warn(`⚠️⚠️⚠️ ALERTE: L'API a renvoyé ${rankingData.length} éléments - Probable qu'elle ignore la pagination`);
+        }
         
-        // PAGINATION MANUELLE inutile car l'API gère déjà la pagination
-        const paginatedData = items;
+        // PAGINATION MANUELLE: prendre une tranche de 15 éléments correspondant à la page demandée
+        const startIndex = page * 15;
+        const paginatedData = Array.isArray(rankingData) 
+            ? rankingData.slice(startIndex, startIndex + 15) 
+            : [];
         
-        console.log(`📊 Simulation pagination: page ${page}, indices 0 à ${paginatedData.length}`);
+        console.log(`📊 Simulation pagination: page ${page}, indices ${startIndex} à ${startIndex + 15}`);
         console.log(`📊 Éléments conservés après pagination manuelle: ${paginatedData.length}`);
         
         // Déterminer s'il y a plus de données basé sur la pagination manuelle
@@ -370,9 +390,14 @@ function renderLeaderboardItems(items, clearList) {
     }
     
     // Exit if no items
+    console.log(`🔍 renderLeaderboardItems - Type de items: ${typeof items}, Est un tableau: ${Array.isArray(items)}, Longueur: ${Array.isArray(items) ? items.length : 'N/A'}`);    
+    console.log(`🔍 renderLeaderboardItems - Items reçus:`, JSON.stringify(items).substring(0, 500));    
+    
     if (!Array.isArray(items) || items.length === 0) {
+        console.error(`❌ Aucun élément à afficher dans le leaderboard: ${!Array.isArray(items) ? 'items n\'est pas un tableau' : 'tableau vide'}`);        
         if (clearList) {
             // Show empty state if this is the first load and no data
+            console.log(`⚠️ Affichage du message "No players in this season yet"`);            
             leaderboardList.innerHTML = `
                 <div class="leaderboard-empty-message">
                     <img src="ressources/empty-ranking.png" alt="Empty ranking">
