@@ -17,11 +17,22 @@ function showLeaderboard() {
         currentPage = 0;
         isLoadingMore = false;
         hasMoreData = true;
+        activeSeason = null; // Reset season to force reload
         
         // Show loading overlay
         const loadingOverlay = document.getElementById('leaderboard-loading-overlay');
         if (loadingOverlay) {
             loadingOverlay.style.display = 'flex';
+        }
+        
+        // Make sure the leaderboard list has proper styling for scrolling
+        const leaderboardList = document.getElementById('leaderboard-list');
+        if (leaderboardList) {
+            // Ensure the list is scrollable
+            leaderboardList.style.overflowY = 'auto';
+            leaderboardList.style.maxHeight = '100%';
+            leaderboardList.style.height = '100%';
+            leaderboardList.innerHTML = ''; // Clear old content
         }
         
         // Load initial leaderboard data and then user row
@@ -205,24 +216,38 @@ function setupInfiniteScroll() {
     const leaderboardList = document.getElementById('leaderboard-list');
     if (!leaderboardList) return;
     
+    console.log('📜 Setting up infinite scroll event listener');
+    
     // Remove existing scroll listener if any
     leaderboardList.removeEventListener('scroll', handleScroll);
     
     // Add scroll listener
     leaderboardList.addEventListener('scroll', handleScroll);
+    
+    // Log to confirm the setup
+    console.log('✅ Infinite scroll event listener attached to leaderboard-list');
 }
 
 // Handle scroll event for infinite loading
-function handleScroll() {
+function handleScroll(event) {
     const leaderboardList = document.getElementById('leaderboard-list');
     if (!leaderboardList) return;
     
     // Check if we're near the bottom of the scroll area
-    const scrollPosition = leaderboardList.scrollTop + leaderboardList.clientHeight;
-    const scrollHeight = leaderboardList.scrollHeight;
+    const scrollPosition = leaderboardList.scrollTop;
+    const visibleHeight = leaderboardList.clientHeight;
+    const totalHeight = leaderboardList.scrollHeight;
     
-    // Load more data when user scrolls to 80% of the list
-    if (scrollPosition > scrollHeight * 0.8 && !isLoadingMore && hasMoreData) {
+    // Log scroll information for debugging
+    console.log(`📊 Scroll info - position: ${scrollPosition}, visible: ${visibleHeight}, total: ${totalHeight}`);
+    
+    // Calculate how close we are to the bottom (as a percentage)
+    const scrollPercentage = (scrollPosition + visibleHeight) / totalHeight;
+    console.log(`📊 Scroll percentage: ${(scrollPercentage * 100).toFixed(2)}%`);
+    
+    // Load more data when user scrolls to 75% of the list
+    if (scrollPercentage > 0.75 && !isLoadingMore && hasMoreData) {
+        console.log('📜 Triggering load of more data due to scroll position');
         loadLeaderboardData();
     }
 }
