@@ -1209,7 +1209,7 @@ app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
       LIMIT ? OFFSET ?
     `;
     
-    const [scores] = await sequelize.query(query, {
+    const scores = await sequelize.query(query, {
       replacements: [seasonId, limit, offset],
       type: Sequelize.QueryTypes.SELECT,
       raw: true,
