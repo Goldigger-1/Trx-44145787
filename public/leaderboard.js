@@ -187,16 +187,15 @@ async function loadLeaderboardPageData(page) {
     console.log(`🔍 Chargement UNIQUEMENT de la page ${page} (limite 15) pour la saison ${activeSeason.id}`);
     
     try {
-        // Utiliser l'API existante qui supporte la pagination
-        // Mais il est possible qu'elle ignore les paramètres de pagination et renvoie tout
+        // Use the direct API path without trying to construct based on current URL
         const apiUrl = `/api/seasons/${activeSeason.id}/ranking?page=${page}&limit=15`;
-        console.log(`🔍 URL API EXISTANTE: ${apiUrl}`);
+        console.log(`🔍 URL API: ${apiUrl}`);
         
         // Enregistrer le temps de début pour mesurer la performance
         const startTime = Date.now();
         
         // Utiliser l'API existante avec pagination
-        console.log('⏳ Envoi de la requête à l\'API existante...');
+        console.log('⏳ Envoi de la requête à l\'API...');
         const rankingRes = await fetch(apiUrl);
         
         // Calculer le temps de réponse
@@ -706,25 +705,9 @@ async function renderLeaderboardUserRow() {
             try {
                 console.log(`🔍 Tentative de récupération du rang pour ${userId} dans la saison ${season.id}...`);
                 
-                // Déterminer la base de l'URL avec le bon chemin
-                let baseUrl = window.location.origin;
-                
-                // Vérifier si nous sommes dans le chemin /test
-                const pathname = window.location.pathname;
-                const basePathMatch = pathname.match(/^\/([^\/]+)/);
-                const basePath = basePathMatch ? basePathMatch[1] : '';
-                
-                if (basePath) {
-                    console.log(`🌐 Détection d'un chemin de base: /${basePath}`);
-                    // Ajouter le chemin de base à l'URL
-                    baseUrl = `${baseUrl}/${basePath}`;
-                }
-                
-                console.log(`🌐 URL de base déterminée: ${baseUrl}`);
-                
-                // URL complète avec le chemin de base correct
-                const apiUrl = `${baseUrl}/api/seasons/${season.id}/user-position?userId=${encodeURIComponent(userId)}`;
-                console.log(`🔗 URL complète de l'API: ${apiUrl}`);
+                // Simplify the URL construction to use absolute path from root
+                const apiUrl = `/api/seasons/${season.id}/user-position?userId=${encodeURIComponent(userId)}`;
+                console.log(`🔗 URL de l'API: ${apiUrl}`);
                 
                 console.log(`⏳ Envoi de la requête...`);
                 const userPositionRes = await fetch(apiUrl, {
