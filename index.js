@@ -1234,10 +1234,30 @@ app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
       };
     }) : [];
     
-    console.log(`✅ Found ${ranking.length} users in ranking for season ${seasonId} (page: ${page})`);
+    // Ajoute le comptage total pour la pagination
+    const countQuery = `
+      SELECT COUNT(*) as count
+      FROM "SeasonScores"
+      WHERE seasonId = ?
+    `;
+    const [[{ count: totalCount }]] = await sequelize.query(countQuery, {
+      replacements: [seasonId],
+      type: Sequelize.QueryTypes.SELECT,
+    });
     
-    // Return as array
-    res.status(200).json(ranking);
+    console.log(`✅ Found ${ranking.length} users in ranking for season ${seasonId} (page: ${page}), totalCount: ${totalCount}`);
+    
+    // Retourne la structure complète attendue par le frontend
+    res.status(200).json({
+      items: ranking,
+      pagination: {
+        page,
+        limit,
+        totalCount: parseInt(totalCount, 10),
+        offset,
+        hasMore: offset + ranking.length < totalCount
+      }
+    });
   } catch (error) {
     console.error('❌ Error fetching season ranking:', error);
     res.status(500).json({ 
