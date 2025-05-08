@@ -190,23 +190,24 @@ async function loadLeaderboardPageData(page) {
         }
         
         // Déterminer la base de l'URL avec le bon chemin
-        let baseUrl = window.location.origin;
+        let baseUrl = '';
         
-        // Vérifier si nous sommes dans le chemin /test
+        // Vérifier si nous sommes dans un chemin spécifique
         const pathname = window.location.pathname;
         const basePathMatch = pathname.match(/^\/([^\/]+)/);
         const basePath = basePathMatch ? basePathMatch[1] : '';
         
         if (basePath) {
-            console.log(`🌐 Détection d'un chemin de base: /${basePath}`);
+            console.log(`🌐 Détection d'un chemin de base pour l'API: /${basePath}`);
             // Ajouter le chemin de base à l'URL
-            baseUrl = `${baseUrl}/${basePath}`;
+            baseUrl = `/${basePath}`;
         }
         
-        console.log(`🌐 URL de base déterminée: ${baseUrl}`);
+        console.log(`🌐 Chemin de base pour l'API déterminé: ${baseUrl || '/'}`);
         
-        // Url API paginée avec le chemin de base correct
+        // Url API paginée avec le bon chemin de base
         const apiUrl = `${baseUrl}/api/leaderboard/paginated/${activeSeason.id}?page=${page}&limit=15`;
+        
         console.log(`🔗 URL complète de l'API: ${apiUrl}`);
         
         // Utiliser la nouvelle API pour pagination stricte
