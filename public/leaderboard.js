@@ -236,21 +236,16 @@ async function loadLeaderboardPageData(page) {
             throw new Error('Invalid JSON response from leaderboard endpoint');
         }
         
-        // SIMULATION DE PAGINATION CÔTÉ CLIENT
-        // Même si l'API renvoie tout, on ne prend que 15 éléments à la fois
-        console.log(`📊 Nombre total d'éléments reçus: ${rankingData.length}`);
+        // Utiliser les données paginées de la nouvelle API
+        const items = Array.isArray(rankingData.items) ? rankingData.items : [];
+        const totalCount = rankingData.pagination ? rankingData.pagination.totalCount : undefined;
         
-        if (rankingData.length > 500) {
-            console.warn(`⚠️⚠️⚠️ ALERTE: L'API a renvoyé ${rankingData.length} éléments - Probable qu'elle ignore la pagination`);
-        }
+        console.log(`📊 Nombre total d'éléments reçus: ${items.length}`);
         
-        // PAGINATION MANUELLE: prendre une tranche de 15 éléments correspondant à la page demandée
-        const startIndex = page * 15;
-        const paginatedData = Array.isArray(rankingData) 
-            ? rankingData.slice(startIndex, startIndex + 15) 
-            : [];
+        // PAGINATION MANUELLE inutile car l'API gère déjà la pagination
+        const paginatedData = items;
         
-        console.log(`📊 Simulation pagination: page ${page}, indices ${startIndex} à ${startIndex + 15}`);
+        console.log(`📊 Simulation pagination: page ${page}, indices 0 à ${paginatedData.length}`);
         console.log(`📊 Éléments conservés après pagination manuelle: ${paginatedData.length}`);
         
         // Déterminer s'il y a plus de données basé sur la pagination manuelle
