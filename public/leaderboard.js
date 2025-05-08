@@ -1,216 +1,51 @@
 // Leaderboard Page Logic
 // Réimplémentation minimale pour afficher seulement la rangée utilisateur
 
-// Variables globales pour le chargement progressif
-let currentSeasonId = null;
-let isLoadingScores = false;
+// Variables globales pour la pagination
 let currentPage = 0;
-let hasMoreScores = true;
-const SCORES_PER_PAGE = 15;
+let isLoading = false;
+let hasMoreData = true;
+const ITEMS_PER_PAGE = 15;
 
 // Fonction pour afficher/masquer le leaderboard
 function showLeaderboard() {
     const leaderboardScreen = document.getElementById('leaderboard-screen');
     if (leaderboardScreen) {
         leaderboardScreen.style.display = 'flex';
-        
-        // Réinitialiser les variables de pagination
-        currentPage = 0;
-        hasMoreScores = true;
-        
-        // Vider le conteneur de scores existant
-        const scoresContainer = document.getElementById('leaderboard-scores-container');
-        if (scoresContainer) {
-            scoresContainer.innerHTML = '';
-        }
                 
         // Mettre à jour la rangée utilisateur et initialiser le compte à rebours
-        renderLeaderboardUserRow()
-            .then(() => {
-                // Charger les premiers scores après avoir récupéré les données de saison
-                loadLeaderboardScores();
-            });
-            
-        // Configurer l'écouteur d'événements pour le défilement
-        setupInfiniteScroll();
+        renderLeaderboardUserRow();
+
+        // Réinitialiser l'état du leaderboard
+        resetLeaderboard();
+        
+        // Charger la première page du leaderboard
+        loadLeaderboardPage();
     }
 }
 
-// Fonction pour configurer le défilement infini
-function setupInfiniteScroll() {
-    const scoresContainer = document.getElementById('leaderboard-scores-container');
-    if (!scoresContainer) return;
+// Fonction pour réinitialiser l'état du leaderboard
+function resetLeaderboard() {
+    // Réinitialiser les variables de pagination
+    currentPage = 0;
+    isLoading = false;
+    hasMoreData = true;
     
-    // Vérifier si un écouteur existe déjà et le supprimer
-    if (scoresContainer._scrollListener) {
-        scoresContainer.removeEventListener('scroll', scoresContainer._scrollListener);
+    // Vider la liste existante
+    const leaderboardList = document.getElementById('leaderboard-list');
+    if (leaderboardList) {
+        // Garder la ligne utilisateur (qui est généralement le premier enfant)
+        const userRow = document.getElementById('leaderboard-user-row');
+        leaderboardList.innerHTML = '';
+        if (userRow) {
+            leaderboardList.appendChild(userRow);
+        }
     }
     
-    // Créer un nouvel écouteur d'événements
-    scoresContainer._scrollListener = function() {
-        // Déterminer si l'utilisateur est proche du bas
-        if (scoresContainer.scrollHeight - scoresContainer.scrollTop <= scoresContainer.clientHeight * 1.5) {
-            // Charger plus de scores si nécessaire et pas déjà en cours de chargement
-            if (hasMoreScores && !isLoadingScores) {
-                loadLeaderboardScores();
-            }
-        }
-    };
-    
-    // Ajouter l'écouteur d'événements
-    scoresContainer.addEventListener('scroll', scoresContainer._scrollListener);
-}
-
-// Fonction pour charger les scores du leaderboard progressivement
-async function loadLeaderboardScores() {
-    // Vérifier si le conteneur existe
-    const scoresContainer = document.getElementById('leaderboard-scores-container');
-    if (!scoresContainer) {
-        console.error('❌ Conteneur de scores non trouvé dans le DOM');
-        return;
-    }
-    
-    // Vérifier si on a déjà atteint la fin des scores ou si un chargement est en cours
-    if (!hasMoreScores || isLoadingScores) return;
-    
-    // Marquer comme en cours de chargement
-    isLoadingScores = true;
-    
-    try {
-        // Si c'est la première page, afficher un indicateur de chargement
-        if (currentPage === 0) {
-            scoresContainer.innerHTML = '<div class="leaderboard-loading">Chargement...</div>';
-        }
-        
-        // Calculer les paramètres de pagination
-        const limit = SCORES_PER_PAGE;
-        const offset = currentPage * SCORES_PER_PAGE;
-        
-        // Obtenir l'ID de la saison active si pas déjà récupéré
-        if (!currentSeasonId) {
-            try {
-                const res = await fetch('/api/seasons/active');
-                if (res.ok) {
-                    const season = await res.json();
-                    currentSeasonId = season.id;
-                } else {
-                    // Solution de secours
-                    const fallbackRes = await fetch('/api/active-season');
-                    if (fallbackRes.ok) {
-                        const season = await fallbackRes.json();
-                        currentSeasonId = season.id;
-                    } else {
-                        throw new Error('Impossible de récupérer la saison active');
-                    }
-                }
-            } catch (error) {
-                console.error('❌ Erreur lors de la récupération de l\'ID de saison:', error);
-                scoresContainer.innerHTML = '<div style="color:orange;">Impossible de charger le classement. ⚠️</div>';
-                isLoadingScores = false;
-                return;
-            }
-        }
-        
-        // URL de l'API pour obtenir les scores paginés
-        let baseUrl = window.location.origin;
-        const pathname = window.location.pathname;
-        const basePathMatch = pathname.match(/^\/([^\/]+)/);
-        const basePath = basePathMatch ? basePathMatch[1] : '';
-        
-        if (basePath) {
-            baseUrl = `${baseUrl}/${basePath}`;
-        }
-        
-        const apiUrl = `${baseUrl}/api/seasons/${currentSeasonId}/scores?limit=${limit}&offset=${offset}`;
-        console.log(`📊 Chargement des scores: page ${currentPage + 1}, offset ${offset}, limit ${limit}`);
-        
-        // Faire la requête API
-        const response = await fetch(apiUrl);
-        
-        // Si la réponse n'est pas OK, afficher une erreur
-        if (!response.ok) {
-            console.error(`❌ Erreur API: ${response.status} ${response.statusText}`);
-            
-            if (currentPage === 0) {
-                scoresContainer.innerHTML = '<div style="color:orange;">Impossible de charger le classement. ⚠️</div>';
-            }
-            
-            isLoadingScores = false;
-            return;
-        }
-        
-        // Récupérer les données de score
-        const data = await response.json();
-        
-        // Vérifier si nous avons des scores
-        if (!Array.isArray(data.scores) || data.scores.length === 0) {
-            console.log('ℹ️ Aucun score supplémentaire disponible');
-            hasMoreScores = false;
-            
-            // Si c'est la première page et qu'il n'y a pas de scores, afficher un message
-            if (currentPage === 0) {
-                scoresContainer.innerHTML = '<div class="leaderboard-no-scores">Aucun score disponible pour cette saison.</div>';
-            }
-            
-            isLoadingScores = false;
-            return;
-        }
-        
-        // Supprimer l'indicateur de chargement si c'est la première page
-        if (currentPage === 0) {
-            scoresContainer.innerHTML = '';
-        }
-        
-        // Ajouter chaque score au conteneur
-        data.scores.forEach((scoreData, index) => {
-            // Calculer le rang global
-            const rank = offset + index + 1;
-            
-            // Créer l'élément de ligne
-            const scoreRow = document.createElement('div');
-            scoreRow.className = 'leaderboard-row';
-            
-            // Déterminer si c'est un podium (top 3)
-            const isPodium = rank <= 3;
-            if (isPodium) {
-                scoreRow.classList.add('leaderboard-podium');
-                scoreRow.classList.add(`leaderboard-rank-${rank}`);
-            }
-            
-            // Obtenir l'URL de l'avatar ou utiliser l'avatar par défaut
-            const avatarSrc = scoreData.avatarSrc || 'avatars/avatar_default.jpg';
-            
-            // Construire le contenu HTML de la ligne
-            scoreRow.innerHTML = `
-                <div class="leaderboard-rank">${rank}</div>
-                <div class="leaderboard-avatar"><img src="${avatarSrc}" alt="${scoreData.username}"></div>
-                <div class="leaderboard-username">${scoreData.username}</div>
-                <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${scoreData.score}</div>
-            `;
-            
-            // Ajouter la ligne au conteneur
-            scoresContainer.appendChild(scoreRow);
-        });
-        
-        // Mettre à jour la page courante
-        currentPage++;
-        
-        // Vérifier si nous avons atteint la fin des données
-        if (data.scores.length < SCORES_PER_PAGE) {
-            console.log('ℹ️ Fin des scores atteinte');
-            hasMoreScores = false;
-        }
-        
-    } catch (error) {
-        console.error('❌ Erreur lors du chargement des scores:', error);
-        
-        // Afficher un message d'erreur seulement si c'est la première page
-        if (currentPage === 0) {
-            scoresContainer.innerHTML = '<div style="color:orange;">Erreur lors du chargement du classement. ⚠️</div>';
-        }
-    } finally {
-        // Marquer comme plus en cours de chargement
-        isLoadingScores = false;
+    // Afficher l'overlay de chargement
+    const loadingOverlay = document.getElementById('leaderboard-loading-overlay');
+    if (loadingOverlay) {
+        loadingOverlay.style.display = 'flex';
     }
 }
 
@@ -219,13 +54,6 @@ function hideLeaderboard() {
     const leaderboardScreen = document.getElementById('leaderboard-screen');
     if (leaderboardScreen) {
         leaderboardScreen.style.display = 'none';
-        
-        // Supprimer l'écouteur d'événements de défilement
-        const scoresContainer = document.getElementById('leaderboard-scores-container');
-        if (scoresContainer && scoresContainer._scrollListener) {
-            scoresContainer.removeEventListener('scroll', scoresContainer._scrollListener);
-            scoresContainer._scrollListener = null;
-        }
     }
 }
 
@@ -333,8 +161,6 @@ async function renderLeaderboardUserRow() {
             const res = await fetch('/api/seasons/active');
             if (res.ok) {
                 season = await res.json();
-                // Stocker l'ID de la saison pour le chargement des scores
-                currentSeasonId = season.id;
             } else {
                 // Solution de secours
                 const fallbackRes = await fetch('/api/active-season');
@@ -342,8 +168,6 @@ async function renderLeaderboardUserRow() {
                     throw new Error('Impossible de récupérer la saison active');
                 }
                 season = await fallbackRes.json();
-                // Stocker l'ID de la saison pour le chargement des scores
-                currentSeasonId = season.id;
             }
             
             console.log(`✅ Saison active trouvée: ${season.id} (Saison ${season.seasonNumber})`);
@@ -529,8 +353,179 @@ async function renderLeaderboardUserRow() {
         }
     }
 
+// Fonction pour charger une page du leaderboard
+async function loadLeaderboardPage() {
+    // Éviter les requêtes multiples simultanées
+    if (isLoading || !hasMoreData) return;
+    
+    try {
+        isLoading = true;
+        console.log(`📊 Chargement de la page ${currentPage + 1} du leaderboard...`);
+        
+        // 1. Récupérer la saison active si nécessaire
+        let seasonId;
+        try {
+            // Utiliser la saison déjà récupérée si possible
+            const titleElement = document.getElementById('leaderboard-season-title');
+            if (titleElement && titleElement.dataset.seasonId) {
+                seasonId = titleElement.dataset.seasonId;
+            } else {
+                // Récupérer la saison active
+                const res = await fetch('/api/seasons/active');
+                if (res.ok) {
+                    const season = await res.json();
+                    seasonId = season.id;
+                    
+                    // Stocker l'ID de saison pour les requêtes futures
+                    if (titleElement) {
+                        titleElement.dataset.seasonId = seasonId;
+                    }
+                } else {
+                    throw new Error('Impossible de récupérer la saison active');
+                }
+            }
+        } catch (error) {
+            console.error('❌ Erreur lors de la récupération de la saison active:', error);
+            hideLoadingOverlay();
+            return;
+        }
+        
+        // 2. Déterminer la base de l'URL
+        let baseUrl = window.location.origin;
+        const pathname = window.location.pathname;
+        const basePathMatch = pathname.match(/^\/([^\/]+)/);
+        const basePath = basePathMatch ? basePathMatch[1] : '';
+        
+        if (basePath) {
+            baseUrl = `${baseUrl}/${basePath}`;
+        }
+        
+        // 3. Construire l'URL pour récupérer la page de scores
+        const apiUrl = `${baseUrl}/api/seasons/${seasonId}/scores?page=${currentPage}&limit=${ITEMS_PER_PAGE}`;
+        console.log(`🔗 URL de l'API pour les scores: ${apiUrl}`);
+        
+        // 4. Récupérer les données
+        const response = await fetch(apiUrl, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'Cache-Control': 'no-cache'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Erreur HTTP: ${response.status}`);
+        }
+        
+        // 5. Analyser la réponse
+        const responseText = await response.text();
+        console.log(`📄 Réponse brute: ${responseText.substring(0, 200)}...`);
+        
+        let scoresData;
+        try {
+            scoresData = JSON.parse(responseText);
+        } catch (parseError) {
+            console.error('❌ Erreur lors du parsing JSON:', parseError);
+            throw new Error('Réponse non-JSON: ' + responseText.substring(0, 100));
+        }
+        
+        // 6. Vérifier si nous avons des données
+        if (!Array.isArray(scoresData) || scoresData.length === 0) {
+            console.log('⚠️ Aucune donnée supplémentaire disponible');
+            hasMoreData = false;
+            hideLoadingOverlay();
+            return;
+        }
+        
+        // 7. Ajouter les données au leaderboard
+        renderLeaderboardRows(scoresData);
+        
+        // 8. Incrémenter la page pour la prochaine requête
+        currentPage++;
+        
+        // 9. Déterminer s'il reste des données
+        hasMoreData = scoresData.length === ITEMS_PER_PAGE;
+        
+        // 10. Masquer l'overlay de chargement après la première page
+        if (currentPage === 1) {
+            hideLoadingOverlay();
+        }
+        
+    } catch (error) {
+        console.error('❌ Erreur lors du chargement du leaderboard:', error);
+        hideLoadingOverlay();
+    } finally {
+        isLoading = false;
+    }
+}
+
+// Fonction pour masquer l'overlay de chargement
+function hideLoadingOverlay() {
+    const loadingOverlay = document.getElementById('leaderboard-loading-overlay');
+    if (loadingOverlay) {
+        loadingOverlay.style.display = 'none';
+    }
+}
+
+// Fonction pour rendre les lignes du leaderboard
+function renderLeaderboardRows(scoresData) {
+    const leaderboardList = document.getElementById('leaderboard-list');
+    if (!leaderboardList) return;
+    
+    const currentUserId = getCurrentUserId();
+    
+    scoresData.forEach(item => {
+        // Créer un élément pour la rangée
+        const rowElement = document.createElement('div');
+        rowElement.className = 'leaderboard-row';
+        
+        // Vérifier si c'est l'utilisateur actuel
+        const isCurrentUser = item.userId === currentUserId;
+        
+        // Préparer l'avatar
+        let avatarSrc = item.avatarSrc || 'avatars/avatar_default.jpg';
+        if (!avatarSrc.startsWith('http') && !avatarSrc.startsWith('/')) {
+            avatarSrc = 'avatars/' + avatarSrc;
+        }
+        
+        // Construire le contenu de la rangée
+        rowElement.innerHTML = `
+            <div class="leaderboard-rank">${item.position || '-'}</div>
+            <div class="leaderboard-avatar"><img src="${avatarSrc}" alt="${item.username || 'User'}"></div>
+            <div class="leaderboard-username">${item.username || 'Anonymous'} ${isCurrentUser ? '<span style="color:#00FF9D;">(You)</span>' : ''}</div>
+            <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${item.score || 0}</div>
+        `;
+        
+        // Ajouter la rangée au leaderboard
+        leaderboardList.appendChild(rowElement);
+    });
+}
+
+// Initialiser la détection de défilement pour charger plus de données
+function initializeInfiniteScroll() {
+    const leaderboardContainer = document.getElementById('leaderboard-container');
+    if (!leaderboardContainer) return;
+    
+    // Fonction pour vérifier si l'utilisateur est proche du bas
+    function checkScrollPosition() {
+        if (!hasMoreData || isLoading) return;
+        
+        const scrollPosition = leaderboardContainer.scrollTop;
+        const scrollHeight = leaderboardContainer.scrollHeight;
+        const clientHeight = leaderboardContainer.clientHeight;
+        
+        // Si l'utilisateur est à moins de 200px du bas, charger plus de données
+        if (scrollHeight - scrollPosition - clientHeight < 200) {
+            loadLeaderboardPage();
+        }
+    }
+    
+    // Ajouter l'événement de défilement
+    leaderboardContainer.addEventListener('scroll', checkScrollPosition);
+}
+
 // Exposer les fonctions nécessaires globalement
-    window.showLeaderboard = showLeaderboard;
+window.showLeaderboard = showLeaderboard;
 window.hideLeaderboard = hideLeaderboard;
 
 // Fonction pour afficher le prix de la saison pour le gagnant (1er du podium)
@@ -571,3 +566,8 @@ function updatePrizeDisplay(prizeMoney) {
         prizeElement.textContent = '$0';
     }
 }
+
+// Initialiser la détection de défilement au chargement du document
+document.addEventListener('DOMContentLoaded', () => {
+    initializeInfiniteScroll();
+});
