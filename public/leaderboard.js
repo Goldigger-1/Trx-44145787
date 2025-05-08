@@ -281,45 +281,102 @@ async function loadNextLeaderboardPage() {
     
     try {
         isLoadingMore = true;
-        console.log(`📊 Loading NEXT page ${currentPage} for infinite scroll`);
+        
+        // Show loading indicator at the bottom of the list
+        showLoadingIndicator();
         
         await loadLeaderboardPageData(currentPage);
         
         // Increment page for next fetch
         currentPage++;
+        
+        // Hide loading indicator
+        hideLoadingIndicator();
     } catch (error) {
-        console.error('❌ Error loading leaderboard data:', error);
+        console.error('❌ Error loading next leaderboard page:', error);
+        hideLoadingIndicator();
     } finally {
         isLoadingMore = false;
     }
 }
 
+// Function to show loading indicator at the bottom of the list
+function showLoadingIndicator() {
+    const leaderboardList = document.getElementById('leaderboard-list');
+    if (!leaderboardList) return;
+    
+    // Check if the indicator already exists
+    if (document.getElementById('leaderboard-loading-indicator')) return;
+    
+    // Create loading indicator
+    const loadingIndicator = document.createElement('div');
+    loadingIndicator.id = 'leaderboard-loading-indicator';
+    loadingIndicator.className = 'leaderboard-loading-indicator';
+    loadingIndicator.innerHTML = `
+        <div class="loading-dots">
+            <span class="dot dot1"></span>
+            <span class="dot dot2"></span>
+            <span class="dot dot3"></span>
+        </div>
+    `;
+    
+    // Add the loading indicator to the bottom of the list
+    leaderboardList.appendChild(loadingIndicator);
+    
+    // Add CSS for the loading dots animation if not already in the page
+    if (!document.getElementById('loading-dots-style')) {
+        const style = document.createElement('style');
+        style.id = 'loading-dots-style';
+        style.textContent = `
+            .loading-dots {
+                display: flex;
+                justify-content: center;
+                padding: 15px 0;
+                width: 100%;
+            }
+            .dot {
+                background-color: #00FF9D;
+                border-radius: 50%;
+                display: inline-block;
+                height: 8px;
+                margin: 0 4px;
+                width: 8px;
+                opacity: 0.6;
+                animation: dot-pulse 1.4s infinite ease-in-out;
+            }
+            .dot1 { animation-delay: 0s; }
+            .dot2 { animation-delay: 0.2s; }
+            .dot3 { animation-delay: 0.4s; }
+            @keyframes dot-pulse {
+                0%, 80%, 100% { transform: scale(0.8); opacity: 0.6; }
+                40% { transform: scale(1.2); opacity: 1; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+}
+
+// Function to hide loading indicator
+function hideLoadingIndicator() {
+    const loadingIndicator = document.getElementById('leaderboard-loading-indicator');
+    if (loadingIndicator) {
+        loadingIndicator.remove();
+    }
+}
+
 // Function to render leaderboard items
 function renderLeaderboardItems(items, clearList) {
-    console.log(`🖌️🖌️🖌️ DÉBUT RENDU LISTE (${items ? items.length : 0} éléments, clearList=${clearList}) 🖌️🖌️🖌️`);
-    
     const leaderboardList = document.getElementById('leaderboard-list');
-    if (!leaderboardList) {
-        console.error('❌ Élément #leaderboard-list non trouvé dans le DOM');
-        return;
-    }
-    
-    // Mesurer taille initiale de la liste
-    const initialHeight = leaderboardList.scrollHeight;
-    console.log(`📏 Hauteur initiale de la liste: ${initialHeight}px`);
+    if (!leaderboardList) return;
     
     // Clear the list if this is the first page
     if (clearList) {
-        console.log('🧹 Effacement de la liste existante');
         leaderboardList.innerHTML = '';
     }
     
     // Exit if no items
     if (!Array.isArray(items) || items.length === 0) {
-        console.log('⚠️ Aucun élément à afficher');
-        
         if (clearList) {
-            console.log('🖌️ Affichage du message "liste vide"');
             // Show empty state if this is the first load and no data
             leaderboardList.innerHTML = `
                 <div class="leaderboard-empty-message">
@@ -330,15 +387,13 @@ function renderLeaderboardItems(items, clearList) {
         return;
     }
     
-    console.log(`⏳ Ajout de ${items.length} éléments à la liste`);
-    
     // Add each item to the list
     items.forEach((item, index) => {
-        // Calculate the actual rank (page * limit + index + 1)
-        // For page 0, ranks are 1-15, for page 1, ranks are 16-30, etc.
-        const rank = currentPage > 0 ? (currentPage - 1) * 15 + index + 1 : index + 1;
-        
-        // Include all players in the list, including top 3
+        // Calculate the actual rank based on the current page
+        // For page 0, ranks start at 1
+        // For page 1, ranks start at 16
+        // For page 2, ranks start at 31, etc.
+        const rank = currentPage * 15 + index + 1;
         
         // Ensure avatar path is properly formatted
         let avatarSrc = item.avatarSrc || 'avatars/avatar_default.jpg';
@@ -358,12 +413,6 @@ function renderLeaderboardItems(items, clearList) {
         
         leaderboardList.appendChild(rowElement);
     });
-    
-    // Mesurer la nouvelle taille après ajout
-    const newHeight = leaderboardList.scrollHeight;
-    console.log(`📏 Nouvelle hauteur après ajout: ${newHeight}px (différence: ${newHeight - initialHeight}px)`);
-    
-    console.log(`🖌️🖌️🖌️ FIN RENDU LISTE 🖌️🖌️🖌️`);
 }
 
 // Function to update podium with top 3 players
@@ -425,21 +474,11 @@ function handleScroll(event) {
     const visibleHeight = leaderboardList.clientHeight;
     const totalHeight = leaderboardList.scrollHeight;
     
-    // Log scroll information for debugging
-    console.log(`📊 INFO SCROLL - position: ${scrollPosition}, visible: ${visibleHeight}, total: ${totalHeight}`);
-    
     // Calculate how close we are to the bottom (as a percentage)
     const scrollPercentage = (scrollPosition + visibleHeight) / totalHeight;
-    console.log(`📊 Pourcentage de défilement: ${(scrollPercentage * 100).toFixed(2)}%`);
-    
-    // Check if totalHeight seems too large (signe que tous les éléments ont été chargés)
-    if (totalHeight > 5000) {
-        console.warn(`⚠️⚠️⚠️ ALERTE: Hauteur totale très grande (${totalHeight}px) - Possible que toute la liste ait été chargée`);
-    }
     
     // Load more data when user scrolls to 75% of the list
     if (scrollPercentage > 0.75 && !isLoadingMore && hasMoreData) {
-        console.log(`📜📜📜 DÉCLENCHEMENT CHARGEMENT PAGE ${currentPage} (scroll=${scrollPercentage.toFixed(2)})`);
         loadNextLeaderboardPage();
     }
 }
