@@ -35,8 +35,14 @@ function showLeaderboard() {
             leaderboardList.innerHTML = ''; // Clear old content
         }
         
-        // Load initial leaderboard data and then user row
-        loadLeaderboardData().then(() => {
+        // Get active season and then load only the first page of data
+        getActiveSeason().then(season => {
+            // Set active season
+            activeSeason = season;
+            
+            // Load only first page (15 users)
+            return loadLeaderboardPageData(0);
+        }).then(() => {
             // Hide loading overlay after initial load
             if (loadingOverlay) {
                 loadingOverlay.style.display = 'none';
@@ -44,6 +50,11 @@ function showLeaderboard() {
             
             // Set up scroll listener for infinite scrolling
             setupInfiniteScroll();
+        }).catch(error => {
+            console.error('❌ Error during leaderboard initialization:', error);
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'none';
+            }
         });
                 
         // Mettre à jour la rangée utilisateur et initialiser le compte à rebours
@@ -65,62 +76,76 @@ function hideLeaderboard() {
     }
 }
 
-// Function to load leaderboard data with pagination
-async function loadLeaderboardData() {
+// Function to get active season
+async function getActiveSeason() {
+    // Use the correct working endpoint for active season
+    const res = await fetch('/api/active-season');
+    if (!res.ok) {
+        throw new Error('Failed to fetch active season');
+    }
+    const season = await res.json();
+    console.log(`✅ Active season found for leaderboard: ${season.id} (Season ${season.seasonNumber})`);
+    
+    // Update podium prize
+    updatePrizeDisplay(season.prizeMoney);
+    
+    // Update season title
+    const titleElement = document.getElementById('leaderboard-season-title');
+    if (titleElement) {
+        titleElement.textContent = `Season ${season.seasonNumber}`;
+    }
+    
+    // Initialize countdown with end date
+    updateCountdown(season.endDate);
+    
+    return season;
+}
+
+// Function to load a specific page of leaderboard data
+async function loadLeaderboardPageData(page) {
+    if (!activeSeason) {
+        throw new Error('No active season found');
+    }
+    
+    console.log(`📊 Loading ONLY page ${page} (limit 15) for season ${activeSeason.id}`);
+    
+    const rankingRes = await fetch(`/api/seasons/${activeSeason.id}/ranking?page=${page}&limit=15`);
+    
+    if (!rankingRes.ok) {
+        throw new Error(`Failed to fetch leaderboard data: ${rankingRes.status}`);
+    }
+    
+    const rankingData = await rankingRes.json();
+    
+    // If we got fewer items than requested, there are no more pages
+    if (!Array.isArray(rankingData) || rankingData.length < 15) {
+        hasMoreData = false;
+        console.log('📊 No more data available (received less than 15 items)');
+    }
+    
+    // Update the leaderboard UI
+    renderLeaderboardItems(rankingData, page === 0);
+    
+    // Update podium if this is the first page
+    if (page === 0 && rankingData.length > 0) {
+        updatePodium(rankingData);
+    }
+    
+    return rankingData;
+}
+
+// Function to load next page of leaderboard data (used by infinite scroll)
+async function loadNextLeaderboardPage() {
     if (isLoadingMore || !hasMoreData) return;
     
     try {
         isLoadingMore = true;
+        console.log(`📊 Loading NEXT page ${currentPage} for infinite scroll`);
         
-        // Get active season if not already fetched
-        if (!activeSeason) {
-            // Use the correct working endpoint for active season
-            const res = await fetch('/api/active-season');
-            if (!res.ok) {
-                throw new Error('Failed to fetch active season');
-            }
-            activeSeason = await res.json();
-            console.log(`✅ Active season found for leaderboard: ${activeSeason.id} (Season ${activeSeason.seasonNumber})`);
-            
-            // Update podium prize
-            updatePrizeDisplay(activeSeason.prizeMoney);
-            
-            // Update season title
-            const titleElement = document.getElementById('leaderboard-season-title');
-            if (titleElement) {
-                titleElement.textContent = `Season ${activeSeason.seasonNumber}`;
-            }
-            
-            // Initialize countdown with end date
-            updateCountdown(activeSeason.endDate);
-        }
-        
-        // Fetch page of leaderboard data
-        console.log(`📊 Loading leaderboard page ${currentPage} for season ${activeSeason.id}`);
-        const rankingRes = await fetch(`/api/seasons/${activeSeason.id}/ranking?page=${currentPage}&limit=15`);
-        
-        if (!rankingRes.ok) {
-            throw new Error(`Failed to fetch leaderboard data: ${rankingRes.status}`);
-        }
-        
-        const rankingData = await rankingRes.json();
-        
-        // If we got fewer items than requested, there are no more pages
-        if (!Array.isArray(rankingData) || rankingData.length < 15) {
-            hasMoreData = false;
-        }
-        
-        // Update the leaderboard UI
-        renderLeaderboardItems(rankingData, currentPage === 0);
-        
-        // Update podium if this is the first page
-        if (currentPage === 0 && rankingData.length > 0) {
-            updatePodium(rankingData);
-        }
+        await loadLeaderboardPageData(currentPage);
         
         // Increment page for next fetch
         currentPage++;
-        
     } catch (error) {
         console.error('❌ Error loading leaderboard data:', error);
     } finally {
@@ -248,7 +273,7 @@ function handleScroll(event) {
     // Load more data when user scrolls to 75% of the list
     if (scrollPercentage > 0.75 && !isLoadingMore && hasMoreData) {
         console.log('📜 Triggering load of more data due to scroll position');
-        loadLeaderboardData();
+        loadNextLeaderboardPage();
     }
 }
 
