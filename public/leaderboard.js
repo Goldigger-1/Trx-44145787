@@ -189,7 +189,7 @@ async function loadLeaderboardPageData(page) {
     try {
         // Utiliser l'API existante qui supporte la pagination
         // Mais il est possible qu'elle ignore les paramètres de pagination et renvoie tout
-        const apiUrl = `/api/seasons/${activeSeason.id}/ranking?page=${page}&limit=15`;
+        const apiUrl = `http://softs.life:3000/api/seasons/${activeSeason.id}/ranking?page=${page}&limit=15`;
         console.log(`🔍 URL API EXISTANTE: ${apiUrl}`);
         
         // Enregistrer le temps de début pour mesurer la performance
@@ -236,32 +236,34 @@ async function loadLeaderboardPageData(page) {
             throw new Error('Invalid JSON response from leaderboard endpoint');
         }
         
-        // Supporte les deux formats : array direct ou objet avec .items
-        let items = Array.isArray(rankingData) ? rankingData : (rankingData.items || []);
-        console.log(`📊 Nombre total d'éléments reçus: ${items.length}`);
+        // SIMULATION DE PAGINATION CÔTÉ CLIENT
+        // Même si l'API renvoie tout, on ne prend que 15 éléments à la fois
+        console.log(`📊 Nombre total d'éléments reçus: ${rankingData.length}`);
         
-        if (items.length > 500) {
-            console.warn(`⚠️⚠️⚠️ ALERTE: L'API a renvoyé ${items.length} éléments - Probable qu'elle ignore la pagination`);
+        if (rankingData.length > 500) {
+            console.warn(`⚠️⚠️⚠️ ALERTE: L'API a renvoyé ${rankingData.length} éléments - Probable qu'elle ignore la pagination`);
         }
         
         // PAGINATION MANUELLE: prendre une tranche de 15 éléments correspondant à la page demandée
         const startIndex = page * 15;
-        const paginatedData = items.slice(startIndex, startIndex + 15);
+        const paginatedData = Array.isArray(rankingData) 
+            ? rankingData.slice(startIndex, startIndex + 15) 
+            : [];
         
         console.log(`📊 Simulation pagination: page ${page}, indices ${startIndex} à ${startIndex + 15}`);
         console.log(`📊 Éléments conservés après pagination manuelle: ${paginatedData.length}`);
         
         // Déterminer s'il y a plus de données basé sur la pagination manuelle
-        hasMoreData = startIndex + 15 < items.length;
-        console.log(`📊 A plus de données: ${hasMoreData} (${startIndex + 15} < ${items.length})`);
+        hasMoreData = startIndex + 15 < rankingData.length;
+        console.log(`📊 A plus de données: ${hasMoreData} (${startIndex + 15} < ${rankingData.length})`);
         
         // Update the leaderboard UI
         renderLeaderboardItems(paginatedData, page === 0);
         
         // Update podium if this is the first page
-        if (page === 0 && items.length > 0) {
+        if (page === 0 && rankingData.length > 0) {
             // Pour le podium, utiliser les 3 premiers de la liste complète
-            updatePodium(items.slice(0, 3));
+            updatePodium(rankingData.slice(0, 3));
         }
         
         console.log(`🔎🔎🔎 FIN CHARGEMENT PAGE ${page} 🔎🔎🔎`);
@@ -713,10 +715,10 @@ async function renderLeaderboardUserRow() {
                 const basePath = basePathMatch ? basePathMatch[1] : '';
                 
                 if (basePath) {
-              if (basePath === 'test') {
-    console.log(`🌐 Détection d'un chemin de base test: /${basePath}`);
-    baseUrl = `${baseUrl}/${basePath}`;
-}                }
+                    console.log(`🌐 Détection d'un chemin de base: /${basePath}`);
+                    // Ajouter le chemin de base à l'URL
+                    baseUrl = `${baseUrl}/${basePath}`;
+                }
                 
                 console.log(`🌐 URL de base déterminée: ${baseUrl}`);
                 
