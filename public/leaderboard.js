@@ -187,15 +187,16 @@ async function loadLeaderboardPageData(page) {
     console.log(`🔍 Chargement UNIQUEMENT de la page ${page} (limite 15) pour la saison ${activeSeason.id}`);
     
     try {
-        // Construire l'URL avec les paramètres
-        const apiUrl = `/api/leaderboard/paginated/${activeSeason.id}?page=${page}&limit=15`;
-        console.log(`🔍 URL API: ${apiUrl}`);
+        // Utiliser l'API existante qui supporte la pagination
+        // Mais il est possible qu'elle ignore les paramètres de pagination et renvoie tout
+        const apiUrl = `/api/seasons/${activeSeason.id}/ranking?page=${page}&limit=15`;
+        console.log(`🔍 URL API EXISTANTE: ${apiUrl}`);
         
         // Enregistrer le temps de début pour mesurer la performance
         const startTime = Date.now();
         
-        // Utiliser la nouvelle API spécifique pour la pagination stricte
-        console.log('⏳ Envoi de la requête...');
+        // Utiliser l'API existante avec pagination
+        console.log('⏳ Envoi de la requête à l\'API existante...');
         const rankingRes = await fetch(apiUrl);
         
         // Calculer le temps de réponse
@@ -226,46 +227,47 @@ async function loadLeaderboardPageData(page) {
         // Afficher les premiers caractères du corps (pour éviter des logs trop longs)
         console.log(`🔍 Début de la réponse: ${responseText.substring(0, 200)}${responseText.length > 200 ? '...' : ''}`);
         
-        let responseData;
+        let rankingData;
         try {
-            responseData = JSON.parse(responseText);
+            rankingData = JSON.parse(responseText);
         } catch (e) {
             console.error(`❌ Erreur parsing JSON:`, e);
             console.error(`🔍 Contenu non parsable: ${responseText}`);
             throw new Error('Invalid JSON response from leaderboard endpoint');
         }
         
-        // Vérifier la structure de la réponse
-        if (!responseData || !responseData.items || !Array.isArray(responseData.items)) {
-            console.error('❌ Format de réponse invalide de l\'API paginée:', JSON.stringify(responseData));
-            throw new Error('Invalid response format from server');
+        // SIMULATION DE PAGINATION CÔTÉ CLIENT
+        // Même si l'API renvoie tout, on ne prend que 15 éléments à la fois
+        console.log(`📊 Nombre total d'éléments reçus: ${rankingData.length}`);
+        
+        if (rankingData.length > 500) {
+            console.warn(`⚠️⚠️⚠️ ALERTE: L'API a renvoyé ${rankingData.length} éléments - Probable qu'elle ignore la pagination`);
         }
         
-        console.log(`📊 Reçu ${responseData.items.length} éléments pour la page ${page}`);
-        console.log(`📊 Métadonnées de pagination: ${JSON.stringify(responseData.pagination)}`);
+        // PAGINATION MANUELLE: prendre une tranche de 15 éléments correspondant à la page demandée
+        const startIndex = page * 15;
+        const paginatedData = Array.isArray(rankingData) 
+            ? rankingData.slice(startIndex, startIndex + 15) 
+            : [];
         
-        // Si disponible, afficher des infos sur le total pour diagnostic
-        if (responseData.pagination && responseData.pagination.totalCount) {
-            console.log(`📊 Nombre total d'éléments dans la base: ${responseData.pagination.totalCount}`);
-        }
+        console.log(`📊 Simulation pagination: page ${page}, indices ${startIndex} à ${startIndex + 15}`);
+        console.log(`📊 Éléments conservés après pagination manuelle: ${paginatedData.length}`);
         
-        // Utiliser les métadonnées de pagination pour savoir s'il y a plus de données
-        hasMoreData = responseData.pagination && responseData.pagination.hasMore;
-        console.log(`📊 A plus de données: ${hasMoreData}`);
-        
-        // Utiliser les items plutôt que la réponse complète
-        const rankingData = responseData.items;
+        // Déterminer s'il y a plus de données basé sur la pagination manuelle
+        hasMoreData = startIndex + 15 < rankingData.length;
+        console.log(`📊 A plus de données: ${hasMoreData} (${startIndex + 15} < ${rankingData.length})`);
         
         // Update the leaderboard UI
-        renderLeaderboardItems(rankingData, page === 0);
+        renderLeaderboardItems(paginatedData, page === 0);
         
         // Update podium if this is the first page
         if (page === 0 && rankingData.length > 0) {
-            updatePodium(rankingData);
+            // Pour le podium, utiliser les 3 premiers de la liste complète
+            updatePodium(rankingData.slice(0, 3));
         }
         
         console.log(`🔎🔎🔎 FIN CHARGEMENT PAGE ${page} 🔎🔎🔎`);
-        return rankingData;
+        return paginatedData;
     } catch (error) {
         console.error(`❌❌❌ ERREUR lors du chargement de la page ${page}:`, error);
         if (error.stack) console.error(`🔍 STACK TRACE: ${error.stack}`);

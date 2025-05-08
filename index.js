@@ -1989,6 +1989,37 @@ app.get('/api/promo-banner', async (req, res) => {
     res.status(500).json({ error: 'Could not fetch promo banner' });
   }
 });
+// API: Set promo banner (image + link)
+const multer = require('multer');
+const upload = multer({ dest: promoDir });
+app.post('/api/promo-banner', upload.single('image'), async (req, res) => {
+  try {
+    const link = req.body.link || '';
+    let imageFilename = '';
+    if (req.file) {
+      // Rename file to original name + timestamp
+      const ext = req.file.originalname.split('.').pop();
+      imageFilename = `promo_${Date.now()}.${ext}`;
+      fs.renameSync(req.file.path, `${promoDir}/${imageFilename}`);
+    }
+    let row = await PromotionBanner.findOne({ where: { id: 1 } });
+    if (!row) {
+      row = await PromotionBanner.create({ imageFilename, link });
+    } else {
+      // If new image uploaded, delete old one
+      if (imageFilename && row.imageFilename && fs.existsSync(`${promoDir}/${row.imageFilename}`)) {
+        try { fs.unlinkSync(`${promoDir}/${row.imageFilename}`); } catch (e) {}
+      }
+      if (imageFilename) row.imageFilename = imageFilename;
+      if (link) row.link = link;
+      await row.save();
+    }
+    res.json({ success: true, imageUrl: imageFilename ? `/promo-images/${imageFilename}` : '', link });
+  } catch (err) {
+    res.status(500).json({ error: 'Could not save promo banner' });
+  }
+});
+
 
 // NOUVELLE API spécifique pour la pagination stricte du leaderboard
 app.get('/api/leaderboard/paginated/:seasonId', async (req, res) => {
@@ -2108,37 +2139,6 @@ app.get('/api/leaderboard/paginated/:seasonId', async (req, res) => {
 });
 
 
-// API: Set promo banner (image + link)
-const multer = require('multer');
-const upload = multer({ dest: promoDir });
-app.post('/api/promo-banner', upload.single('image'), async (req, res) => {
-  try {
-    const link = req.body.link || '';
-    let imageFilename = '';
-    if (req.file) {
-      // Rename file to original name + timestamp
-      const ext = req.file.originalname.split('.').pop();
-      imageFilename = `promo_${Date.now()}.${ext}`;
-      fs.renameSync(req.file.path, `${promoDir}/${imageFilename}`);
-    }
-    let row = await PromotionBanner.findOne({ where: { id: 1 } });
-    if (!row) {
-      row = await PromotionBanner.create({ imageFilename, link });
-    } else {
-      // If new image uploaded, delete old one
-      if (imageFilename && row.imageFilename && fs.existsSync(`${promoDir}/${row.imageFilename}`)) {
-        try { fs.unlinkSync(`${promoDir}/${row.imageFilename}`); } catch (e) {}
-      }
-      if (imageFilename) row.imageFilename = imageFilename;
-      if (link) row.link = link;
-      await row.save();
-    }
-    res.json({ success: true, imageUrl: imageFilename ? `/promo-images/${imageFilename}` : '', link });
-  } catch (err) {
-    res.status(500).json({ error: 'Could not save promo banner' });
-  }
-});
-
 // Démarrer le serveur
 app.listen(port, '0.0.0.0', () => {
   console.log(`Serveur démarré sur le port ${port}`);
@@ -2155,5 +2155,3 @@ process.once('SIGTERM', () => {
 });
 
 console.log('TiDash Game Bot is running...');
-
-
