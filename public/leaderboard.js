@@ -6,10 +6,6 @@ let currentPage = 0;
 let isLoadingMore = false;
 let hasMoreData = true;
 let activeSeason = null;
-// Add variables for iOS touch tracking
-let lastTouchY = 0;
-let touchStartY = 0;
-let isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
 // Fonction pour afficher/masquer le leaderboard
 function showLeaderboard() {
@@ -463,78 +459,37 @@ function setupInfiniteScroll() {
     leaderboardList.addEventListener('scroll', handleScroll);
     
     // Add touch events for mobile devices
-    leaderboardList.removeEventListener('touchstart', handleTouchStart);
-    leaderboardList.removeEventListener('touchmove', handleMobileScroll);
-    leaderboardList.removeEventListener('touchend', handleTouchEnd);
-    
-    leaderboardList.addEventListener('touchstart', handleTouchStart);
     leaderboardList.addEventListener('touchmove', handleMobileScroll);
-    leaderboardList.addEventListener('touchend', handleTouchEnd);
+    leaderboardList.addEventListener('touchend', handleMobileScroll);
     
-    console.log(`🔍 Infinite scroll setup complete. iOS detected: ${isIOS}`);
-}
-
-// Handle touch start to track initial position
-function handleTouchStart(event) {
-    if (!event.touches || !event.touches[0]) return;
-    touchStartY = event.touches[0].clientY;
-    lastTouchY = touchStartY;
+    // Detect iOS specifically for better handling
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    if (isIOS) {
+        // Add additional event listener specifically for iOS to improve first scroll detection
+        leaderboardList.addEventListener('touchend', function(event) {
+            // Force immediate check after touch end on iOS
+            setTimeout(function() {
+                handleMobileScroll(event);
+            }, 100); // Short delay to ensure scroll position is updated
+        });
+    }
 }
 
 // Handle mobile-specific scroll events
 function handleMobileScroll(event) {
+    // Use a lower threshold for mobile to make first scroll more responsive
     const leaderboardList = document.getElementById('leaderboard-list');
-    if (!leaderboardList || isLoadingMore || !hasMoreData) return;
+    if (!leaderboardList) return;
     
-    // Update last touch position for tracking movement direction
-    if (event.touches && event.touches[0]) {
-        lastTouchY = event.touches[0].clientY;
-    }
-    
-    // Check if we're near the bottom of the scroll area
+    // Check if we're near the bottom of the scroll area - use a lower threshold for mobile
     const scrollPosition = leaderboardList.scrollTop;
     const visibleHeight = leaderboardList.clientHeight;
     const totalHeight = leaderboardList.scrollHeight;
     
-    // Use a much lower threshold for iOS to make it more responsive
-    // For iOS, we want to load earlier in the scroll process
-    const scrollThreshold = isIOS ? 0.5 : 0.65;
-    
+    // Use 50% threshold for mobile instead of 65% to load earlier on first scroll - improved for iOS
     const scrollPercentage = (scrollPosition + visibleHeight) / totalHeight;
     
-    if (scrollPercentage > scrollThreshold) {
-        console.log(`📱 Mobile scroll detected at ${scrollPercentage.toFixed(2)} (threshold: ${scrollThreshold})`);
-        loadNextLeaderboardPage();
-    }
-}
-
-// Handle touch end event to detect quick flicks
-function handleTouchEnd(event) {
-    const leaderboardList = document.getElementById('leaderboard-list');
-    if (!leaderboardList || isLoadingMore || !hasMoreData) return;
-    
-    // Check if it was a downward flick (common on iOS)
-    const touchDelta = touchStartY - lastTouchY;
-    
-    // For iOS, if there was a significant downward flick, that's a strong signal 
-    // the user wants to see more content
-    if (isIOS && touchDelta > 50) {
-        console.log(`📱 iOS flick detected: delta=${touchDelta}px`);
-        loadNextLeaderboardPage();
-        return;
-    }
-    
-    // Regular bottom check as a fallback
-    const scrollPosition = leaderboardList.scrollTop;
-    const visibleHeight = leaderboardList.clientHeight;
-    const totalHeight = leaderboardList.scrollHeight;
-    
-    // Use a much lower threshold specifically for iOS touch end events
-    const scrollThreshold = isIOS ? 0.5 : 0.65;
-    const scrollPercentage = (scrollPosition + visibleHeight) / totalHeight;
-    
-    if (scrollPercentage > scrollThreshold) {
-        console.log(`📱 Touch end near bottom: ${scrollPercentage.toFixed(2)}`);
+    if (scrollPercentage > 0.5 && !isLoadingMore && hasMoreData) {
         loadNextLeaderboardPage();
     }
 }
@@ -542,7 +497,7 @@ function handleTouchEnd(event) {
 // Handle scroll event for infinite loading
 function handleScroll(event) {
     const leaderboardList = document.getElementById('leaderboard-list');
-    if (!leaderboardList || isLoadingMore || !hasMoreData) return;
+    if (!leaderboardList) return;
     
     // Check if we're near the bottom of the scroll area
     const scrollPosition = leaderboardList.scrollTop;
@@ -552,10 +507,8 @@ function handleScroll(event) {
     // Calculate how close we are to the bottom (as a percentage)
     const scrollPercentage = (scrollPosition + visibleHeight) / totalHeight;
     
-    // Use a lower threshold for iOS
-    const scrollThreshold = isIOS ? 0.6 : 0.75;
-    
-    if (scrollPercentage > scrollThreshold) {
+    // For desktop, use 75% threshold
+    if (scrollPercentage > 0.75 && !isLoadingMore && hasMoreData) {
         loadNextLeaderboardPage();
     }
 }
