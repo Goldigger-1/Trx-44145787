@@ -1,11 +1,11 @@
 // Leaderboard Page Logic
 // Réimplémentation minimale pour afficher seulement la rangée utilisateur
 
-// Variables globales pour la pagination
+// Variables pour la pagination du leaderboard
 let currentPage = 0;
-let isLoading = false;
-let hasMoreData = true;
-const ITEMS_PER_PAGE = 15;
+let isLoadingMore = false;
+let hasMoreEntries = true;
+const ENTRIES_PER_PAGE = 15;
 
 // Fonction pour afficher/masquer le leaderboard
 function showLeaderboard() {
@@ -13,39 +13,31 @@ function showLeaderboard() {
     if (leaderboardScreen) {
         leaderboardScreen.style.display = 'flex';
                 
+        // Réinitialiser les variables de pagination
+        currentPage = 0;
+        isLoadingMore = false;
+        hasMoreEntries = true;
+        
+        // Vider la liste existante
+        const leaderboardList = document.getElementById('leaderboard-list');
+        if (leaderboardList) {
+            leaderboardList.innerHTML = '';
+        }
+        
+        // Afficher l'overlay de chargement
+        const loadingOverlay = document.getElementById('leaderboard-loading-overlay');
+        if (loadingOverlay) {
+            loadingOverlay.style.display = 'flex';
+        }
+        
         // Mettre à jour la rangée utilisateur et initialiser le compte à rebours
         renderLeaderboardUserRow();
-
-        // Réinitialiser l'état du leaderboard
-        resetLeaderboard();
         
-        // Charger la première page du leaderboard
-        loadLeaderboardPage();
-    }
-}
-
-// Fonction pour réinitialiser l'état du leaderboard
-function resetLeaderboard() {
-    // Réinitialiser les variables de pagination
-    currentPage = 0;
-    isLoading = false;
-    hasMoreData = true;
-    
-    // Vider la liste existante
-    const leaderboardList = document.getElementById('leaderboard-list');
-    if (leaderboardList) {
-        // Garder la ligne utilisateur (qui est généralement le premier enfant)
-        const userRow = document.getElementById('leaderboard-user-row');
-        leaderboardList.innerHTML = '';
-        if (userRow) {
-            leaderboardList.appendChild(userRow);
-        }
-    }
-    
-    // Afficher l'overlay de chargement
-    const loadingOverlay = document.getElementById('leaderboard-loading-overlay');
-    if (loadingOverlay) {
-        loadingOverlay.style.display = 'flex';
+        // Charger le leaderboard initial
+        loadLeaderboardEntries();
+        
+        // Ajouter un écouteur d'événements pour le défilement
+        setupInfiniteScroll();
     }
 }
 
@@ -54,6 +46,33 @@ function hideLeaderboard() {
     const leaderboardScreen = document.getElementById('leaderboard-screen');
     if (leaderboardScreen) {
         leaderboardScreen.style.display = 'none';
+        
+        // Supprimer l'écouteur d'événements pour le défilement
+        const listContainer = document.querySelector('.leaderboard-list-container');
+        if (listContainer) {
+            listContainer.removeEventListener('scroll', handleScroll);
+        }
+    }
+}
+
+// Configurer le défilement infini
+function setupInfiniteScroll() {
+    const listContainer = document.querySelector('.leaderboard-list-container');
+    if (listContainer) {
+        listContainer.addEventListener('scroll', handleScroll);
+    }
+}
+
+// Gestionnaire d'événements pour le défilement
+function handleScroll(event) {
+    if (isLoadingMore || !hasMoreEntries) return;
+    
+    const container = event.target;
+    const scrollPosition = container.scrollTop + container.clientHeight;
+    const scrollThreshold = container.scrollHeight - 200; // Charger plus lorsqu'il reste 200px
+    
+    if (scrollPosition >= scrollThreshold) {
+        loadLeaderboardEntries();
     }
 }
 
@@ -184,6 +203,9 @@ async function renderLeaderboardUserRow() {
             
             // Afficher le prix pour le premier du podium
             updatePrizeDisplay(season.prizeMoney);
+            
+            // Stocker l'ID de la saison active pour le chargement du leaderboard
+            window.activeSeasonId = season.id;
                 
         } catch (error) {
             console.error('❌ Erreur lors de la récupération de la saison active:', error);
@@ -353,58 +375,41 @@ async function renderLeaderboardUserRow() {
         }
     }
 
-// Fonction pour charger une page du leaderboard
-async function loadLeaderboardPage() {
-    // Éviter les requêtes multiples simultanées
-    if (isLoading || !hasMoreData) return;
+// Fonction pour charger les entrées du leaderboard par lots
+async function loadLeaderboardEntries() {
+    if (isLoadingMore || !hasMoreEntries) return;
+    
+    isLoadingMore = true;
     
     try {
-        isLoading = true;
-        console.log(`📊 Chargement de la page ${currentPage + 1} du leaderboard...`);
+        // Récupérer l'ID de la saison active
+        const seasonId = window.activeSeasonId;
         
-        // 1. Récupérer la saison active si nécessaire
-        let seasonId;
-        try {
-            // Utiliser la saison déjà récupérée si possible
-            const titleElement = document.getElementById('leaderboard-season-title');
-            if (titleElement && titleElement.dataset.seasonId) {
-                seasonId = titleElement.dataset.seasonId;
-            } else {
-                // Récupérer la saison active
-                const res = await fetch('/api/seasons/active');
-                if (res.ok) {
-                    const season = await res.json();
-                    seasonId = season.id;
-                    
-                    // Stocker l'ID de saison pour les requêtes futures
-                    if (titleElement) {
-                        titleElement.dataset.seasonId = seasonId;
-                    }
-                } else {
-                    throw new Error('Impossible de récupérer la saison active');
-                }
-            }
-        } catch (error) {
-            console.error('❌ Erreur lors de la récupération de la saison active:', error);
-            hideLoadingOverlay();
+        if (!seasonId) {
+            console.error('❌ ID de saison active non disponible');
             return;
         }
         
-        // 2. Déterminer la base de l'URL
+        console.log(`🔍 Chargement des entrées du leaderboard pour la saison ${seasonId}, page ${currentPage}`);
+        
+        // Déterminer la base de l'URL avec le bon chemin
         let baseUrl = window.location.origin;
+        
+        // Vérifier si nous sommes dans le chemin /test
         const pathname = window.location.pathname;
         const basePathMatch = pathname.match(/^\/([^\/]+)/);
         const basePath = basePathMatch ? basePathMatch[1] : '';
         
         if (basePath) {
+            console.log(`🌐 Détection d'un chemin de base: /${basePath}`);
             baseUrl = `${baseUrl}/${basePath}`;
         }
         
-        // 3. Construire l'URL pour récupérer la page de scores
-        const apiUrl = `${baseUrl}/api/seasons/${seasonId}/scores?page=${currentPage}&limit=${ITEMS_PER_PAGE}`;
-        console.log(`🔗 URL de l'API pour les scores: ${apiUrl}`);
+        // URL complète pour l'API de ranking
+        const apiUrl = `${baseUrl}/api/seasons/${seasonId}/ranking?page=${currentPage}&limit=${ENTRIES_PER_PAGE}`;
+        console.log(`🔗 URL de l'API: ${apiUrl}`);
         
-        // 4. Récupérer les données
+        // Effectuer la requête
         const response = await fetch(apiUrl, {
             method: 'GET',
             headers: {
@@ -414,114 +419,175 @@ async function loadLeaderboardPage() {
         });
         
         if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`❌ Erreur de l'API (${response.status}): ${errorText}`);
             throw new Error(`Erreur HTTP: ${response.status}`);
         }
         
-        // 5. Analyser la réponse
-        const responseText = await response.text();
-        console.log(`📄 Réponse brute: ${responseText.substring(0, 200)}...`);
+        // Récupérer les données
+        const data = await response.json();
+        console.log(`✅ ${data.length} entrées récupérées pour la page ${currentPage}`);
         
-        let scoresData;
-        try {
-            scoresData = JSON.parse(responseText);
-        } catch (parseError) {
-            console.error('❌ Erreur lors du parsing JSON:', parseError);
-            throw new Error('Réponse non-JSON: ' + responseText.substring(0, 100));
+        // Si nous recevons moins d'entrées que la limite, il n'y a plus de données
+        if (data.length < ENTRIES_PER_PAGE) {
+            hasMoreEntries = false;
+            console.log('🏁 Fin des entrées du leaderboard atteinte');
         }
         
-        // 6. Vérifier si nous avons des données
-        if (!Array.isArray(scoresData) || scoresData.length === 0) {
-            console.log('⚠️ Aucune donnée supplémentaire disponible');
-            hasMoreData = false;
-            hideLoadingOverlay();
-            return;
+        // Si c'est la première page, mettre à jour le podium avec les 3 premiers
+        if (currentPage === 0 && data.length > 0) {
+            updatePodium(data.slice(0, Math.min(3, data.length)));
         }
         
-        // 7. Ajouter les données au leaderboard
-        renderLeaderboardRows(scoresData);
+        // Ajouter les entrées à la liste
+        renderLeaderboardEntries(data);
         
-        // 8. Incrémenter la page pour la prochaine requête
+        // Incrémenter la page pour la prochaine requête
         currentPage++;
         
-        // 9. Déterminer s'il reste des données
-        hasMoreData = scoresData.length === ITEMS_PER_PAGE;
-        
-        // 10. Masquer l'overlay de chargement après la première page
+        // Masquer l'overlay de chargement après le chargement initial
         if (currentPage === 1) {
-            hideLoadingOverlay();
+            const loadingOverlay = document.getElementById('leaderboard-loading-overlay');
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'none';
+            }
         }
         
     } catch (error) {
-        console.error('❌ Erreur lors du chargement du leaderboard:', error);
-        hideLoadingOverlay();
+        console.error('❌ Erreur lors du chargement des entrées du leaderboard:', error);
+        
+        // Masquer l'overlay de chargement en cas d'erreur
+        const loadingOverlay = document.getElementById('leaderboard-loading-overlay');
+        if (loadingOverlay && currentPage === 0) {
+            loadingOverlay.style.display = 'none';
+        }
+        
+        // Afficher un message d'erreur si c'est le premier chargement
+        if (currentPage === 0) {
+            const leaderboardList = document.getElementById('leaderboard-list');
+            if (leaderboardList) {
+                leaderboardList.innerHTML = '<div class="leaderboard-empty-message"><p>Impossible de charger le classement. ⚠️</p></div>';
+            }
+        }
+        
+        hasMoreEntries = false;
     } finally {
-        isLoading = false;
+        isLoadingMore = false;
     }
 }
 
-// Fonction pour masquer l'overlay de chargement
-function hideLoadingOverlay() {
-    const loadingOverlay = document.getElementById('leaderboard-loading-overlay');
-    if (loadingOverlay) {
-        loadingOverlay.style.display = 'none';
-    }
+// Fonction pour mettre à jour le podium avec les 3 premiers joueurs
+function updatePodium(topPlayers) {
+    console.log(`🏆 Mise à jour du podium avec les ${topPlayers.length} premiers joueurs`);
+    
+    // Positions du podium (1 = premier, 2 = deuxième, 3 = troisième)
+    const podiumPositions = [1, 2, 3];
+    
+    // Pour chaque position du podium
+    podiumPositions.forEach(position => {
+        // Obtenir les éléments correspondants
+        const avatarElement = document.getElementById(`podium-${position}-avatar`);
+        const usernameElement = document.getElementById(`podium-${position}-username`);
+        
+        // Vérifier si les éléments existent
+        if (!avatarElement || !usernameElement) {
+            console.error(`❌ Éléments du podium ${position} non trouvés dans le DOM`);
+            return;
+        }
+        
+        // Indice pour accéder au joueur (1er joueur = indice 0, 2ème = indice 1, etc.)
+        const playerIndex = position - 1;
+        
+        // Si nous avons un joueur pour cette position
+        if (playerIndex < topPlayers.length) {
+            const player = topPlayers[playerIndex];
+            const username = player.gameUsername || `Player ${position}`;
+            
+            // Mettre à jour le nom d'utilisateur
+            usernameElement.textContent = username;
+            
+            // Mettre à jour l'avatar
+            let avatarSrc = player.avatarSrc || 'avatars/avatar_default.jpg';
+            if (!avatarSrc.startsWith('http') && !avatarSrc.startsWith('/')) {
+                avatarSrc = 'avatars/' + avatarSrc;
+            }
+            avatarElement.src = avatarSrc;
+            avatarElement.alt = username;
+        } else {
+            // Si nous n'avons pas de joueur pour cette position, afficher des valeurs par défaut
+            usernameElement.textContent = '-';
+            avatarElement.src = 'avatars/avatar_default.jpg';
+            avatarElement.alt = 'User' + position;
+        }
+    });
 }
 
-// Fonction pour rendre les lignes du leaderboard
-function renderLeaderboardRows(scoresData) {
+// Fonction pour rendre les entrées du leaderboard
+function renderLeaderboardEntries(entries) {
     const leaderboardList = document.getElementById('leaderboard-list');
     if (!leaderboardList) return;
     
-    const currentUserId = getCurrentUserId();
+    // Si c'est le premier chargement et qu'il n'y a pas d'entrées, afficher un message
+    if (currentPage === 0 && entries.length === 0) {
+        leaderboardList.innerHTML = '<div class="leaderboard-empty-message"><p>Aucune donnée de classement disponible.</p></div>';
+        return;
+    }
     
-    scoresData.forEach(item => {
-        // Créer un élément pour la rangée
-        const rowElement = document.createElement('div');
-        rowElement.className = 'leaderboard-row';
+    // Créer les rangées HTML pour chaque entrée
+    const entriesHTML = entries.map((entry, index) => {
+        const rank = (currentPage * ENTRIES_PER_PAGE) + index + 1;
+        const username = entry.gameUsername || 'Joueur';
+        const score = entry.score || 0;
         
-        // Vérifier si c'est l'utilisateur actuel
-        const isCurrentUser = item.userId === currentUserId;
-        
-        // Préparer l'avatar
-        let avatarSrc = item.avatarSrc || 'avatars/avatar_default.jpg';
+        // Déterminer l'avatar
+        let avatarSrc = entry.avatarSrc || 'avatars/avatar_default.jpg';
         if (!avatarSrc.startsWith('http') && !avatarSrc.startsWith('/')) {
             avatarSrc = 'avatars/' + avatarSrc;
         }
         
-        // Construire le contenu de la rangée
-        rowElement.innerHTML = `
-            <div class="leaderboard-rank">${item.position || '-'}</div>
-            <div class="leaderboard-avatar"><img src="${avatarSrc}" alt="${item.username || 'User'}"></div>
-            <div class="leaderboard-username">${item.username || 'Anonymous'} ${isCurrentUser ? '<span style="color:#00FF9D;">(You)</span>' : ''}</div>
-            <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${item.score || 0}</div>
+        // Créer la rangée HTML
+        return `
+            <div class="leaderboard-row">
+                <div class="leaderboard-rank">${rank}</div>
+                <div class="leaderboard-avatar"><img src="${avatarSrc}" alt="${username}"></div>
+                <div class="leaderboard-username">${username}</div>
+                <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${score}</div>
+            </div>
         `;
-        
-        // Ajouter la rangée au leaderboard
-        leaderboardList.appendChild(rowElement);
-    });
-}
-
-// Initialiser la détection de défilement pour charger plus de données
-function initializeInfiniteScroll() {
-    const leaderboardContainer = document.getElementById('leaderboard-container');
-    if (!leaderboardContainer) return;
+    }).join('');
     
-    // Fonction pour vérifier si l'utilisateur est proche du bas
-    function checkScrollPosition() {
-        if (!hasMoreData || isLoading) return;
-        
-        const scrollPosition = leaderboardContainer.scrollTop;
-        const scrollHeight = leaderboardContainer.scrollHeight;
-        const clientHeight = leaderboardContainer.clientHeight;
-        
-        // Si l'utilisateur est à moins de 200px du bas, charger plus de données
-        if (scrollHeight - scrollPosition - clientHeight < 200) {
-            loadLeaderboardPage();
-        }
+    // Ajouter les nouvelles entrées à la liste existante
+    if (currentPage === 0) {
+        leaderboardList.innerHTML = entriesHTML;
+    } else {
+        leaderboardList.innerHTML += entriesHTML;
     }
     
-    // Ajouter l'événement de défilement
-    leaderboardContainer.addEventListener('scroll', checkScrollPosition);
+    // Si nous avons plus d'entrées à charger, ajouter un indicateur de chargement
+    if (hasMoreEntries) {
+        // Vérifier si un indicateur de chargement existe déjà
+        let loadingIndicator = document.getElementById('leaderboard-loading-indicator');
+        
+        if (!loadingIndicator) {
+            loadingIndicator = document.createElement('div');
+            loadingIndicator.id = 'leaderboard-loading-indicator';
+            loadingIndicator.className = 'leaderboard-loading-indicator';
+            loadingIndicator.innerHTML = `
+                <div class="loading-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            `;
+            leaderboardList.appendChild(loadingIndicator);
+        }
+    } else {
+        // Supprimer l'indicateur de chargement s'il n'y a plus d'entrées
+        const loadingIndicator = document.getElementById('leaderboard-loading-indicator');
+        if (loadingIndicator) {
+            loadingIndicator.remove();
+        }
+    }
 }
 
 // Exposer les fonctions nécessaires globalement
@@ -566,8 +632,3 @@ function updatePrizeDisplay(prizeMoney) {
         prizeElement.textContent = '$0';
     }
 }
-
-// Initialiser la détection de défilement au chargement du document
-document.addEventListener('DOMContentLoaded', () => {
-    initializeInfiniteScroll();
-});
