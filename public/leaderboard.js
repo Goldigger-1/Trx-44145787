@@ -236,34 +236,24 @@ async function loadLeaderboardPageData(page) {
             throw new Error('Invalid JSON response from leaderboard endpoint');
         }
         
-        // SIMULATION DE PAGINATION CÔTÉ CLIENT
-        // Même si l'API renvoie tout, on ne prend que 15 éléments à la fois
-        console.log(`📊 Nombre total d'éléments reçus: ${rankingData.length}`);
+        // Utilisation directe des données paginées du backend
+        const paginatedData = responseData.items || [];
+        const totalCount = responseData.pagination ? responseData.pagination.totalCount : undefined;
         
-        if (rankingData.length > 500) {
-            console.warn(`⚠️⚠️⚠️ ALERTE: L'API a renvoyé ${rankingData.length} éléments - Probable qu'elle ignore la pagination`);
-        }
+        console.log(`📊 Nombre total d'éléments reçus (totalCount): ${totalCount}`);
+        console.log(`📊 Nombre d'éléments dans la page reçue: ${paginatedData.length}`);
         
-        // PAGINATION MANUELLE: prendre une tranche de 15 éléments correspondant à la page demandée
-        const startIndex = page * 15;
-        const paginatedData = Array.isArray(rankingData) 
-            ? rankingData.slice(startIndex, startIndex + 15) 
-            : [];
-        
-        console.log(`📊 Simulation pagination: page ${page}, indices ${startIndex} à ${startIndex + 15}`);
-        console.log(`📊 Éléments conservés après pagination manuelle: ${paginatedData.length}`);
-        
-        // Déterminer s'il y a plus de données basé sur la pagination manuelle
-        hasMoreData = startIndex + 15 < rankingData.length;
-        console.log(`📊 A plus de données: ${hasMoreData} (${startIndex + 15} < ${rankingData.length})`);
+        // hasMoreData déterminé à partir de la pagination backend
+        hasMoreData = responseData.pagination ? responseData.pagination.hasMore : false;
+        console.log(`📊 A plus de données (hasMore): ${hasMoreData}`);
         
         // Update the leaderboard UI
         renderLeaderboardItems(paginatedData, page === 0);
         
         // Update podium if this is the first page
-        if (page === 0 && rankingData.length > 0) {
-            // Pour le podium, utiliser les 3 premiers de la liste complète
-            updatePodium(rankingData.slice(0, 3));
+        if (page === 0 && paginatedData.length > 0) {
+            // Pour le podium, utiliser les 3 premiers de la page reçue
+            updatePodium(paginatedData.slice(0, 3));
         }
         
         console.log(`🔎🔎🔎 FIN CHARGEMENT PAGE ${page} 🔎🔎🔎`);
