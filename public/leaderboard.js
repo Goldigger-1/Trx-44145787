@@ -177,104 +177,149 @@ async function getActiveSeason() {
 
 // Function to load a specific page of leaderboard data
 async function loadLeaderboardPageData(page) {
-    console.log(`🔎 DÉBUT CHARGEMENT PAGE ${page}`);
+    console.log(`🔎🔎🔎 DÉBUT CHARGEMENT PAGE ${page} 🔎🔎🔎`);
     
     if (!activeSeason) {
+        console.error('❌ Aucune saison active trouvée');
         throw new Error('No active season found');
     }
     
+    console.log(`🔍 Chargement UNIQUEMENT de la page ${page} (limite 15) pour la saison ${activeSeason.id}`);
+    
     try {
-        // Afficher l'indicateur de chargement si nous chargeons une page supplémentaire
-        if (page > 0) {
-            showLoadingIndicator();
-        }
+        // Utiliser l'API existante qui supporte la pagination
+        // Mais il est possible qu'elle ignore les paramètres de pagination et renvoie tout
+        const apiUrl = `/api/seasons/${activeSeason.id}/ranking?page=${page}&limit=15`;
+        console.log(`🔍 URL API EXISTANTE: ${apiUrl}`);
         
-        // Déterminer la base de l'URL avec le bon chemin
-        let baseUrl = '';
+        // Enregistrer le temps de début pour mesurer la performance
+        const startTime = Date.now();
         
-        // Vérifier si nous sommes dans un chemin spécifique
-        const pathname = window.location.pathname;
-        const basePathMatch = pathname.match(/^\/([^\/]+)/);
-        const basePath = basePathMatch ? basePathMatch[1] : '';
-        
-        if (basePath) {
-            console.log(`🌐 Détection d'un chemin de base pour l'API: /${basePath}`);
-            // Ajouter le chemin de base à l'URL
-            baseUrl = `/${basePath}`;
-        }
-        
-        console.log(`🌐 Chemin de base pour l'API déterminé: ${baseUrl || '/'}`);
-        
-        // Url API paginée avec le bon chemin de base
-        const apiUrl = `${baseUrl}/api/leaderboard/paginated/${activeSeason.id}?page=${page}&limit=15`;
-        
-        console.log(`🔗 URL complète de l'API: ${apiUrl}`);
-        
-        // Utiliser la nouvelle API pour pagination stricte
+        // Utiliser l'API existante avec pagination
+        console.log('⏳ Envoi de la requête à l\'API existante...');
         const rankingRes = await fetch(apiUrl);
         
+        // Calculer le temps de réponse
+        const responseTime = Date.now() - startTime;
+        console.log(`⏱️ Temps de réponse: ${responseTime}ms`);
+        
+        // Vérifier le statut de la réponse
+        console.log(`🔍 Statut de la réponse: ${rankingRes.status} ${rankingRes.statusText}`);
+        console.log(`🔍 Headers: ${JSON.stringify(Object.fromEntries([...rankingRes.headers]))}`);
+        
         if (!rankingRes.ok) {
+            console.error(`❌ Échec de la requête: ${rankingRes.status} ${rankingRes.statusText}`);
+            
+            // Tenter de récupérer le corps d'erreur pour plus de détails
+            try {
+                const errorText = await rankingRes.text();
+                console.error(`🔍 Corps de l'erreur: ${errorText}`);
+            } catch (e) {
+                console.error('❌ Impossible de lire le corps de l\'erreur');
+            }
+            
             throw new Error(`Failed to fetch leaderboard data: ${rankingRes.status}`);
         }
         
-        const responseData = await rankingRes.json();
+        // Récupérer le corps de la réponse
+        const responseText = await rankingRes.text();
         
-        // Vérifier la structure de la réponse
-        if (!responseData || !responseData.items || !Array.isArray(responseData.items)) {
-            throw new Error('Invalid response format from server');
+        // Afficher les premiers caractères du corps (pour éviter des logs trop longs)
+        console.log(`🔍 Début de la réponse: ${responseText.substring(0, 200)}${responseText.length > 200 ? '...' : ''}`);
+        
+        let rankingData;
+        try {
+            rankingData = JSON.parse(responseText);
+        } catch (e) {
+            console.error(`❌ Erreur parsing JSON:`, e);
+            console.error(`🔍 Contenu non parsable: ${responseText}`);
+            throw new Error('Invalid JSON response from leaderboard endpoint');
         }
         
-        // Utiliser les métadonnées de pagination pour savoir s'il y a plus de données
-        hasMoreData = responseData.pagination && responseData.pagination.hasMore;
+        // SIMULATION DE PAGINATION CÔTÉ CLIENT
+        // Même si l'API renvoie tout, on ne prend que 15 éléments à la fois
+        console.log(`📊 Nombre total d'éléments reçus: ${rankingData.length}`);
         
-        // Utiliser les items plutôt que la réponse complète
-        const rankingData = responseData.items;
+        if (rankingData.length > 500) {
+            console.warn(`⚠️⚠️⚠️ ALERTE: L'API a renvoyé ${rankingData.length} éléments - Probable qu'elle ignore la pagination`);
+        }
+        
+        // PAGINATION MANUELLE: prendre une tranche de 15 éléments correspondant à la page demandée
+        const startIndex = page * 15;
+        const paginatedData = Array.isArray(rankingData) 
+            ? rankingData.slice(startIndex, startIndex + 15) 
+            : [];
+        
+        console.log(`📊 Simulation pagination: page ${page}, indices ${startIndex} à ${startIndex + 15}`);
+        console.log(`📊 Éléments conservés après pagination manuelle: ${paginatedData.length}`);
+        
+        // Déterminer s'il y a plus de données basé sur la pagination manuelle
+        hasMoreData = startIndex + 15 < rankingData.length;
+        console.log(`📊 A plus de données: ${hasMoreData} (${startIndex + 15} < ${rankingData.length})`);
         
         // Update the leaderboard UI
-        renderLeaderboardItems(rankingData, page === 0);
+        renderLeaderboardItems(paginatedData, page === 0);
         
         // Update podium if this is the first page
         if (page === 0 && rankingData.length > 0) {
-            updatePodium(rankingData);
+            // Pour le podium, utiliser les 3 premiers de la liste complète
+            updatePodium(rankingData.slice(0, 3));
         }
         
-        // Masquer l'indicateur de chargement une fois terminé
-        if (page > 0) {
-            hideLoadingIndicator();
-        }
+        console.log(`🔎🔎🔎 FIN CHARGEMENT PAGE ${page} 🔎🔎🔎`);
+        return paginatedData;
+    } catch (error) {
+        console.error(`❌❌❌ ERREUR lors du chargement de la page ${page}:`, error);
+        if (error.stack) console.error(`🔍 STACK TRACE: ${error.stack}`);
+        throw error;
+    }
+}
+
+// Function to load next page of leaderboard data (used by infinite scroll)
+async function loadNextLeaderboardPage() {
+    if (isLoadingMore || !hasMoreData) return;
+    
+    try {
+        isLoadingMore = true;
+        console.log(`📊 Loading NEXT page ${currentPage} for infinite scroll`);
         
-        return rankingData;
+        await loadLeaderboardPageData(currentPage);
+        
+        // Increment page for next fetch
+        currentPage++;
     } catch (error) {
         console.error('❌ Error loading leaderboard data:', error);
-        
-        // Masquer l'indicateur de chargement en cas d'erreur
-        if (page > 0) {
-            hideLoadingIndicator();
-        }
-        
-        throw error;
+    } finally {
+        isLoadingMore = false;
     }
 }
 
 // Function to render leaderboard items
 function renderLeaderboardItems(items, clearList) {
+    console.log(`🖌️🖌️🖌️ DÉBUT RENDU LISTE (${items ? items.length : 0} éléments, clearList=${clearList}) 🖌️🖌️🖌️`);
+    
     const leaderboardList = document.getElementById('leaderboard-list');
-    if (!leaderboardList) return;
+    if (!leaderboardList) {
+        console.error('❌ Élément #leaderboard-list non trouvé dans le DOM');
+        return;
+    }
+    
+    // Mesurer taille initiale de la liste
+    const initialHeight = leaderboardList.scrollHeight;
+    console.log(`📏 Hauteur initiale de la liste: ${initialHeight}px`);
     
     // Clear the list if this is the first page
     if (clearList) {
+        console.log('🧹 Effacement de la liste existante');
         leaderboardList.innerHTML = '';
-    } else {
-        // Supprimer l'indicateur de chargement s'il existe
-        const existingIndicator = document.getElementById('leaderboard-loading-dots');
-        if (existingIndicator) {
-            existingIndicator.remove();
-        }
     }
     
     // Exit if no items
     if (!Array.isArray(items) || items.length === 0) {
+        console.log('⚠️ Aucun élément à afficher');
+        
         if (clearList) {
+            console.log('🖌️ Affichage du message "liste vide"');
             // Show empty state if this is the first load and no data
             leaderboardList.innerHTML = `
                 <div class="leaderboard-empty-message">
@@ -285,11 +330,13 @@ function renderLeaderboardItems(items, clearList) {
         return;
     }
     
+    console.log(`⏳ Ajout de ${items.length} éléments à la liste`);
+    
     // Add each item to the list
     items.forEach((item, index) => {
-        // Calculate the actual rank = (page * items per page) + index + 1
-        // Pour page 0, rangs 1-15, pour page 1, rangs 16-30, etc.
-        const rank = (currentPage * 15) + index + 1;
+        // Calculate the actual rank (page * limit + index + 1)
+        // For page 0, ranks are 1-15, for page 1, ranks are 16-30, etc.
+        const rank = currentPage > 0 ? (currentPage - 1) * 15 + index + 1 : index + 1;
         
         // Include all players in the list, including top 3
         
@@ -312,10 +359,11 @@ function renderLeaderboardItems(items, clearList) {
         leaderboardList.appendChild(rowElement);
     });
     
-    // Ajouter l'indicateur "Plus de contenu" si nécessaire
-    if (hasMoreData) {
-        addMoreContentIndicator();
-    }
+    // Mesurer la nouvelle taille après ajout
+    const newHeight = leaderboardList.scrollHeight;
+    console.log(`📏 Nouvelle hauteur après ajout: ${newHeight}px (différence: ${newHeight - initialHeight}px)`);
+    
+    console.log(`🖌️🖌️🖌️ FIN RENDU LISTE 🖌️🖌️🖌️`);
 }
 
 // Function to update podium with top 3 players
@@ -678,84 +726,6 @@ function updatePrizeDisplay(prizeMoney) {
             `$${parseFloat(prizeMoney).toFixed(2)}`;
         
         prizeElement.textContent = formattedPrize;
-    }
-}
-
-// Ajouter l'indicateur de chargement (3 points animés)
-function showLoadingIndicator() {
-    const leaderboardList = document.getElementById('leaderboard-list');
-    if (!leaderboardList) return;
-    
-    // Supprimer l'ancien indicateur s'il existe
-    hideLoadingIndicator();
-    
-    // Créer l'indicateur de chargement avec animation
-    const loadingIndicator = document.createElement('div');
-    loadingIndicator.id = 'leaderboard-loading-dots';
-    loadingIndicator.style.textAlign = 'center';
-    loadingIndicator.style.padding = '10px';
-    loadingIndicator.style.color = '#00FF9D';
-    loadingIndicator.style.fontWeight = 'bold';
-    loadingIndicator.innerHTML = `
-        <style>
-            @keyframes dots {
-                0%, 20% { content: '.'; }
-                40% { content: '..'; }
-                60%, 100% { content: '...'; }
-            }
-            #leaderboard-loading-dots::after {
-                content: '';
-                animation: dots 1.5s infinite;
-            }
-        </style>
-        Loading more players
-    `;
-    
-    leaderboardList.appendChild(loadingIndicator);
-    
-    // Faire défiler jusqu'à l'indicateur
-    loadingIndicator.scrollIntoView({ behavior: 'smooth', block: 'end' });
-}
-
-// Masquer l'indicateur de chargement
-function hideLoadingIndicator() {
-    const loadingIndicator = document.getElementById('leaderboard-loading-dots');
-    if (loadingIndicator) {
-        loadingIndicator.remove();
-    }
-}
-
-// Ajouter l'indicateur "Plus de contenu disponible"
-function addMoreContentIndicator() {
-    const leaderboardList = document.getElementById('leaderboard-list');
-    if (!leaderboardList) return;
-    
-    const moreIndicator = document.createElement('div');
-    moreIndicator.id = 'leaderboard-more-indicator';
-    moreIndicator.style.textAlign = 'center';
-    moreIndicator.style.padding = '10px';
-    moreIndicator.style.color = '#999';
-    moreIndicator.style.fontSize = '12px';
-    moreIndicator.textContent = 'Scroll for more...';
-    
-    leaderboardList.appendChild(moreIndicator);
-}
-
-// Function to load next page of leaderboard data (used by infinite scroll)
-async function loadNextLeaderboardPage() {
-    if (isLoadingMore || !hasMoreData) return;
-    
-    try {
-        isLoadingMore = true;
-        
-        await loadLeaderboardPageData(currentPage);
-        
-        // Increment page for next fetch
-        currentPage++;
-    } catch (error) {
-        console.error('❌ Error loading leaderboard data:', error);
-    } finally {
-        isLoadingMore = false;
     }
 }
 
