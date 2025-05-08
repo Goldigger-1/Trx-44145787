@@ -187,15 +187,16 @@ async function loadLeaderboardPageData(page) {
     console.log(`🔍 Chargement UNIQUEMENT de la page ${page} (limite 15) pour la saison ${activeSeason.id}`);
     
     try {
-        // Utiliser l'API de pagination qui fonctionne
-        const apiUrl = `/api/leaderboard/paginated/${activeSeason.id}?page=${page}&limit=15`;
-        console.log(`🔍 URL API PAGINATION: ${apiUrl}`);
+        // Utiliser l'API existante qui supporte la pagination
+        // Mais il est possible qu'elle ignore les paramètres de pagination et renvoie tout
+        const apiUrl = `/api/seasons/${activeSeason.id}/ranking?page=${page}&limit=15`;
+        console.log(`🔍 URL API EXISTANTE: ${apiUrl}`);
         
         // Enregistrer le temps de début pour mesurer la performance
         const startTime = Date.now();
         
-        // Utiliser l'API paginée
-        console.log('⏳ Envoi de la requête à l\'API de pagination...');
+        // Utiliser l'API existante avec pagination
+        console.log('⏳ Envoi de la requête à l\'API existante...');
         const rankingRes = await fetch(apiUrl);
         
         // Calculer le temps de réponse
@@ -204,54 +205,72 @@ async function loadLeaderboardPageData(page) {
         
         // Vérifier le statut de la réponse
         console.log(`🔍 Statut de la réponse: ${rankingRes.status} ${rankingRes.statusText}`);
+        console.log(`🔍 Headers: ${JSON.stringify(Object.fromEntries([...rankingRes.headers]))}`);
         
         if (!rankingRes.ok) {
             console.error(`❌ Échec de la requête: ${rankingRes.status} ${rankingRes.statusText}`);
+            
+            // Tenter de récupérer le corps d'erreur pour plus de détails
+            try {
+                const errorText = await rankingRes.text();
+                console.error(`🔍 Corps de l'erreur: ${errorText}`);
+            } catch (e) {
+                console.error('❌ Impossible de lire le corps de l\'erreur');
+            }
+            
             throw new Error(`Failed to fetch leaderboard data: ${rankingRes.status}`);
         }
         
         // Récupérer le corps de la réponse
         const responseText = await rankingRes.text();
         
-        let responseData;
+        // Afficher les premiers caractères du corps (pour éviter des logs trop longs)
+        console.log(`🔍 Début de la réponse: ${responseText.substring(0, 200)}${responseText.length > 200 ? '...' : ''}`);
+        
+        let rankingData;
         try {
-            responseData = JSON.parse(responseText);
+            rankingData = JSON.parse(responseText);
         } catch (e) {
             console.error(`❌ Erreur parsing JSON:`, e);
+            console.error(`🔍 Contenu non parsable: ${responseText}`);
             throw new Error('Invalid JSON response from leaderboard endpoint');
         }
         
-        // Vérifier la structure de la réponse
-        if (!responseData || !responseData.items || !Array.isArray(responseData.items)) {
-            console.error('❌ Format de réponse invalide de l\'API paginée:', JSON.stringify(responseData));
-            throw new Error('Invalid response format from server');
+        // SIMULATION DE PAGINATION CÔTÉ CLIENT
+        // Même si l'API renvoie tout, on ne prend que 15 éléments à la fois
+        console.log(`📊 Nombre total d'éléments reçus: ${rankingData.length}`);
+        
+        if (rankingData.length > 500) {
+            console.warn(`⚠️⚠️⚠️ ALERTE: L'API a renvoyé ${rankingData.length} éléments - Probable qu'elle ignore la pagination`);
         }
         
-        console.log(`📊 Reçu ${responseData.items.length} éléments pour la page ${page}`);
+        // PAGINATION MANUELLE: prendre une tranche de 15 éléments correspondant à la page demandée
+        const startIndex = page * 15;
+        const paginatedData = Array.isArray(rankingData) 
+            ? rankingData.slice(startIndex, startIndex + 15) 
+            : [];
         
-        // Utiliser les métadonnées de pagination pour savoir s'il y a plus de données
-        hasMoreData = responseData.pagination && responseData.pagination.hasMore;
-        console.log(`📊 A plus de données: ${hasMoreData}`);
+        console.log(`📊 Simulation pagination: page ${page}, indices ${startIndex} à ${startIndex + 15}`);
+        console.log(`📊 Éléments conservés après pagination manuelle: ${paginatedData.length}`);
         
-        if (responseData.pagination && responseData.pagination.totalCount) {
-            console.log(`📊 Nombre total d'utilisateurs: ${responseData.pagination.totalCount}`);
-        }
-        
-        // Utiliser les items de la réponse
-        const rankingData = responseData.items;
+        // Déterminer s'il y a plus de données basé sur la pagination manuelle
+        hasMoreData = startIndex + 15 < rankingData.length;
+        console.log(`📊 A plus de données: ${hasMoreData} (${startIndex + 15} < ${rankingData.length})`);
         
         // Update the leaderboard UI
-        renderLeaderboardItems(rankingData, page === 0);
+        renderLeaderboardItems(paginatedData, page === 0);
         
         // Update podium if this is the first page
         if (page === 0 && rankingData.length > 0) {
-            updatePodium(rankingData);
+            // Pour le podium, utiliser les 3 premiers de la liste complète
+            updatePodium(rankingData.slice(0, 3));
         }
         
         console.log(`🔎🔎🔎 FIN CHARGEMENT PAGE ${page} 🔎🔎🔎`);
-        return rankingData;
+        return paginatedData;
     } catch (error) {
         console.error(`❌❌❌ ERREUR lors du chargement de la page ${page}:`, error);
+        if (error.stack) console.error(`🔍 STACK TRACE: ${error.stack}`);
         throw error;
     }
 }
@@ -262,37 +281,14 @@ async function loadNextLeaderboardPage() {
     
     try {
         isLoadingMore = true;
-        console.log(`📊📊📊 CHARGEMENT PAGE SUIVANTE ${currentPage} (infinite scroll) 📊📊📊`);
+        console.log(`📊 Loading NEXT page ${currentPage} for infinite scroll`);
         
-        // Ajouter un indicateur visuel de chargement à la fin de la liste
-        const leaderboardList = document.getElementById('leaderboard-list');
-        if (leaderboardList) {
-            const loadingIndicator = document.createElement('div');
-            loadingIndicator.id = 'loading-indicator';
-            loadingIndicator.className = 'leaderboard-row loading-indicator';
-            loadingIndicator.innerHTML = '<div style="width:100%; text-align:center; padding:10px;">Chargement...</div>';
-            leaderboardList.appendChild(loadingIndicator);
-        }
-        
-        // Charger la page suivante
         await loadLeaderboardPageData(currentPage);
-        
-        // Supprimer l'indicateur de chargement
-        const loadingIndicator = document.getElementById('loading-indicator');
-        if (loadingIndicator) {
-            loadingIndicator.remove();
-        }
         
         // Increment page for next fetch
         currentPage++;
     } catch (error) {
         console.error('❌ Error loading leaderboard data:', error);
-        
-        // Supprimer l'indicateur de chargement en cas d'erreur
-        const loadingIndicator = document.getElementById('loading-indicator');
-        if (loadingIndicator) {
-            loadingIndicator.remove();
-        }
     } finally {
         isLoadingMore = false;
     }
@@ -429,17 +425,17 @@ function handleScroll(event) {
     const visibleHeight = leaderboardList.clientHeight;
     const totalHeight = leaderboardList.scrollHeight;
     
-    // Log scroll information for debugging, but only occasionally to avoid flooding the console
-    if (Math.random() < 0.1) { // Log only ~10% of scroll events
-        console.log(`📊 INFO SCROLL - position: ${scrollPosition}, visible: ${visibleHeight}, total: ${totalHeight}`);
-        
-        // Calculate how close we are to the bottom (as a percentage)
-        const scrollPercentage = (scrollPosition + visibleHeight) / totalHeight;
-        console.log(`📊 Pourcentage de défilement: ${(scrollPercentage * 100).toFixed(2)}%`);
-    }
+    // Log scroll information for debugging
+    console.log(`📊 INFO SCROLL - position: ${scrollPosition}, visible: ${visibleHeight}, total: ${totalHeight}`);
     
     // Calculate how close we are to the bottom (as a percentage)
     const scrollPercentage = (scrollPosition + visibleHeight) / totalHeight;
+    console.log(`📊 Pourcentage de défilement: ${(scrollPercentage * 100).toFixed(2)}%`);
+    
+    // Check if totalHeight seems too large (signe que tous les éléments ont été chargés)
+    if (totalHeight > 5000) {
+        console.warn(`⚠️⚠️⚠️ ALERTE: Hauteur totale très grande (${totalHeight}px) - Possible que toute la liste ait été chargée`);
+    }
     
     // Load more data when user scrolls to 75% of the list
     if (scrollPercentage > 0.75 && !isLoadingMore && hasMoreData) {
