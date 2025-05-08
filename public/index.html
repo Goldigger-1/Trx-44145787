@@ -2,8 +2,7 @@
 <html lang="en">
 <head>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src='//whephiwums.com/sdk.js' data-zone='9302454' data-sdk='show_9302454'></script>
-    <meta charset="UTF-8">
+    <script src='//whephiwums.com/sdk.js' data-zone='9302441' data-sdk='show_9302441'></script>    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <!-- Méta-tags pour forcer l'orientation portrait -->
     <meta name="screen-orientation" content="portrait">
@@ -3633,8 +3632,8 @@
                 reviveBtn.disabled = true;
                 
                 // Afficher la publicité Monetag
-                if (typeof show_9302454 === 'function') {
-                    show_9302454().then(() => {
+                if (typeof show_9302441 === 'function') {
+                    show_9302441().then(() => {
                         console.log("✅ Ad viewed successfully, reviving player!");
                         
                         // Marquer que le joueur a utilisé Revive
@@ -3654,7 +3653,7 @@
                         reviveBtn.disabled = false;
                     });
                 } else {
-                    console.error("❌ Monetag show_9302454 function not available");
+                    console.error("❌ Monetag show_9302441 function not available");
                     alert("Ad service not available. Please try again later.");
                     reviveBtn.disabled = false;
                 }
