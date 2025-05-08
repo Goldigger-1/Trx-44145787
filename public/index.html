@@ -3642,9 +3642,44 @@
                         // Cacher l'écran de game over
                         hideGameOver();
                         
-                        // Reprendre la partie avec le score actuel
-                        resumeGameAfterRevive();
-                        
+                        // Afficher un overlay Play sur le canvas après la pub
+                        const canvasContainer = document.getElementById('game-canvas').parentElement;
+                        let overlay = document.createElement('div');
+                        overlay.id = 'revive-play-overlay';
+                        overlay.style.position = 'absolute';
+                        overlay.style.top = 0;
+                        overlay.style.left = 0;
+                        overlay.style.width = '100%';
+                        overlay.style.height = '100%';
+                        overlay.style.display = 'flex';
+                        overlay.style.alignItems = 'center';
+                        overlay.style.justifyContent = 'center';
+                        overlay.style.background = 'rgba(0,0,0,0.25)';
+                        overlay.style.zIndex = 10000;
+
+                        // Créer le bouton Play
+                        let playBtn = document.createElement('button');
+                        playBtn.style.background = 'linear-gradient(135deg, #00FF9D 0%, #00C853 100%)';
+                        playBtn.style.border = 'none';
+                        playBtn.style.borderRadius = '50%';
+                        playBtn.style.width = '80px';
+                        playBtn.style.height = '80px';
+                        playBtn.style.display = 'flex';
+                        playBtn.style.alignItems = 'center';
+                        playBtn.style.justifyContent = 'center';
+                        playBtn.style.boxShadow = '0 4px 24px rgba(0,0,0,0.18)';
+                        playBtn.style.cursor = 'pointer';
+                        playBtn.setAttribute('aria-label', 'Reprendre');
+
+                        // Icône SVG Play
+                        playBtn.innerHTML = `<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="24" fill="#00FF9D"/><path d="M18 15V33L34 24L18 15Z" fill="#121212"/></svg>`;
+                        playBtn.addEventListener('click', function() {
+                            resumeGameAfterRevive();
+                        });
+
+                        overlay.appendChild(playBtn);
+                        canvasContainer.appendChild(overlay);
+
                         // Réactiver le bouton (pour la prochaine fois)
                         reviveBtn.disabled = false;
                     }).catch(error => {
@@ -3905,6 +3940,9 @@
 
         // Fonction pour reprendre la partie après un Revive
         function resumeGameAfterRevive() {
+    // S'il existe un overlay Play (après revive), le retirer
+    const reviveOverlay = document.getElementById('revive-play-overlay');
+    if (reviveOverlay) reviveOverlay.remove();
             console.log("🔄 Resuming game after revive with score: " + score);
             
             // Masquer l'écran de game over
