@@ -63,7 +63,8 @@ async function loadLeaderboardData() {
         
         // Get active season if not already fetched
         if (!activeSeason) {
-            const res = await fetch('/api/seasons/active');
+            // Use the correct working endpoint for active season
+            const res = await fetch('/api/active-season');
             if (!res.ok) {
                 throw new Error('Failed to fetch active season');
             }
