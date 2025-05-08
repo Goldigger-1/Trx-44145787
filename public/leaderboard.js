@@ -189,7 +189,7 @@ async function loadLeaderboardPageData(page) {
     try {
         // Utiliser l'API existante qui supporte la pagination
         // Mais il est possible qu'elle ignore les paramètres de pagination et renvoie tout
-        const apiUrl = `/api/seasons/${activeSeason.id}/ranking?page=${page}&limit=15`;
+        const apiUrl = `/api/leaderboard/paginated/${activeSeason.id}?page=${page}&limit=15`;
         console.log(`🔍 URL API EXISTANTE: ${apiUrl}`);
         
         // Enregistrer le temps de début pour mesurer la performance
