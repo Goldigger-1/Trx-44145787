@@ -452,16 +452,34 @@ function setupInfiniteScroll() {
     const leaderboardList = document.getElementById('leaderboard-list');
     if (!leaderboardList) return;
     
-    console.log('📜 Setting up infinite scroll event listener');
-    
     // Remove existing scroll listener if any
     leaderboardList.removeEventListener('scroll', handleScroll);
     
     // Add scroll listener
     leaderboardList.addEventListener('scroll', handleScroll);
     
-    // Log to confirm the setup
-    console.log('✅ Infinite scroll event listener attached to leaderboard-list');
+    // Add touch events for mobile devices
+    leaderboardList.addEventListener('touchmove', handleMobileScroll);
+    leaderboardList.addEventListener('touchend', handleMobileScroll);
+}
+
+// Handle mobile-specific scroll events
+function handleMobileScroll(event) {
+    // Use a lower threshold for mobile to make first scroll more responsive
+    const leaderboardList = document.getElementById('leaderboard-list');
+    if (!leaderboardList) return;
+    
+    // Check if we're near the bottom of the scroll area - use a lower threshold for mobile
+    const scrollPosition = leaderboardList.scrollTop;
+    const visibleHeight = leaderboardList.clientHeight;
+    const totalHeight = leaderboardList.scrollHeight;
+    
+    // Use 65% threshold for mobile instead of 75% to load earlier on first scroll
+    const scrollPercentage = (scrollPosition + visibleHeight) / totalHeight;
+    
+    if (scrollPercentage > 0.65 && !isLoadingMore && hasMoreData) {
+        loadNextLeaderboardPage();
+    }
 }
 
 // Handle scroll event for infinite loading
@@ -477,7 +495,8 @@ function handleScroll(event) {
     // Calculate how close we are to the bottom (as a percentage)
     const scrollPercentage = (scrollPosition + visibleHeight) / totalHeight;
     
-    // Load more data when user scrolls to 75% of the list
+    // For desktop, keep the original 75% threshold
+    // The mobile-specific handler will use a lower threshold
     if (scrollPercentage > 0.75 && !isLoadingMore && hasMoreData) {
         loadNextLeaderboardPage();
     }
