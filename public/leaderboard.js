@@ -146,8 +146,7 @@ function renderLeaderboardItems(items, clearList) {
         // For page 0, ranks are 1-15, for page 1, ranks are 16-30, etc.
         const rank = currentPage > 0 ? (currentPage - 1) * 15 + index + 1 : index + 1;
         
-        // Skip top 3 players if this is the first page (they're shown in the podium)
-        if (clearList && rank <= 3) return;
+        // Include all players in the list, including top 3
         
         // Ensure avatar path is properly formatted
         let avatarSrc = item.avatarSrc || 'avatars/avatar_default.jpg';
