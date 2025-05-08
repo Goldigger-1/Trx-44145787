@@ -447,23 +447,6 @@ function updatePodium(rankingData) {
     }
 }
 
-// Setup infinite scroll
-function setupInfiniteScroll() {
-    const leaderboardList = document.getElementById('leaderboard-list');
-    if (!leaderboardList) return;
-    
-    console.log('📜 Setting up infinite scroll event listener');
-    
-    // Remove existing scroll listener if any
-    leaderboardList.removeEventListener('scroll', handleScroll);
-    
-    // Add scroll listener
-    leaderboardList.addEventListener('scroll', handleScroll);
-    
-    // Log to confirm the setup
-    console.log('✅ Infinite scroll event listener attached to leaderboard-list');
-}
-
 // Handle scroll event for infinite loading
 function handleScroll(event) {
     const leaderboardList = document.getElementById('leaderboard-list');
@@ -477,10 +460,42 @@ function handleScroll(event) {
     // Calculate how close we are to the bottom (as a percentage)
     const scrollPercentage = (scrollPosition + visibleHeight) / totalHeight;
     
-    // Load more data when user scrolls to 75% of the list
-    if (scrollPercentage > 0.75 && !isLoadingMore && hasMoreData) {
-        loadNextLeaderboardPage();
+    // Use a lower threshold on mobile devices to trigger loading earlier
+    // This helps with the first load after the initial 15 items
+    const isMobile = window.innerWidth <= 768;
+    const threshold = isMobile ? 0.65 : 0.75;
+    
+    // Load more data when user scrolls to threshold % of the list
+    if (scrollPercentage > threshold && !isLoadingMore && hasMoreData) {
+        // Use a small timeout to prevent rapid triggering on fast scrolls
+        // This is especially important on mobile where scroll events can fire rapidly
+        setTimeout(() => {
+            // Check again if we're still loading or if someone else triggered loading
+            // during the timeout
+            if (!isLoadingMore && hasMoreData) {
+                loadNextLeaderboardPage();
+            }
+        }, 50);
     }
+}
+
+// Setup infinite scroll
+function setupInfiniteScroll() {
+    const leaderboardList = document.getElementById('leaderboard-list');
+    if (!leaderboardList) return;
+    
+    // Remove existing scroll listener if any
+    leaderboardList.removeEventListener('scroll', handleScroll);
+    
+    // Add scroll listener
+    leaderboardList.addEventListener('scroll', handleScroll);
+    
+    // Force an initial check in case the content doesn't fill the screen
+    // This handles the case where all 15 items don't fill the viewport,
+    // so no scroll event would be triggered
+    setTimeout(() => {
+        handleScroll();
+    }, 500);
 }
 
 // Fonction pour obtenir l'ID utilisateur actuel
