@@ -264,7 +264,7 @@ async function loadLeaderboardPageData(page) {
         }
         
         console.log(`🔎🔎🔎 FIN CHARGEMENT PAGE ${page} 🔎🔎🔎`);
-        return paginatedData;
+        return rankingData;
     } catch (error) {
         console.error(`❌❌❌ ERREUR lors du chargement de la page ${page}:`, error);
         if (error.stack) console.error(`🔍 STACK TRACE: ${error.stack}`);
