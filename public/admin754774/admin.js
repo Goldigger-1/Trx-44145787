@@ -711,8 +711,6 @@ function fetchActiveSeason() {
             } else {
                 console.error('Erreur lors de la récupération de la saison active:', error);
                 showNotification('Erreur lors de la récupération de la saison active', 'error');
-            }
-        });
 }
 
 // Récupérer le classement d'une saison
@@ -727,8 +725,8 @@ function fetchSeasonRanking(seasonId) {
             return response.json();
         })
         .then(data => {
-            // Ensure data is an array
-            const safeData = Array.isArray(data) ? data : [];
+            // Utilisation de la nouvelle structure paginée
+            const safeData = Array.isArray(data) ? data : (Array.isArray(data.items) ? data.items : []);
             displaySeasonRanking(safeData);
         })
         .catch(error => {
@@ -740,12 +738,12 @@ function fetchSeasonRanking(seasonId) {
 
 // Afficher le classement d'une saison
 function displaySeasonRanking(data) {
-    // Ensure data is always an array
-    const safeData = Array.isArray(data) ? data : [];
-    
+    // Utilise la nouvelle structure paginée si besoin
+    const safeData = Array.isArray(data) ? data : (Array.isArray(data.items) ? data.items : []);
+
     // Vider le tableau
     seasonRankingTable.innerHTML = '';
-    
+
     // Si aucun score n'est trouvé
     if (safeData.length === 0) {
         const row = document.createElement('tr');
@@ -755,13 +753,13 @@ function displaySeasonRanking(data) {
         // Afficher les scores
         safeData.forEach((score, index) => {
             const row = document.createElement('tr');
-            
+
             row.innerHTML = `
                 <td>${index + 1}</td>
                 <td>${score.username || 'Utilisateur inconnu'}</td>
                 <td>${score.score || '0'}</td>
             `;
-            
+
             seasonRankingTable.appendChild(row);
         });
     }
@@ -771,6 +769,7 @@ function displaySeasonRanking(data) {
 function displaySeasons() {
     // Vider le tableau
     seasonsHistoryTable.innerHTML = '';
+
     
     // Si aucune saison n'est trouvée
     if (seasons.length === 0) {
