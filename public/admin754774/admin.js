@@ -717,51 +717,44 @@ function fetchActiveSeason() {
 
 // Récupérer le classement d'une saison
 function fetchSeasonRanking(seasonId) {
-    // For admin panel, we'll use pagination with a larger limit
-    fetch(`/api/seasons/${seasonId}/ranking?page=0&limit=100`)
+    // Appel admin : on veut toute la liste, donc on récupère les items de la nouvelle structure
+    fetch(`/api/seasons/${seasonId}/ranking`)
         .then(response => {
-            // Check if the response is ok (status in the range 200-299)
             if (!response.ok) {
                 throw new Error(`Server responded with status: ${response.status}`);
             }
             return response.json();
         })
         .then(data => {
-            // Utilise la nouvelle structure paginée de l'API
+            // Nouvelle API : on prend data.items si présent, sinon tableau vide
             const safeData = Array.isArray(data.items) ? data.items : [];
             displaySeasonRanking(safeData);
         })
         .catch(error => {
             console.error('Erreur lors de la récupération du classement de la saison:', error);
-            // Display empty ranking on error
             displaySeasonRanking([]);
         });
 }
 
 // Afficher le classement d'une saison
 function displaySeasonRanking(data) {
-    // Ensure data is always an array
+    // data est déjà la liste des scores (data.items côté API)
     const safeData = Array.isArray(data) ? data : [];
     
-    // Vider le tableau
     seasonRankingTable.innerHTML = '';
     
-    // Si aucun score n'est trouvé
     if (safeData.length === 0) {
         const row = document.createElement('tr');
         row.innerHTML = `<td colspan="3" style="text-align: center;">Aucun score enregistré</td>`;
         seasonRankingTable.appendChild(row);
     } else {
-        // Afficher les scores
         safeData.forEach((score, index) => {
             const row = document.createElement('tr');
-            
             row.innerHTML = `
                 <td>${index + 1}</td>
-                <td>${score.username || 'Utilisateur inconnu'}</td>
+                <td>${score.gameUsername || score.username || 'Utilisateur inconnu'}</td>
                 <td>${score.score || '0'}</td>
             `;
-            
             seasonRankingTable.appendChild(row);
         });
     }
