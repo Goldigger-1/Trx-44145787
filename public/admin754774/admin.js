@@ -302,7 +302,7 @@ function initEvents() {
         const formattedDate = endDate.toISOString().slice(0, 16);
         seasonEndDateInput.value = formattedDate;
         
-        seasonPrizeInput.value = currentSeason.prizeMoney;
+        seasonPrizeInput.value = (typeof currentSeason.prizeMoney !== 'undefined' && currentSeason.prizeMoney !== null) ? currentSeason.prizeMoney : '';
         document.getElementById('season-second-prize-input').value = (typeof currentSeason.secondPrize !== 'undefined' && currentSeason.secondPrize !== null) ? currentSeason.secondPrize : '';
         document.getElementById('season-third-prize-input').value = (typeof currentSeason.thirdPrize !== 'undefined' && currentSeason.thirdPrize !== null) ? currentSeason.thirdPrize : '';
         
