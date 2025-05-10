@@ -302,9 +302,9 @@ function initEvents() {
         const formattedDate = endDate.toISOString().slice(0, 16);
         seasonEndDateInput.value = formattedDate;
         
-        seasonPrizeInput.value = (typeof currentSeason.prizeMoney !== 'undefined' && currentSeason.prizeMoney !== null) ? currentSeason.prizeMoney : '';
-        document.getElementById('season-second-prize-input').value = (typeof currentSeason.secondPrize !== 'undefined' && currentSeason.secondPrize !== null) ? currentSeason.secondPrize : '';
-        document.getElementById('season-third-prize-input').value = (typeof currentSeason.thirdPrize !== 'undefined' && currentSeason.thirdPrize !== null) ? currentSeason.thirdPrize : '';
+        seasonPrizeInput.value = currentSeason.prizeMoney;
+        document.getElementById('season-second-prize-input').value = currentSeason.secondPrize !== undefined ? currentSeason.secondPrize : '';
+        document.getElementById('season-third-prize-input').value = currentSeason.thirdPrize !== undefined ? currentSeason.thirdPrize : '';
         
         // Afficher le modal
         seasonModal.style.display = 'flex';
@@ -343,22 +343,18 @@ function initEvents() {
         });
         
         // Validation des données
-        if (!seasonNumberValue || !seasonEndDateValue || seasonPrizeValue === '' || seasonSecondPrizeValue === '' || seasonThirdPrizeValue === '') {
+        if (!seasonNumberValue || !seasonEndDateValue || !seasonPrizeValue || !seasonSecondPrizeValue || !seasonThirdPrizeValue) {
             alert('Tous les champs sont obligatoires');
             return;
         }
         
         // Déterminer si c'est une création ou une mise à jour
-        // S'assurer que les valeurs sont bien des nombres (0 autorisé)
-        const safePrize = seasonPrizeValue === '' ? 0 : parseFloat(seasonPrizeValue);
-        const safeSecondPrize = seasonSecondPrizeValue === '' ? 0 : parseFloat(seasonSecondPrizeValue);
-        const safeThirdPrize = seasonThirdPrizeValue === '' ? 0 : parseFloat(seasonThirdPrizeValue);
         if (seasonModalTitle.textContent === 'Nouvelle saison') {
             // Créer une nouvelle saison
-            createSeason(seasonNumberValue, seasonEndDateValue, safePrize, safeSecondPrize, safeThirdPrize);
+            createSeason(seasonNumberValue, seasonEndDateValue, seasonPrizeValue, seasonSecondPrizeValue, seasonThirdPrizeValue);
         } else {
             // Mettre à jour la saison existante
-            updateSeason(currentSeason.id, seasonNumberValue, seasonEndDateValue, safePrize, safeSecondPrize, safeThirdPrize);
+            updateSeason(currentSeason.id, seasonNumberValue, seasonEndDateValue, seasonPrizeValue, seasonSecondPrizeValue, seasonThirdPrizeValue);
         }
     });
     
