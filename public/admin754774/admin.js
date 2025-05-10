@@ -106,7 +106,7 @@ window.addEventListener('click', function(event) {
 function openBroadcast() {
     if (!broadcastModal) return;
     broadcastMessageInput.value = '';
-    broadcastModal.style.display = 'block';
+    broadcastModal.style.display = 'flex';
 }
 function closeBroadcast() {
     if (!broadcastModal) return;
