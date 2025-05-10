@@ -35,8 +35,17 @@ function updateScoreTotalDisplay() {
     scoreDiv.textContent = '-';
     const userIdOrDeviceId = getCurrentUserIdOrDeviceId();
     if (!userIdOrDeviceId) return;
+    // Essayer d'abord avec telegramId
     fetch('/api/users/telegram/' + userIdOrDeviceId)
-        .then(r => r.ok ? r.json() : null)
+        .then(r => {
+            if (r.ok) return r.json();
+            // Si 404, essayer deviceId
+            if (r.status === 404) {
+                return fetch('/api/users/device/' + userIdOrDeviceId)
+                    .then(r2 => r2.ok ? r2.json() : null);
+            }
+            return null;
+        })
         .then(data => {
             if (data && typeof data.scoretotal === 'number') {
                 scoreDiv.textContent = data.scoretotal;
@@ -44,6 +53,7 @@ function updateScoreTotalDisplay() {
         })
         .catch(() => { scoreDiv.textContent = '-'; });
 }
+
 
 // Affiche le scoretotal à chaque affichage de la page d'accueil
 function observeHomeScreenDisplay() {
