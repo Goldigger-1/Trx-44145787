@@ -195,7 +195,7 @@ async function renderGameOverStickyUserRow() {
                 <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${userSeasonScore}</div>
             `;
             
-            userRowElement.innerHTML = userRow;
+
             
         } catch (error) {
             console.error('❌ Erreur lors de la récupération des données utilisateur:', error);
