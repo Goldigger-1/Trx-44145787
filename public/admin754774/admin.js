@@ -680,6 +680,7 @@ function showUserDetails(userId) {
             document.getElementById('modal-telegram-username').textContent = user.telegramUsername || 'N/A';
             document.getElementById('modal-paypal-email').textContent = user.paypalEmail || 'N/A'; // Correction ici
             document.getElementById('modal-best-score').textContent = user.bestScore || '0';
+            document.getElementById('modal-scoretotal').textContent = user.scoretotal || '0';
             document.getElementById('modal-registration-date').textContent = formatDate(user.registrationDate) || 'N/A';
             document.getElementById('modal-last-login').textContent = formatDate(user.lastLogin) || 'N/A';
             
