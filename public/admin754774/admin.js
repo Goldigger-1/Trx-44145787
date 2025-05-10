@@ -66,6 +66,14 @@ const savePromoBannerBtn = document.getElementById('save-promo-banner');
 const cancelPromoBannerBtn = document.getElementById('cancel-promo-banner');
 const closePromoModal = promoBannerModal ? promoBannerModal.querySelector('.close-promo-modal') : null;
 
+// Broadcast Modal Elements
+const broadcastBtn = document.getElementById('broadcast-btn');
+const broadcastModal = document.getElementById('broadcast-modal');
+const closeBroadcastModal = document.getElementById('close-broadcast-modal');
+const cancelBroadcastBtn = document.getElementById('cancel-broadcast');
+const sendBroadcastBtn = document.getElementById('send-broadcast');
+const broadcastMessageInput = document.getElementById('broadcast-message');
+
 function openPromoBannerModal() {
     if (!promoBannerModal) return;
     // Reset fields
@@ -91,7 +99,53 @@ if (closePromoModal) closePromoModal.onclick = closePromoBanner;
 if (cancelPromoBannerBtn) cancelPromoBannerBtn.onclick = closePromoBanner;
 window.addEventListener('click', function(event) {
     if (event.target === promoBannerModal) closePromoBanner();
+    if (event.target === broadcastModal) closeBroadcast();
 });
+
+// Broadcast Modal Logic
+function openBroadcast() {
+    if (!broadcastModal) return;
+    broadcastMessageInput.value = '';
+    broadcastModal.style.display = 'block';
+}
+function closeBroadcast() {
+    if (!broadcastModal) return;
+    broadcastModal.style.display = 'none';
+    broadcastMessageInput.value = '';
+}
+if (broadcastBtn) broadcastBtn.onclick = openBroadcast;
+if (closeBroadcastModal) closeBroadcastModal.onclick = closeBroadcast;
+if (cancelBroadcastBtn) cancelBroadcastBtn.onclick = closeBroadcast;
+if (sendBroadcastBtn) sendBroadcastBtn.onclick = async function() {
+    const message = broadcastMessageInput.value.trim();
+    if (!message) {
+        showNotification('Veuillez saisir un message.', 'error');
+        return;
+    }
+    sendBroadcastBtn.disabled = true;
+    sendBroadcastBtn.textContent = 'Envoi...';
+    try {
+        const response = await fetch('/api/broadcast', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ message })
+        });
+        const data = await response.json();
+        if (response.ok) {
+            showNotification('Message envoyé à tous les utilisateurs.', 'success');
+            closeBroadcast();
+        } else {
+            showNotification(data.error || 'Erreur lors de l\'envoi du message.', 'error');
+        }
+    } catch (err) {
+        showNotification('Erreur réseau lors de l\'envoi du message.', 'error');
+    } finally {
+        sendBroadcastBtn.disabled = false;
+        sendBroadcastBtn.textContent = 'Envoyer à tous';
+    }
+};
 // Preview image
 if (promoImageInput) {
     promoImageInput.onchange = function() {

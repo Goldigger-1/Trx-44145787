@@ -40,7 +40,8 @@
             <button id="how-to-play-btn" class="admin-button" style="margin-right:16px;">How to play (YouTube) 🎬</button>
             <button id="promo-banner-btn" class="admin-button" style="margin-right:16px;">Promotion Banner 🖼️</button>
             <button id="logout-btn" class="admin-button secondary">Déconnexion</button>
-        </header>
+            <button id="broadcast-btn" class="admin-button" style="margin-right:16px;background:#2d8cff; color:white;">Message à tous 📢</button>
+</header>
         
         <main>
             <h1>Panneau d'administration</h1>
@@ -369,5 +370,17 @@
       </div>
     </div>
     <script src="admin.js"></script>
+    <!-- Modal pour broadcast message -->
+    <div id="broadcast-modal" class="modal" style="display:none;">
+      <div class="modal-content" style="max-width:400px;">
+        <span class="close-modal" id="close-broadcast-modal" style="float:right;cursor:pointer;font-size:24px;">&times;</span>
+        <h2>Envoyer un message à tous les utilisateurs</h2>
+        <textarea id="broadcast-message" rows="5" style="width:100%;margin-bottom:16px;resize:vertical;" placeholder="Tapez votre message ici..."></textarea>
+        <div style="text-align:right;">
+          <button id="cancel-broadcast" class="admin-button secondary" style="margin-right:8px;">Annuler</button>
+          <button id="send-broadcast" class="admin-button" style="background:#2d8cff;color:white;">Envoyer à tous</button>
+        </div>
+      </div>
+    </div>
 </body>
 </html>

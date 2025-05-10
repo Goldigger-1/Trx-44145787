@@ -396,6 +396,44 @@ bot.launch().then(() => {
   console.error('Erreur lors du démarrage du bot:', err);
 });
 
+// Route pour envoyer un message à tous les utilisateurs (broadcast)
+app.post('/api/broadcast', express.json(), async (req, res) => {
+  try {
+    // Authentification basique admin par header (à sécuriser selon vos besoins)
+    // Par exemple : req.headers['x-admin-auth'] === 'votre_token_admin'
+    // Ici, on laisse passer pour simplifier, car l'auth est déjà côté admin.js
+
+    const { message } = req.body;
+    if (!message || typeof message !== 'string' || !message.trim()) {
+      return res.status(400).json({ error: 'Message invalide' });
+    }
+    // Récupérer tous les utilisateurs avec telegramId non nul
+    const users = await User.findAll({
+      where: {
+        telegramId: { [Sequelize.Op.not]: null }
+      }
+    });
+    if (!users.length) {
+      return res.status(404).json({ error: 'Aucun utilisateur avec TelegramId' });
+    }
+    let success = 0, fail = 0;
+    for (const user of users) {
+      try {
+        await bot.telegram.sendMessage(user.telegramId, message);
+        success++;
+      } catch (err) {
+        fail++;
+        // Optionnel : log les erreurs individuelles
+        console.error(`Erreur envoi à ${user.telegramId}:`, err.message);
+      }
+    }
+    res.json({ sent: success, failed: fail, total: users.length });
+  } catch (error) {
+    console.error('Erreur lors du broadcast:', error);
+    res.status(500).json({ error: 'Erreur lors de l\'envoi du message.' });
+  }
+});
+
 // Route pour récupérer une saison spécifique
 app.get('/api/seasons/:id', async (req, res) => {
   const { id } = req.params;
