@@ -107,45 +107,53 @@ function openBroadcast() {
     if (!broadcastModal) return;
     broadcastMessageInput.value = '';
     broadcastModal.style.display = 'block';
+    console.log('[TiDash] Ouverture du popup broadcast');
 }
 function closeBroadcast() {
     if (!broadcastModal) return;
     broadcastModal.style.display = 'none';
     broadcastMessageInput.value = '';
 }
-if (broadcastBtn) broadcastBtn.onclick = openBroadcast;
-if (closeBroadcastModal) closeBroadcastModal.onclick = closeBroadcast;
-if (cancelBroadcastBtn) cancelBroadcastBtn.onclick = closeBroadcast;
-if (sendBroadcastBtn) sendBroadcastBtn.onclick = async function() {
-    const message = broadcastMessageInput.value.trim();
-    if (!message) {
-        showNotification('Veuillez saisir un message.', 'error');
-        return;
+
+// Attachement robuste des listeners après chargement du DOM
+window.addEventListener('DOMContentLoaded', function() {
+    if (broadcastBtn) {
+        broadcastBtn.onclick = openBroadcast;
+        console.log('[TiDash] Listener bouton broadcast attaché');
     }
-    sendBroadcastBtn.disabled = true;
-    sendBroadcastBtn.textContent = 'Envoi...';
-    try {
-        const response = await fetch('/api/broadcast', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ message })
-        });
-        const data = await response.json();
-        if (response.ok) {
-            showNotification('Message envoyé à tous les utilisateurs.', 'success');
-            closeBroadcast();
-        } else {
-            showNotification(data.error || 'Erreur lors de l\'envoi du message.', 'error');
+    if (closeBroadcastModal) closeBroadcastModal.onclick = closeBroadcast;
+    if (cancelBroadcastBtn) cancelBroadcastBtn.onclick = closeBroadcast;
+    if (sendBroadcastBtn) sendBroadcastBtn.onclick = async function() {
+        const message = broadcastMessageInput.value.trim();
+        if (!message) {
+            showNotification('Veuillez saisir un message.', 'error');
+            return;
         }
-    } catch (err) {
-        showNotification('Erreur réseau lors de l\'envoi du message.', 'error');
-    } finally {
-        sendBroadcastBtn.disabled = false;
-        sendBroadcastBtn.textContent = 'Envoyer à tous';
-    }
-};
+        sendBroadcastBtn.disabled = true;
+        sendBroadcastBtn.textContent = 'Envoi...';
+        try {
+            const response = await fetch('/api/broadcast', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ message })
+            });
+            const data = await response.json();
+            if (response.ok) {
+                showNotification('Message envoyé à tous les utilisateurs.', 'success');
+                closeBroadcast();
+            } else {
+                showNotification(data.error || 'Erreur lors de l\'envoi du message.', 'error');
+            }
+        } catch (err) {
+            showNotification('Erreur réseau lors de l\'envoi du message.', 'error');
+        } finally {
+            sendBroadcastBtn.disabled = false;
+            sendBroadcastBtn.textContent = 'Envoyer à tous';
+        }
+    };
+});
 // Preview image
 if (promoImageInput) {
     promoImageInput.onchange = function() {
