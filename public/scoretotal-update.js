@@ -68,20 +68,37 @@ function observeHomeScreenDisplay() {
     }, 400);
 }
 
-// Ajout listeners sur HOME et PLAY (après DOMContentLoaded et création des boutons)
+// Variable globale pour stocker le dernier score de partie
+window.lastGameScore = 0;
+
+// Détecte l'affichage de l'écran Game Over et stocke le score affiché
+function observeGameOverDisplay() {
+    var gameOver = document.getElementById('game-over');
+    if (!gameOver) return;
+    var lastDisplay = gameOver.style.display;
+    setInterval(function() {
+        if (gameOver.style.display !== 'none' && lastDisplay === 'none') {
+            var score = parseInt(document.getElementById('score-display').textContent, 10) || 0;
+            window.lastGameScore = score;
+        }
+        lastDisplay = gameOver.style.display;
+    }, 400);
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     observeHomeScreenDisplay();
+    observeGameOverDisplay();
     var homeBtn = document.getElementById('home-button');
     var playBtn = document.getElementById('play-again');
     if (homeBtn) {
         homeBtn.addEventListener('click', function() {
-            var score = parseInt(document.getElementById('score-display').textContent, 10) || 0;
+            var score = window.lastGameScore || 0;
             if (score > 0) addScoreToScoreTotal(score);
         });
     }
     if (playBtn) {
         playBtn.addEventListener('click', function() {
-            var score = parseInt(document.getElementById('score-display').textContent, 10) || 0;
+            var score = window.lastGameScore || 0;
             if (score > 0) addScoreToScoreTotal(score);
         });
     }
