@@ -151,8 +151,10 @@ async function getActiveSeason() {
         
         console.log(`✅ Saison active trouvée: ${season.id} (Saison ${season.seasonNumber})`);
         
-        // Update podium prize
-        updatePrizeDisplay(season.prizeMoney);
+        // Update podium prizes
+        updatePrizeDisplay(season.prizeMoney, 1);
+        updatePrizeDisplay(season.secondPrize, 2);
+        updatePrizeDisplay(season.thirdPrize, 3);
         
         // Update season title
         const titleElement = document.getElementById('leaderboard-season-title');
@@ -778,14 +780,12 @@ async function renderLeaderboardUserRow() {
 }
 
 // Function to update prize display
-function updatePrizeDisplay(prizeMoney) {
-    const prizeElement = document.getElementById('podium-1-prize');
+function updatePrizeDisplay(prizeMoney, position = 1) {
+    const prizeElement = document.getElementById(`podium-${position}-prize`);
     if (prizeElement) {
-        // Format prize money nicely with 2 decimal places if it's not a whole number
         const formattedPrize = Number.isInteger(prizeMoney) ? 
             `$${prizeMoney}` : 
             `$${parseFloat(prizeMoney).toFixed(2)}`;
-        
         prizeElement.textContent = formattedPrize;
     }
 }
