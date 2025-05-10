@@ -152,6 +152,16 @@ const Season = sequelize.define('Season', {
     type: DataTypes.FLOAT,
     allowNull: false
   },
+  secondPrize: {
+    type: DataTypes.FLOAT,
+    allowNull: false,
+    defaultValue: 0
+  },
+  thirdPrize: {
+    type: DataTypes.FLOAT,
+    allowNull: false,
+    defaultValue: 0
+  },
   isActive: {
     type: DataTypes.BOOLEAN,
     defaultValue: true
@@ -1003,117 +1013,43 @@ app.get('/api/seasons', async (req, res) => {
 
 // API pour créer une nouvelle saison
 app.post('/api/seasons', async (req, res) => {
-  const { seasonNumber, endDate, prizeMoney } = req.body;
-  
-  console.log('Création de saison - Données reçues:', req.body);
-  
   try {
-    // Validation des données
-    if (!seasonNumber || !endDate || prizeMoney === undefined) {
-      console.error('Données de saison invalides:', req.body);
-      return res.status(400).json({ error: 'Tous les champs sont requis (seasonNumber, endDate, prizeMoney)' });
-    }
-    
-    // Utiliser une transaction pour s'assurer que toutes les opérations sont atomiques
-    const transaction = await sequelize.transaction();
-    
-    try {
-      // 1. Désactiver toutes les saisons actives
-      await Season.update({ isActive: false }, { 
-        where: { isActive: true },
-        transaction
-      });
-      
-      // 2. Créer une nouvelle saison
-      const newSeason = await Season.create({
-        seasonNumber: parseInt(seasonNumber),
-        endDate: new Date(endDate),
-        prizeMoney: parseFloat(prizeMoney),
-        isActive: true,
-        isClosed: false,
-        winnerId: null
-      }, { transaction });
-      
-      // 3. IMPORTANT: Supprimer TOUS les scores de saison existants pour la nouvelle saison
-      // Cela garantit qu'il n'y a pas de scores résiduels d'une saison précédente
-      await sequelize.query('DELETE FROM "SeasonScores" WHERE "seasonId" = ?', {
-        replacements: [newSeason.id],
-        transaction
-      });
-      
-      // 4. Récupérer tous les utilisateurs
-      const users = await User.findAll({
-        attributes: ['gameId'],
-        transaction
-      });
-      
-      // 5. Créer des scores de saison initialisés à 0 pour tous les utilisateurs existants
-      if (users.length > 0) {
-        const seasonScores = users.map(user => ({
-          userId: user.gameId,
-          seasonId: newSeason.id,
-          score: 0
-        }));
-        
-        await SeasonScore.bulkCreate(seasonScores, { transaction });
-        console.log(`✅ ${seasonScores.length} season scores initialized to 0 for new season ${newSeason.seasonNumber} 🏆`);
-      }
-      
-      // 6. ADDITIONAL FIX: Clear any potential cached season scores in the database
-      // This ensures no old scores from previous seasons with the same ID are kept
-      await sequelize.query('DELETE FROM "SeasonScores" WHERE "seasonId" != ? AND "score" > 0', {
-        replacements: [newSeason.id],
-        transaction
-      });
-      
-      console.log(`🧹 Cleared any potential cached season scores from previous seasons`);
-      
-      // Valider la transaction
-      await transaction.commit();
-      
-      console.log('🎮 New season created:', newSeason.toJSON());
-      res.status(201).json(newSeason);
-    } catch (innerError) {
-      // Annuler la transaction en cas d'erreur
-      await transaction.rollback();
-      throw innerError;
-    }
+    const { seasonNumber, startDate, endDate, prizeMoney, secondPrize, thirdPrize } = req.body;
+    const season = await Season.create({
+      seasonNumber,
+      startDate,
+      endDate,
+      prizeMoney,
+      secondPrize: typeof secondPrize !== 'undefined' ? secondPrize : 0,
+      thirdPrize: typeof thirdPrize !== 'undefined' ? thirdPrize : 0
+    });
+    res.status(201).json(season);
   } catch (error) {
     console.error('Erreur lors de la création de la saison:', error);
-    res.status(500).json({ error: 'Erreur lors de la création de la saison', details: error.message });
+    res.status(500).json({ error: 'Erreur lors de la création de la saison' });
   }
 });
 
 // API pour mettre à jour une saison
 app.put('/api/seasons/:id', async (req, res) => {
-  const { id } = req.params;
-  const { seasonNumber, endDate, prizeMoney } = req.body;
-  
-  console.log('Mise à jour de saison - Données reçues:', req.body);
-  
   try {
-    // Validation des données
-    if (!seasonNumber || !endDate || prizeMoney === undefined) {
-      console.error('Données de saison invalides:', req.body);
-      return res.status(400).json({ error: 'Tous les champs sont requis (seasonNumber, endDate, prizeMoney)' });
-    }
-    
+    const { id } = req.params;
+    const { seasonNumber, startDate, endDate, prizeMoney, secondPrize, thirdPrize } = req.body;
     const season = await Season.findByPk(id);
     if (!season) {
       return res.status(404).json({ error: 'Saison non trouvée' });
     }
-    
-    await season.update({
-      seasonNumber: parseInt(seasonNumber),
-      endDate: new Date(endDate),
-      prizeMoney: parseFloat(prizeMoney)
-    });
-    
-    console.log('Saison mise à jour:', season.toJSON());
+    season.seasonNumber = seasonNumber;
+    season.startDate = startDate;
+    season.endDate = endDate;
+    season.prizeMoney = prizeMoney;
+    season.secondPrize = typeof secondPrize !== 'undefined' ? secondPrize : 0;
+    season.thirdPrize = typeof thirdPrize !== 'undefined' ? thirdPrize : 0;
+    await season.save();
     res.json(season);
   } catch (error) {
     console.error('Erreur lors de la mise à jour de la saison:', error);
-    res.status(500).json({ error: 'Erreur lors de la mise à jour de la saison', details: error.message });
+    res.status(500).json({ error: 'Erreur lors de la mise à jour de la saison' });
   }
 });
 
