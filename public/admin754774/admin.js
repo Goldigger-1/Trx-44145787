@@ -66,13 +66,13 @@ const savePromoBannerBtn = document.getElementById('save-promo-banner');
 const cancelPromoBannerBtn = document.getElementById('cancel-promo-banner');
 const closePromoModal = promoBannerModal ? promoBannerModal.querySelector('.close-promo-modal') : null;
 
-// Broadcast Modal Elements
-const broadcastBtn = document.getElementById('broadcast-btn');
-const broadcastModal = document.getElementById('broadcast-modal');
-const closeBroadcastModal = document.getElementById('close-broadcast-modal');
-const cancelBroadcastBtn = document.getElementById('cancel-broadcast');
-const sendBroadcastBtn = document.getElementById('send-broadcast');
-const broadcastMessageInput = document.getElementById('broadcast-message');
+// Broadcast Modal Elements - Initialisation reportée après chargement du DOM
+let broadcastBtn;
+let broadcastModal;
+let closeBroadcastModal;
+let cancelBroadcastBtn;
+let sendBroadcastBtn;
+let broadcastMessageInput;
 
 function openPromoBannerModal() {
     if (!promoBannerModal) return;
@@ -120,7 +120,10 @@ if (broadcastModal) {
 
 // Broadcast Modal Logic
 function openBroadcast() {
-    if (!broadcastModal) return;
+    if (!broadcastModal) {
+        console.error('[TiDash] Modal broadcast non trouvé dans le DOM');
+        return;
+    }
     broadcastMessageInput.value = '';
     broadcastModal.style.display = 'flex';
     console.log('[TiDash] Ouverture du popup broadcast');
@@ -133,10 +136,30 @@ function closeBroadcast() {
 
 // Attachement robuste des listeners après chargement du DOM
 window.addEventListener('DOMContentLoaded', function() {
+    console.log('[TiDash] DOM chargé, initialisation des éléments broadcast');
+    
+    // Initialisation des éléments du modal broadcast après chargement complet du DOM
+    broadcastBtn = document.getElementById('broadcast-btn');
+    broadcastModal = document.getElementById('broadcast-modal');
+    closeBroadcastModal = document.getElementById('close-broadcast-modal');
+    cancelBroadcastBtn = document.getElementById('cancel-broadcast');
+    sendBroadcastBtn = document.getElementById('send-broadcast');
+    broadcastMessageInput = document.getElementById('broadcast-message');
+    
+    console.log('[TiDash] broadcastBtn:', broadcastBtn ? 'trouvé' : 'non trouvé');
+    console.log('[TiDash] broadcastModal:', broadcastModal ? 'trouvé' : 'non trouvé');
+    console.log('[TiDash] closeBroadcastModal:', closeBroadcastModal ? 'trouvé' : 'non trouvé');
+    console.log('[TiDash] cancelBroadcastBtn:', cancelBroadcastBtn ? 'trouvé' : 'non trouvé');
+    console.log('[TiDash] sendBroadcastBtn:', sendBroadcastBtn ? 'trouvé' : 'non trouvé');
+    console.log('[TiDash] broadcastMessageInput:', broadcastMessageInput ? 'trouvé' : 'non trouvé');
+    
     if (broadcastBtn) {
         broadcastBtn.onclick = openBroadcast;
         console.log('[TiDash] Listener bouton broadcast attaché');
+    } else {
+        console.error('[TiDash] Bouton broadcast non trouvé, impossible d\'attacher le listener');
     }
+    
     if (closeBroadcastModal) closeBroadcastModal.onclick = closeBroadcast;
     if (cancelBroadcastBtn) cancelBroadcastBtn.onclick = closeBroadcast;
     if (sendBroadcastBtn) sendBroadcastBtn.onclick = async function() {

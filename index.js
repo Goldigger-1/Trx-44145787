@@ -5,6 +5,8 @@ const fs = require('fs');
 const { Sequelize, DataTypes, Op } = require('sequelize');
 require('dotenv').config();
 
+// Le bot Telegram est déjà initialisé plus bas dans le code
+
 // Chemin de la base de données persistante - FIXED to always use the external database path
 const DB_PATH = '/var/lib/tidash_database.sqlite';
 
