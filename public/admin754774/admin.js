@@ -283,6 +283,8 @@ function initEvents() {
         seasonNumberInput.value = '';
         seasonEndDateInput.value = '';
         seasonPrizeInput.value = '';
+        document.getElementById('season-second-prize-input').value = '';
+        document.getElementById('season-third-prize-input').value = '';
         
         // Afficher le modal
         seasonModal.style.display = 'flex';
@@ -301,6 +303,8 @@ function initEvents() {
         seasonEndDateInput.value = formattedDate;
         
         seasonPrizeInput.value = currentSeason.prizeMoney;
+        document.getElementById('season-second-prize-input').value = currentSeason.secondPrize !== undefined ? currentSeason.secondPrize : '';
+        document.getElementById('season-third-prize-input').value = currentSeason.thirdPrize !== undefined ? currentSeason.thirdPrize : '';
         
         // Afficher le modal
         seasonModal.style.display = 'flex';
@@ -327,15 +331,19 @@ function initEvents() {
         const seasonNumberValue = seasonNumberInput.value.trim();
         const seasonEndDateValue = seasonEndDateInput.value.trim();
         const seasonPrizeValue = seasonPrizeInput.value.trim();
+        const seasonSecondPrizeValue = document.getElementById('season-second-prize-input').value.trim();
+        const seasonThirdPrizeValue = document.getElementById('season-third-prize-input').value.trim();
         
         console.log('Données du formulaire:', {
             seasonNumber: seasonNumberValue,
             endDate: seasonEndDateValue,
-            prizeMoney: seasonPrizeValue
+            prizeMoney: seasonPrizeValue,
+            secondPrize: seasonSecondPrizeValue,
+            thirdPrize: seasonThirdPrizeValue
         });
         
         // Validation des données
-        if (!seasonNumberValue || !seasonEndDateValue || !seasonPrizeValue) {
+        if (!seasonNumberValue || !seasonEndDateValue || !seasonPrizeValue || !seasonSecondPrizeValue || !seasonThirdPrizeValue) {
             alert('Tous les champs sont obligatoires');
             return;
         }
@@ -343,10 +351,10 @@ function initEvents() {
         // Déterminer si c'est une création ou une mise à jour
         if (seasonModalTitle.textContent === 'Nouvelle saison') {
             // Créer une nouvelle saison
-            createSeason(seasonNumberValue, seasonEndDateValue, seasonPrizeValue);
+            createSeason(seasonNumberValue, seasonEndDateValue, seasonPrizeValue, seasonSecondPrizeValue, seasonThirdPrizeValue);
         } else {
             // Mettre à jour la saison existante
-            updateSeason(currentSeason.id, seasonNumberValue, seasonEndDateValue, seasonPrizeValue);
+            updateSeason(currentSeason.id, seasonNumberValue, seasonEndDateValue, seasonPrizeValue, seasonSecondPrizeValue, seasonThirdPrizeValue);
         }
     });
     
@@ -654,9 +662,22 @@ function updateSeasonStats() {
     if (activeSeasonData) {
         activeSeason.textContent = `Saison ${activeSeasonData.seasonNumber}`;
         prizeMoney.textContent = `$${activeSeasonData.prizeMoney}`;
+        // Update 2nd and 3rd prize fields if present
+        if (document.getElementById('admin-second-prize')) {
+            document.getElementById('admin-second-prize').textContent = `$${activeSeasonData.secondPrize ?? 0}`;
+        }
+        if (document.getElementById('admin-third-prize')) {
+            document.getElementById('admin-third-prize').textContent = `$${activeSeasonData.thirdPrize ?? 0}`;
+        }
     } else {
         activeSeason.textContent = 'Aucune';
         prizeMoney.textContent = '$0';
+        if (document.getElementById('admin-second-prize')) {
+            document.getElementById('admin-second-prize').textContent = '$0';
+        }
+        if (document.getElementById('admin-third-prize')) {
+            document.getElementById('admin-third-prize').textContent = '$0';
+        }
     }
 }
 
@@ -693,6 +714,12 @@ function fetchActiveSeason() {
             // Mettre à jour les éléments d'interface
             activeSeason.textContent = `Saison ${data.seasonNumber}`;
             prizeMoney.textContent = `$${data.prizeMoney}`;
+            if (document.getElementById('admin-second-prize')) {
+                document.getElementById('admin-second-prize').textContent = `$${data.secondPrize ?? 0}`;
+            }
+            if (document.getElementById('admin-third-prize')) {
+                document.getElementById('admin-third-prize').textContent = `$${data.thirdPrize ?? 0}`;
+            }
             seasonNumber.textContent = data.seasonNumber;
             seasonEndDate.textContent = formatDate(data.endDate);
             seasonPrize.textContent = `$${data.prizeMoney}`;
@@ -871,11 +898,13 @@ function formatDate(dateString) {
 }
 
 // Créer une nouvelle saison
-function createSeason(seasonNumber, endDate, prizeMoney) {
+function createSeason(seasonNumber, endDate, prizeMoney, secondPrize, thirdPrize) {
     const payload = {
         seasonNumber: parseInt(seasonNumber),
         endDate: endDate,
-        prizeMoney: parseFloat(prizeMoney)
+        prizeMoney: parseFloat(prizeMoney),
+        secondPrize: parseFloat(secondPrize),
+        thirdPrize: parseFloat(thirdPrize)
     };
     
     console.log('Envoi de la requête de création de saison:', payload);
@@ -921,7 +950,7 @@ function createSeason(seasonNumber, endDate, prizeMoney) {
 }
 
 // Mettre à jour une saison existante
-function updateSeason(seasonId, seasonNumber, endDate, prizeMoney) {
+function updateSeason(seasonId, seasonNumber, endDate, prizeMoney, secondPrize, thirdPrize) {
     fetch(`/api/seasons/${seasonId}`, {
         method: 'PUT',
         headers: {
@@ -930,7 +959,9 @@ function updateSeason(seasonId, seasonNumber, endDate, prizeMoney) {
         body: JSON.stringify({
             seasonNumber: parseInt(seasonNumber),
             endDate: endDate,
-            prizeMoney: parseFloat(prizeMoney)
+            prizeMoney: parseFloat(prizeMoney),
+            secondPrize: parseFloat(secondPrize),
+            thirdPrize: parseFloat(thirdPrize)
         })
     })
     .then(response => {
