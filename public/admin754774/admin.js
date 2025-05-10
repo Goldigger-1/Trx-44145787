@@ -4,62 +4,6 @@ const ADMIN_PASSWORD = 'monrdes47854kjug!14541!54grde';
 
 // Variables globales
 let currentPage = 1;
-
-// --- Broadcast Modal Elements ---
-const broadcastBtn = document.getElementById('broadcast-btn');
-const broadcastModal = document.getElementById('broadcast-modal');
-const closeBroadcastModal = document.getElementById('close-broadcast-modal');
-const sendBroadcastBtn = document.getElementById('send-broadcast-btn');
-const broadcastMessageInput = document.getElementById('broadcast-message');
-const broadcastStatus = document.getElementById('broadcast-status');
-
-if (broadcastBtn) {
-  broadcastBtn.onclick = () => {
-    if (broadcastModal) broadcastModal.style.display = 'flex';
-    if (broadcastStatus) broadcastStatus.textContent = '';
-    if (broadcastMessageInput) broadcastMessageInput.value = '';
-  };
-}
-if (closeBroadcastModal) {
-  closeBroadcastModal.onclick = () => {
-    if (broadcastModal) broadcastModal.style.display = 'none';
-  };
-}
-window.addEventListener('click', function(event) {
-  if (event.target === broadcastModal) broadcastModal.style.display = 'none';
-});
-if (sendBroadcastBtn) {
-  sendBroadcastBtn.onclick = async () => {
-    const msg = broadcastMessageInput.value.trim();
-    if (!msg) {
-      broadcastStatus.textContent = 'Veuillez saisir un message.';
-      return;
-    }
-    sendBroadcastBtn.disabled = true;
-    broadcastStatus.textContent = 'Envoi en cours...';
-    try {
-      const res = await fetch('/api/admin/broadcast', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: msg })
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        broadcastStatus.style.color = '#27ae60';
-        broadcastStatus.textContent = `Message envoyé à ${data.sent} utilisateurs.`;
-        setTimeout(() => { if (broadcastModal) broadcastModal.style.display = 'none'; }, 1200);
-      } else {
-        broadcastStatus.style.color = '#e74c3c';
-        broadcastStatus.textContent = data.error || 'Erreur lors de l\'envoi.';
-      }
-    } catch (e) {
-      broadcastStatus.style.color = '#e74c3c';
-      broadcastStatus.textContent = 'Erreur réseau.';
-    }
-    sendBroadcastBtn.disabled = false;
-  };
-}
-
 let usersPerPage = 10;
 let totalUsers = 0;
 let totalPages = 0;

@@ -13,15 +13,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TiDash - Administration</title>
     <link rel="stylesheet" href="style.css">
-<style>
-  /* Modal broadcast simple */
-  #broadcast-modal.modal { position: fixed; z-index: 1000; left: 0; top: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; }
-  #broadcast-modal .modal-content { background: #fff; border-radius: 8px; padding: 24px; box-shadow: 0 2px 16px rgba(0,0,0,0.18); }
-</style>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
-
     <div id="login-container">
         <div class="login-card">
             <h1>TiDash Admin</h1>
@@ -45,7 +39,6 @@
             <div class="logo">TiDash Admin</div>
             <button id="how-to-play-btn" class="admin-button" style="margin-right:16px;">How to play (YouTube) 🎬</button>
             <button id="promo-banner-btn" class="admin-button" style="margin-right:16px;">Promotion Banner 🖼️</button>
-<button id="broadcast-btn" class="admin-button" style="margin-right:16px;">Message à tous 📢</button>
             <button id="logout-btn" class="admin-button secondary">Déconnexion</button>
         </header>
         
@@ -376,15 +369,5 @@
       </div>
     </div>
     <script src="admin.js"></script>
-<!-- Modal pour envoyer un message à tous les utilisateurs -->
-<div id="broadcast-modal" class="modal" style="display:none;">
-  <div class="modal-content" style="max-width:400px;">
-    <span class="close-modal" id="close-broadcast-modal" style="float:right;cursor:pointer;font-size:1.5em;">&times;</span>
-    <h2>Envoyer un message à tous 📢</h2>
-    <textarea id="broadcast-message" rows="5" style="width:100%;margin-bottom:12px;" placeholder="Votre message..."></textarea>
-    <button id="send-broadcast-btn" class="admin-button" style="width:100%;">Envoyer</button>
-    <p id="broadcast-status" style="color:#e74c3c;margin-top:8px;"></p>
-  </div>
-</div>
 </body>
 </html>
