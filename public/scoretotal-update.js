@@ -80,6 +80,7 @@ function observeGameOverDisplay() {
         if (gameOver.style.display !== 'none' && lastDisplay === 'none') {
             var score = parseInt(document.getElementById('score-display').textContent, 10) || 0;
             window.lastGameScore = score;
+            if (score > 0) addScoreToScoreTotal(score);
         }
         lastDisplay = gameOver.style.display;
     }, 400);
@@ -90,16 +91,6 @@ document.addEventListener('DOMContentLoaded', function() {
     observeGameOverDisplay();
     var homeBtn = document.getElementById('home-button');
     var playBtn = document.getElementById('play-again');
-    if (homeBtn) {
-        homeBtn.addEventListener('click', function() {
-            var score = window.lastGameScore || 0;
-            if (score > 0) addScoreToScoreTotal(score);
-        });
-    }
-    if (playBtn) {
-        playBtn.addEventListener('click', function() {
-            var score = window.lastGameScore || 0;
-            if (score > 0) addScoreToScoreTotal(score);
-        });
-    }
+    // On ne fait plus rien ici, le scoretotal est ajouté dès le passage au Game Over
+
 });
