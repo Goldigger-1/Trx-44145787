@@ -99,8 +99,24 @@ if (closePromoModal) closePromoModal.onclick = closePromoBanner;
 if (cancelPromoBannerBtn) cancelPromoBannerBtn.onclick = closePromoBanner;
 window.addEventListener('click', function(event) {
     if (event.target === promoBannerModal) closePromoBanner();
-    if (event.target === broadcastModal) closeBroadcast();
+    // Suppression de la fermeture globale du broadcastModal ici
 });
+
+// Gestion robuste du modal broadcast
+if (broadcastModal) {
+    const broadcastContent = broadcastModal.querySelector('.modal-content');
+    if (broadcastContent) {
+        broadcastContent.addEventListener('click', function(event) {
+            event.stopPropagation();
+        });
+    }
+    broadcastModal.addEventListener('click', function(event) {
+        if (event.target === broadcastModal) {
+            closeBroadcast();
+        }
+    });
+}
+
 
 // Broadcast Modal Logic
 function openBroadcast() {
