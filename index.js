@@ -128,6 +128,11 @@ const User = sequelize.define('User', {
     type: DataTypes.STRING,
     allowNull: true,
     defaultValue: 'avatar_default.jpg'
+  },
+  scoretotal: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0
   }
 });
 
