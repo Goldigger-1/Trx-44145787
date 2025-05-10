@@ -876,7 +876,35 @@
             0%, 100% { background-position: 0% 0% }
             50% { background-position: 100% 100% }
         }
-    </style>
+        /* Diamond scoretotal (centré en bas) */
+    #scoretotal-diamond {
+        width: 28px;
+        height: 28px;
+        background: linear-gradient(135deg, #00ff9d 0%, #00c97b 100%);
+        border-radius: 8px;
+        transform: rotate(45deg);
+        box-shadow: 0 0 12px 2px #00FF9D44;
+        margin-bottom: 7px;
+        animation: diamondPulse 2s infinite ease-in-out;
+    }
+    @keyframes diamondPulse {
+        0%, 100% { box-shadow: 0 0 12px 2px #00FF9D44, 0 0 24px 4px #00FF9D33; }
+        50% { box-shadow: 0 0 24px 6px #00FF9D99, 0 0 32px 10px #00FF9D44; }
+    }
+    #scoretotal-value {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 1.15rem;
+        color: #fff;
+        font-weight: 700;
+        letter-spacing: 1px;
+        text-align: center;
+        margin-top: 0;
+        margin-bottom: 0;
+        text-shadow: 0 1px 4px #00ff9d44;
+        user-select: none;
+        pointer-events: none;
+    }
+</style>
 </head>
 <body>
     <div class="preload-images" id="preload-container"></div>
@@ -918,6 +946,11 @@
                 <button id="play-button" class="game-button">Tap to Start</button>
             </div>
             
+            <!-- Zone losange scoretotal -->
+            <div id="scoretotal-area" style="position:absolute;left:0;right:0;bottom:36px;display:flex;flex-direction:column;align-items:center;pointer-events:none;z-index:20;">
+                <div id="scoretotal-diamond"></div>
+                <div id="scoretotal-value">-</div>
+            </div>
             <!-- Bouton d'aide -->
             <div id="help-button">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -4127,5 +4160,6 @@
         }
       });
     </script>
+<script src="scoretotal-update.js"></script>
 </body>
 </html>

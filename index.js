@@ -763,6 +763,29 @@ app.delete('/api/users/:id', async (req, res) => {
 });
 
 // API pour enregistrer un nouvel utilisateur ou mettre à jour un utilisateur existant
+// Ajoute un score au scoretotal du user (par TelegramId ou deviceId)
+app.post('/api/users/add-scoretotal', async (req, res) => {
+    try {
+        const { id, scoreToAdd } = req.body;
+        if (!id || typeof scoreToAdd !== 'number') {
+            return res.status(400).json({ error: 'Missing id or scoreToAdd' });
+        }
+        // Recherche par TelegramId d'abord, sinon par deviceId
+        let user = await User.findOne({ where: { telegramId: id } });
+        if (!user) {
+            user = await User.findOne({ where: { deviceId: id } });
+        }
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        user.scoretotal = (user.scoretotal || 0) + scoreToAdd;
+        await user.save();
+        res.json({ ok: true, scoretotal: user.scoretotal });
+    } catch (err) {
+        res.status(500).json({ error: 'Server error', details: err.message });
+    }
+});
+
 app.post('/api/users', async (req, res) => {
   try {
     const userData = req.body;
