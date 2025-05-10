@@ -185,15 +185,16 @@ async function renderGameOverStickyUserRow() {
             // Écrire également la valeur dans la console du navigateur en gros pour vérification
             console.log('%c RANG UTILISATEUR: ' + userRank, 'font-size: 24px; color: red; background-color: yellow;');
             
-            // 4. Construire la rangée HTML avec le rang et le score
-            const userRow = `
-                <div class="leaderboard-rank">${userRank}</div>
+            // Afficher un tiret pour le rang si le score est 0
+            let displayRank = userSeasonScore === 0 ? '-' : userRank;
+            // Génération du HTML de la ligne utilisateur
+            userRowElement.innerHTML = `
+                <div class="leaderboard-rank">${displayRank}</div>
                 <div class="leaderboard-avatar"><img src="${avatarImgSrc}" alt="${username}"></div>
                 <div class="leaderboard-username">${username} <span style="color:#00FF9D;">(You)</span></div>
                 <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${userSeasonScore}</div>
             `;
             
-            // 5. Insérer dans le DOM
             userRowElement.innerHTML = userRow;
             
         } catch (error) {

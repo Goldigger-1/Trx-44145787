@@ -754,9 +754,11 @@ async function renderLeaderboardUserRow() {
                 console.error(`❌ Erreur lors de la récupération du rang utilisateur:`, posError);
             }
             
+            // Afficher un tiret pour le rang si le score est 0
+            let displayRank = userSeasonScore === 0 ? '-' : userRank;
             // Génération du HTML de la ligne utilisateur
             userRowElement.innerHTML = `
-                <div class="leaderboard-rank">${userRank}</div>
+                <div class="leaderboard-rank">${displayRank}</div>
                 <div class="leaderboard-avatar"><img src="${avatarImgSrc}" alt="${username}"></div>
                 <div class="leaderboard-username">${username} <span style="color:#00FF9D;">(You)</span></div>
                 <div class="leaderboard-score"><img src="ressources/trophy.png" alt="🏆">${userSeasonScore}</div>
