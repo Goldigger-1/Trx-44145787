@@ -358,6 +358,32 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Initialiser le bot Telegram
 const bot = new Telegraf(botToken);
 
+// --- ROUTE ADMIN : Broadcast message à tous les utilisateurs ---
+app.post('/api/admin/broadcast', async (req, res) => {
+  const { message } = req.body;
+  if (!message || typeof message !== 'string' || !message.trim()) {
+    return res.status(400).json({ error: 'Message vide.' });
+  }
+  try {
+    // Récupérer tous les utilisateurs avec un telegramId non nul
+    const users = await User.findAll({ where: { telegramId: { [sequelize.Op.not]: null } } });
+    let sent = 0, failed = 0;
+    for (const user of users) {
+      try {
+        await bot.telegram.sendMessage(user.telegramId, message);
+        sent++;
+      } catch (err) {
+        failed++;
+        console.error(`Erreur envoi à ${user.telegramId}:`, err.message);
+      }
+    }
+    res.status(200).json({ success: true, sent, failed });
+  } catch (err) {
+    console.error('Erreur broadcast admin:', err);
+    res.status(500).json({ error: 'Erreur lors de l\'envoi du message.' });
+  }
+});
+
 // Ajoutez ces logs avant et dans la commande /start
 console.log('Configuration du gestionnaire de commande /start');
 
@@ -366,7 +392,51 @@ bot.help((ctx) => {
   ctx.reply('📺 Watch the tutorial video here: https://www.youtube.com/watch?v=t0fz4KVU7yw');
 });
 
-bot.start((ctx) => {
+bot.start(async (ctx) => {
+  try {
+    const telegramId = ctx.from.id ? String(ctx.from.id) : null;
+    const telegramUsername = ctx.from.username || null;
+    if (!telegramId) return ctx.reply('Erreur : impossible de récupérer votre identifiant Telegram.');
+    // Recherche ou création de l'utilisateur
+    let user = await User.findOne({ where: { telegramId } });
+    if (user) {
+      user.telegramUsername = telegramUsername;
+      user.lastLogin = new Date();
+      await user.save();
+      console.log(`🔄 Utilisateur existant mis à jour (telegramId=${telegramId})`);
+    } else {
+      // Création d'un nouvel utilisateur minimaliste
+      user = await User.create({
+        telegramId,
+        telegramUsername,
+        registrationDate: new Date(),
+        lastLogin: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        gameId: `tg_${telegramId}`,
+        gameUsername: telegramUsername || `Player${Math.floor(Math.random() * 10000)}`
+      });
+      console.log(`🆕 Nouvel utilisateur créé (telegramId=${telegramId})`);
+    }
+  } catch (err) {
+    console.error('Erreur lors de l\'enregistrement du chat ID:', err);
+  }
+
+  // Réponse standard existante
+  ctx.reply("Let's see how long you last here 😏", {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: 'Play', web_app: { url: webAppUrl } }],
+        [{ text: 'TiDash Talk Hub', url: 'https://t.me/TiDash_Hub' }],
+        [{ text: 'Help', callback_data: 'show_help' }]
+      ]
+    }
+  }).then(() => {
+    console.log('Réponse envoyée avec succès');
+  }).catch(err => {
+    console.error('Erreur lors de l\'envoi de la réponse:', err);
+  });
+});
   console.log('Commande /start reçue de:', ctx.from.id, ctx.from.username);
   ctx.reply("Let's see how long you last here 😏", {
     reply_markup: {
