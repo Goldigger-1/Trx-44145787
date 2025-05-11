@@ -87,6 +87,7 @@ function observeGameOverDisplay() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    updateScoreTotalDisplay(); // Correction : affichage immédiat au chargement
     observeHomeScreenDisplay();
     observeGameOverDisplay();
     var homeBtn = document.getElementById('home-button');
