@@ -137,7 +137,7 @@
         const cashLabel = document.createElement('div');
         cashLabel.textContent = '$10.00';
         cashLabel.style.color = '#00FF9D';
-        cashLabel.style.fontSize = '0.81rem';
+        cashLabel.style.fontSize = '0.92rem';
         cashLabel.style.fontWeight = '600';
         progressTop.appendChild(cashLabel);
         progressGroup.appendChild(progressTop);
