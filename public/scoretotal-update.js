@@ -48,7 +48,7 @@ function updateScoreTotalDisplay() {
         })
         .then(data => {
             if (data && typeof data.scoretotal === 'number') {
-                scoreDiv.textContent = data.scoretotal;
+                scoreDiv.textContent = Math.round(data.scoretotal).toLocaleString('en-US');
             }
         })
         .catch(() => { scoreDiv.textContent = '-'; });

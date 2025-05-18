@@ -947,7 +947,7 @@
             </div>
             
             <!-- Zone losange scoretotal -->
-            <div id="scoretotal-area" style="position:absolute;left:0;right:0;bottom:36px;display:flex;flex-direction:column;align-items:center;pointer-events:none;z-index:20;">
+            <div id="scoretotal-area" style="position:absolute;left:0;right:0;bottom:36px;display:flex;flex-direction:column;align-items:center;z-index:20;">
                 <div id="scoretotal-diamond"></div>
                 <div id="scoretotal-value">-</div>
             </div>
@@ -995,6 +995,9 @@
     </svg>
     REVIVE
 </button>
+<div id="revive-x2-tipoints" style="display:none;margin-top:-3px;font-size:14px;color:#FFD700;font-weight:400;opacity:0.85;text-align:center;letter-spacing:0.02em;">
+    <span style="font-weight:700;">x2</span> TiPoints
+</div>
             </div>
             <!-- Sticky user group from leaderboard (season rank & best score) -->
             <div class="leaderboard-user-row" id="gameover-user-row"></div>
@@ -3947,9 +3950,11 @@
             if (hasUsedRevive || score === 0) {
                 // Le joueur a déjà utilisé Revive ou le score est 0, masquer le bouton
                 reviveBtn.style.display = 'none';
+                document.getElementById('revive-x2-tipoints').style.display = 'none';
             } else {
                 // Le joueur n'a pas encore utilisé Revive et a un score > 0, afficher le bouton
                 reviveBtn.style.display = 'flex';
+                document.getElementById('revive-x2-tipoints').style.display = 'block';
             }
             
             // CRITIQUE: Toujours récupérer le score de saison le plus récent depuis le serveur
@@ -4161,5 +4166,7 @@
       });
     </script>
 <script src="scoretotal-update.js"></script>
+<div id="scoretotal-overlay" style="display:none;"></div>
+<script src="scoretotal-overlay.js"></script>
 </body>
 </html>
