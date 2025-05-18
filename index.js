@@ -381,7 +381,7 @@ bot.start((ctx) => {
         [{ text: 'Play 🚀', web_app: { url: webAppUrl } }],
         [{ text: 'Help ❓', callback_data: 'show_help' }],
         [{ text: 'Talk Hub 🌐', url: 'https://t.me/TiDash_Hub' }],
-        [{ text: '𝕏', url: 'https://x.com/TiDash_Game' }],
+        [{ text: 'Twitter 𝕏', url: 'https://x.com/TiDash_Game' }],
       ]
     }
   }).then(() => {
