@@ -76,7 +76,7 @@
         scoreRow.style.display = 'flex';
         scoreRow.style.alignItems = 'center';
         scoreRow.style.justifyContent = 'flex-start';
-        scoreRow.style.margin = '24px 0 18px 18px';
+        scoreRow.style.margin = '36px 0 18px 18px';
         scoreRow.style.gap = '18px';
         scoreRow.style.width = 'unset';
         scoreRow.style.alignSelf = 'flex-start';
@@ -111,7 +111,7 @@
         const progressGroup = document.createElement('div');
         progressGroup.style.width = '100%';
         progressGroup.style.padding = '0 18px';
-        progressGroup.style.margin = '32px 0 0 0';
+        progressGroup.style.margin = '32px 0 70px 0';
         progressGroup.style.display = 'flex';
         progressGroup.style.flexDirection = 'column';
         progressGroup.style.gap = '6px';
@@ -259,9 +259,10 @@
                 if (data && typeof data.scoretotal === 'number') {
                     const score = Math.round(data.scoretotal);
                     document.getElementById('scoretotal-overlay-value').textContent = score.toLocaleString('en-US');
-                    let percent = Math.round(score / 100000 * 100);
-                    document.getElementById('scoretotal-overlay-percent').textContent = percent + '%';
-                    document.getElementById('scoretotal-overlay-bar').style.width = (Math.min(100, percent)) + '%';
+                    let percent = (score / 100000 * 100);
+                    let percentStr = percent.toFixed(3).replace(/\.0{1,3}$/, ''); // Enlève .000 si entier
+                    document.getElementById('scoretotal-overlay-percent').textContent = percentStr + '%';
+                    document.getElementById('scoretotal-overlay-bar').style.width = (Math.max(0.01, Math.min(100, percent))) + '%';
                     document.getElementById('scoretotal-overlay-score').textContent = score.toLocaleString('en-US');
                 } else {
                     showFallback();
