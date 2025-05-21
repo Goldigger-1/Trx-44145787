@@ -1575,7 +1575,7 @@
                         console.log("💥 Collision detected, starting game over animation");
                     } else {
                         // Spawn new squares seulement si on n'est pas en game over
-                        if ((squares.length === 0) || (squares.length > 0 && squares[squares.length-1].y > canvas.height * 0.20)) {
+                        if ((squares.length === 0) || (squares.length > 0 && squares[squares.length-1].y > canvas.height * 0.30)) {
                             spawnSquare();
                             lastSquareTime = Date.now();
                             
