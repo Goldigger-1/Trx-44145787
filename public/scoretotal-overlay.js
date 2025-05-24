@@ -116,7 +116,7 @@
         progressGroup.style.flexDirection = 'column';
         progressGroup.style.gap = '6px';
 
-        // First line: % and $10.00
+        // First line: % and 10.00 $TID
         const progressTop = document.createElement('div');
         progressTop.style.display = 'flex';
         progressTop.style.justifyContent = 'space-between';
@@ -135,7 +135,7 @@
         progressTop.appendChild(percentLabel);
 
         const cashLabel = document.createElement('div');
-        cashLabel.textContent = '$10.00';
+        cashLabel.textContent = '10.00 $TID';
         cashLabel.style.color = '#00FF9D';
         cashLabel.style.fontSize = '0.92rem';
         cashLabel.style.fontWeight = '600';
@@ -211,8 +211,8 @@
             section.appendChild(b);
             return section;
         }
-        textBlock.appendChild(infoSection('Earn Cash with TiDash!', 'Hunt green squares, collect TiPoints, and cash out in USDT or PayPal!'));
-        textBlock.appendChild(infoSection('How It Works', 'Collect green squares in TiDash to earn TiPoints. These points stack up in your balance. Once you’ve gathered enough, exchange them for real cash! You can cash out starting at $10.00.'));
+        textBlock.appendChild(infoSection('Earn tokens with TiDash!', 'Hunt green squares, collect TiDash tokens, and prepare for TiDash ECO!'));
+        textBlock.appendChild(infoSection('How It Works', 'Collect green squares in tidash to earn tidash tokens. Use them in the upcoming TiDash ECO Game, launching in 2026, where you can buy items, trade, and live in an immersive world. You can also exchange your tokens for real cash! — Two great reasons to play!', 'Without tokens, you cannot join TiDash ECO, so this is your key to accessing this exciting next project. Ready to Play?'));
         textBlock.appendChild(infoSection('How to Withdraw', 'Contact our admin at @TiDash_Support to verify and process your withdrawal.'));
         overlay.appendChild(textBlock);
 
