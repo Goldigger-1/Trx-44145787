@@ -223,7 +223,7 @@
         }
         textBlock.appendChild(infoSection('Earn tokens with TiDash!', 'Hunt green squares, collect TiDash tokens, and prepare for TiDash ECO!'));
         textBlock.appendChild(infoSection('How It Works', 'Collect green squares in tidash to earn tidash tokens. Use them in the upcoming TiDash ECO Game, launching in 2026, where you can buy items, trade, and live in an immersive world. You can also exchange your tokens for real cash! — Two great reasons to play!'));
-        textBlock.appendChild(infoSection('TiDash ECO', 'Without tokens, you cannot join TiDash ECO, so this is your key to accessing this exciting next project. Ready to Play?'));
+        textBlock.appendChild(infoSection('TiDash ECO', 'Without tokens, you cannot join TiDash ECO, so this is your key to accessing this exciting project. Ready to Play?'));
         textBlock.appendChild(infoSection('How to Withdraw', 'Contact our admin at @TiDash_Support to verify and process your withdrawal.'));
         scrollContainer.appendChild(textBlock);
 
