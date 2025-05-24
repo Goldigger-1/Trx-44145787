@@ -71,6 +71,16 @@
         header.appendChild(closeBtn);
         overlay.appendChild(header);
 
+        // === Scrollable content container ===
+        const scrollContainer = document.createElement('div');
+        scrollContainer.style.overflowY = 'auto';
+        scrollContainer.style.maxHeight = '100vh';
+        scrollContainer.style.width = '100vw';
+        scrollContainer.style.display = 'flex';
+        scrollContainer.style.flexDirection = 'column';
+        scrollContainer.style.alignItems = 'stretch';
+        scrollContainer.style.flex = '1 1 auto';
+        scrollContainer.style.paddingBottom = '100px';
         // Score row (diamond + value)
         const scoreRow = document.createElement('div');
         scoreRow.style.display = 'flex';
@@ -105,7 +115,7 @@
         scoreValue.textContent = '-';
         scoreRow.appendChild(scoreValue);
 
-        overlay.appendChild(scoreRow);
+        scrollContainer.appendChild(scoreRow);
 
         // Progress group
         const progressGroup = document.createElement('div');
@@ -182,7 +192,7 @@
         progressBottom.appendChild(maxLabel);
         progressGroup.appendChild(progressBottom);
 
-        overlay.appendChild(progressGroup);
+        scrollContainer.appendChild(progressGroup);
 
         // Text content (info blocks)
         const textBlock = document.createElement('div');
@@ -215,7 +225,9 @@
         textBlock.appendChild(infoSection('How It Works', 'Collect green squares in tidash to earn tidash tokens. Use them in the upcoming TiDash ECO Game, launching in 2026, where you can buy items, trade, and live in an immersive world. You can also exchange your tokens for real cash! — Two great reasons to play!'));
         textBlock.appendChild(infoSection('TiDash ECO', 'Without tokens, you cannot join TiDash ECO, so this is your key to accessing this exciting next project. Ready to Play?'));
         textBlock.appendChild(infoSection('How to Withdraw', 'Contact our admin at @TiDash_Support to verify and process your withdrawal.'));
-        overlay.appendChild(textBlock);
+        scrollContainer.appendChild(textBlock);
+
+        overlay.appendChild(scrollContainer);
 
         document.body.appendChild(overlay);
     }
