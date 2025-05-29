@@ -1,62 +1,62 @@
 // Sticky user row for Game Over page
-// Ce fichier gère l'affichage de la ligne utilisateur dans l'écran de game over
+// This file handles displaying the user row on the game over screen
 
-// Fonction principale pour afficher la rangée utilisateur dans l'écran de game over
+// Main function to display the user row on the game over screen
 async function renderGameOverStickyUserRow() {
-    // Récupérer l'élément qui contiendra la rangée utilisateur
+    // Get the element that will contain the user row
     const userRowElement = document.getElementById('gameover-user-row');
     if (!userRowElement) return;
 
     try {
-        // 1. Récupérer la saison active - réutiliser l'appel existant
+        // 1. Get the active season - reuse the existing call
         let season;
         try {
-            // Essayer d'abord l'endpoint principal
+            // Try the main endpoint first
             const res = await fetch('/api/seasons/active');
             if (res.ok) {
                 season = await res.json();
             } else {
-                // Solution de secours si l'endpoint principal échoue
+                // Fallback if the main endpoint fails
                 const fallbackRes = await fetch('/api/active-season');
                 if (!fallbackRes.ok) {
-                    throw new Error('Impossible de récupérer la saison active');
+                    throw new Error('Unable to retrieve active season');
                 }
                 season = await fallbackRes.json();
             }
         
-            console.log(`✅ Saison active trouvée: ${season.id} (Saison ${season.seasonNumber})`);
+            console.log(`Active season found: ${season.id} (Season ${season.seasonNumber})`);
         } catch (error) {
-            console.error('❌ Erreur lors de la récupération de la saison active:', error);
-            userRowElement.innerHTML = '<div style="color:orange;">Impossible de charger les informations de saison. ⚠️</div>';
+            console.error('Error retrieving active season:', error);
+            userRowElement.innerHTML = '<div style="color:orange;">Unable to load season information.</div>';
             return;
         }
 
-        // 2. Récupérer l'ID utilisateur actuel (robuste)
+        // 2. Get the current user ID (robust)
         let userId = window.userId || '';
         
-        // Si userId n'est pas une chaîne mais un objet, essayer de le récupérer autrement
+        // If userId is not a string but an object, try to retrieve it another way
         if (typeof userId !== 'string') {
             userId = '';
         }
         
-        // Si toujours pas d'ID utilisateur, essayer de le récupérer du localStorage
+        // If still no user ID, try to retrieve it from localStorage
         if (!userId) {
             userId = localStorage.getItem('tidashUserId') || '';
         }
         
         userId = userId.trim();
         
-        // Vérifier la validité de l'ID
+        // Verify the validity of the ID
         if (!userId) {
-            userRowElement.innerHTML = '<div style="color:orange;">Impossible de déterminer votre identifiant. ⚠️</div>';
+            userRowElement.innerHTML = '<div style="color:orange;">Unable to determine your identifier.</div>';
             return;
         }
 
-        // 3. Utiliser l'endpoint le plus simple existant pour récupérer les données utilisateur
+        // 3. Use the most simple existing endpoint to retrieve user data
         try {
-            console.log(`📊 Récupération des données pour l'utilisateur ${userId} dans la saison ${season.id}...`);
+            console.log(`Retrieving data for user ${userId} in season ${season.id}...`);
             
-            // Utiliser l'API existante pour récupérer les données utilisateur + sa position
+            // Use the existing API to retrieve user data + their position
             const userDataRes = await fetch(`/api/users/${encodeURIComponent(userId)}`);
             let username = 'You';
             let avatarImgSrc = '';
@@ -65,7 +65,7 @@ async function renderGameOverStickyUserRow() {
                 const userData = await userDataRes.json();
                 username = userData.gameUsername || 'You';
                 
-                // Utiliser l'avatar depuis les données utilisateur ou celui déjà chargé
+                // Use the avatar from the user data or the one already loaded
                 if (window.avatarSrc) {
                     avatarImgSrc = window.avatarSrc;
                 } else {
@@ -75,7 +75,7 @@ async function renderGameOverStickyUserRow() {
                     }
                 }
             } else {
-                // Fallback pour l'avatar si les données utilisateur ne sont pas disponibles
+                // Fallback for the avatar if user data is not available
                 const profileAvatarImg = document.getElementById('avatarImg');
                 if (profileAvatarImg && profileAvatarImg.src) {
                     avatarImgSrc = profileAvatarImg.src;
@@ -84,43 +84,43 @@ async function renderGameOverStickyUserRow() {
                 }
             }
             
-            // Récupérer le score de saison de l'utilisateur avec l'endpoint existant
+            // Retrieve the user's season score with the existing endpoint
             const seasonScoreRes = await fetch(`/api/seasons/${season.id}/scores/${encodeURIComponent(userId)}`);
             let userSeasonScore = 0;
             
             if (seasonScoreRes.ok) {
                 const scoreData = await seasonScoreRes.json();
                 userSeasonScore = scoreData.score || 0;
-                console.log(`✅ Score de saison récupéré: ${userSeasonScore}`);
+                console.log(`Score of season retrieved: ${userSeasonScore}`);
             }
             
-            // SOLUTION OPTIMISÉE: Récupérer la position de l'utilisateur avec la nouvelle API
+            // Optimized solution: Retrieve the user's position with the new API
             let userRank = '-';
             
             try {
-                console.log(`🔍 Tentative de récupération du rang pour ${userId} dans la saison ${season.id}...`);
+                console.log(`Attempting to retrieve the rank for ${userId} in season ${season.id}...`);
                 
-                // Déterminer la base de l'URL avec le bon chemin
+                // Determine the base URL with the correct path
                 let baseUrl = window.location.origin;
                 
-                // Vérifier si nous sommes dans le chemin /test
+                // Verify if we are in the /test path
                 const pathname = window.location.pathname;
                 const basePathMatch = pathname.match(/^\/([^\/]+)/);
                 const basePath = basePathMatch ? basePathMatch[1] : '';
                 
                 if (basePath) {
-                    console.log(`🌐 Détection d'un chemin de base: /${basePath}`);
-                    // Ajouter le chemin de base à l'URL
+                    console.log(`Detected base path: /${basePath}`);
+                    // Add the base path to the URL
                     baseUrl = `${baseUrl}/${basePath}`;
                 }
                 
-                console.log(`🌐 URL de base déterminée: ${baseUrl}`);
+                console.log(`Base URL determined: ${baseUrl}`);
                 
-                // URL complète avec le chemin de base correct
+                // Complete URL with the correct base path
                 const apiUrl = `${baseUrl}/api/seasons/${season.id}/user-position?userId=${encodeURIComponent(userId)}`;
-                console.log(`🔗 URL complète de l'API: ${apiUrl}`);
+                console.log(`API URL: ${apiUrl}`);
                 
-                console.log(`⏳ Envoi de la requête...`);
+                console.log(`Sending request...`);
                 const userPositionRes = await fetch(apiUrl, {
                     method: 'GET',
                     headers: {
@@ -129,65 +129,65 @@ async function renderGameOverStickyUserRow() {
                     }
                 });
                 
-                console.log(`📊 Statut de la réponse: ${userPositionRes.status} ${userPositionRes.statusText}`);
-                console.log(`📋 En-têtes de la réponse:`, Object.fromEntries([...userPositionRes.headers.entries()]));
+                console.log(`Response status: ${userPositionRes.status} ${userPositionRes.statusText}`);
+                console.log(`Response headers:`, Object.fromEntries([...userPositionRes.headers.entries()]));
                 
-                // Si la réponse est OK, essayer de récupérer le JSON
+                // If the response is OK, try to retrieve the JSON
                 if (userPositionRes.ok) {
-                    const responseText = await userPositionRes.text(); // D'abord récupérer le texte brut
-                    console.log(`📄 Réponse brute: ${responseText}`);
+                    const responseText = await userPositionRes.text(); // First retrieve the raw text
+                    console.log(`Raw response: ${responseText}`);
                     
                     let positionData;
                     try {
                         positionData = JSON.parse(responseText);
-                        console.log(`🔄 Données JSON parsées:`, positionData);
+                        console.log(`JSON parsed:`, positionData);
                     } catch (parseError) {
-                        console.error(`❌ Erreur de parsing JSON:`, parseError);
-                        console.log(`⚠️ La réponse n'est pas un JSON valide`);
+                        console.error(`JSON parsing error:`, parseError);
+                        console.log(`The response is not valid JSON`);
                         userRank = '-';
-                        throw new Error('Réponse non-JSON: ' + responseText);
+                        throw new Error('Response is not valid JSON: ' + responseText);
                     }
                     
-                    // Vérifier si la position est bien présente dans la réponse
+                    // Verify if the position is present in the response
                     if (positionData && positionData.hasOwnProperty('position')) {
                         userRank = positionData.position;
-                        console.log(`✅ Position utilisateur récupérée: ${userRank}`);
+                        console.log(`User position retrieved: ${userRank}`);
                     } else {
-                        console.warn(`⚠️ La réponse ne contient pas de propriété 'position':`, positionData);
+                        console.warn(`The response does not contain a 'position' property:`, positionData);
                         userRank = '-';
                     }
                 } else {
-                    // Essayer de récupérer le message d'erreur pour diagnostiquer
+                    // Try to retrieve the error message for diagnosis
                     try {
                         const errorText = await userPositionRes.text();
-                        console.error(`❌ Erreur de l'API (${userPositionRes.status}): ${errorText}`);
+                        console.error(`API error (${userPositionRes.status}): ${errorText}`);
                     } catch (e) {
-                        console.error(`❌ Erreur HTTP: ${userPositionRes.status} ${userPositionRes.statusText}`);
+                        console.error(`HTTP error: ${userPositionRes.status} ${userPositionRes.statusText}`);
                     }
                     
-                    console.log(`⚠️ Impossible de récupérer la position utilisateur, utilisation de la valeur par défaut`);
+                    console.log(`Unable to retrieve user position, using default value`);
                 }
             } catch (positionError) {
-                console.error('❌ Erreur lors de la récupération de la position utilisateur:', positionError);
+                console.error('Error retrieving user position:', positionError);
             }
             
-            // S'assurer que userRank est toujours une valeur valide pour l'affichage
+            // Ensure that userRank is always a valid value for display
             if (userRank === undefined || userRank === null) {
-                console.warn('⚠️ userRank est undefined ou null, utilisation de la valeur par défaut');
+                console.warn('userRank is undefined or null, using default value');
                 userRank = '-';
             }
             
-            // Forcer le type de userRank en string pour l'affichage
+            // Force userRank type to string for display
             userRank = String(userRank);
             
-            console.log(`🏆 Valeur finale de userRank pour affichage: "${userRank}"`);
+            console.log(`Final userRank value for display: "${userRank}"`);
             
-            // Écrire également la valeur dans la console du navigateur en gros pour vérification
-            console.log('%c RANG UTILISATEUR: ' + userRank, 'font-size: 24px; color: red; background-color: yellow;');
+            // Write the value in the browser console in big letters for verification
+            console.log('%c User rank: ' + userRank, 'font-size: 24px; color: red; background-color: yellow;');
             
-            // Afficher un tiret pour le rang si le score est 0
+            // Display a dash for the rank if the score is 0
             let displayRank = userSeasonScore === 0 ? '-' : userRank;
-            // Génération du HTML de la ligne utilisateur
+            // Generate the HTML for the user row
             userRowElement.innerHTML = `
                 <div class="leaderboard-rank">${displayRank}</div>
                 <div class="leaderboard-avatar"><img src="${avatarImgSrc}" alt="${username}"></div>
@@ -198,15 +198,15 @@ async function renderGameOverStickyUserRow() {
 
             
         } catch (error) {
-            console.error('❌ Erreur lors de la récupération des données utilisateur:', error);
-            userRowElement.innerHTML = '<div style="color:orange;">Impossible de charger votre classement. ⚠️</div>';
+            console.error('Error retrieving user data:', error);
+            userRowElement.innerHTML = '<div style="color:orange;">Unable to load your ranking. ⚠️</div>';
         }
         
     } catch (error) {
-        console.error('❌ Erreur globale dans renderGameOverStickyUserRow:', error);
-        userRowElement.innerHTML = '<div style="color:orange;">Une erreur s\'est produite. ⚠️</div>';
+        console.error('Error in renderGameOverStickyUserRow:', error);
+        userRowElement.innerHTML = '<div style="color:orange;">An error occurred. ⚠️</div>';
     }
 }
 
-// Exposer la fonction pour qu'elle soit appelée depuis index.html
+// Expose the function so it can be called from index.html
 window.renderGameOverStickyUserRow = renderGameOverStickyUserRow;

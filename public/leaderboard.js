@@ -1,5 +1,5 @@
 // Leaderboard Page Logic
-// Réimplémentation minimale pour afficher seulement la rangée utilisateur
+// Minimal reimplementation to display only the user row
 
 // Variables for infinite scrolling
 let currentPage = 0;
@@ -7,33 +7,33 @@ let isLoadingMore = false;
 let hasMoreData = true;
 let activeSeason = null;
 
-// Fonction pour afficher/masquer le leaderboard
+// Function to show/hide the leaderboard
 function showLeaderboard() {
-    console.log('🔄🔄🔄 DÉBUT AFFICHAGE LEADERBOARD 🔄🔄🔄');
+    console.log('START LEADERBOARD');
     
     const leaderboardScreen = document.getElementById('leaderboard-screen');
     if (!leaderboardScreen) {
-        console.error('❌ Élément #leaderboard-screen non trouvé dans le DOM');
+        console.error('Leaderboard screen element not found in DOM');
         return;
     }
     
     leaderboardScreen.style.display = 'flex';
-    console.log('✅ Leaderboard affiché (display: flex)');
+    console.log('Leaderboard displayed (display: flex)');
     
     // Reset pagination variables
     currentPage = 0;
     isLoadingMore = false;
     hasMoreData = true;
     activeSeason = null; // Reset season to force reload
-    console.log('✅ Variables de pagination réinitialisées');
+    console.log('Pagination variables reset');
     
     // Show loading overlay
     const loadingOverlay = document.getElementById('leaderboard-loading-overlay');
     if (loadingOverlay) {
         loadingOverlay.style.display = 'flex';
-        console.log('✅ Overlay de chargement affiché');
+        console.log('Loading overlay displayed');
     } else {
-        console.warn('⚠️ Élément #leaderboard-loading-overlay non trouvé');
+        console.warn('Loading overlay not found');
     }
     
     // Make sure the leaderboard list has proper styling for scrolling
@@ -44,62 +44,62 @@ function showLeaderboard() {
         leaderboardList.style.maxHeight = '100%';
         leaderboardList.style.height = '100%';
         leaderboardList.innerHTML = ''; // Clear old content
-        console.log('✅ Styles de scroll appliqués à #leaderboard-list');
+        console.log('Scroll styles applied to #leaderboard-list');
     } else {
-        console.error('❌ Élément #leaderboard-list non trouvé dans le DOM');
+        console.error('Leaderboard list element not found in DOM');
     }
     
-    console.log('⏳ Initialisation du chargement des données...');
+    console.log('Loading data...');
     
     // Get active season and then load only the first page of data
     getActiveSeason().then(season => {
-        console.log(`✅ Saison active récupérée: ID=${season.id}, Numéro=${season.seasonNumber}`);
+        console.log(`Active season retrieved: ID=${season.id}, Numéro=${season.seasonNumber}`);
         
         // Set active season
         activeSeason = season;
         
         // Load only first page (15 users)
-        console.log('⏳ Chargement de la première page de données (15 utilisateurs max)...');
+        console.log('Loading first page of data (15 users max)...');
         return loadLeaderboardPageData(0);
     }).then(data => {
-        console.log(`✅ Première page chargée avec succès: ${data ? data.length : 0} utilisateurs`);
+        console.log(`First page loaded successfully: ${data ? data.length : 0} users`);
         
         // Hide loading overlay after initial load
         if (loadingOverlay) {
             loadingOverlay.style.display = 'none';
-            console.log('✅ Overlay de chargement masqué');
+            console.log('Loading overlay hidden');
         }
         
         // Set up scroll listener for infinite scrolling
         setupInfiniteScroll();
     }).catch(error => {
-        console.error('❌❌❌ ERREUR pendant initialisation du leaderboard:', error);
-        if (error.stack) console.error(`🔍 STACK TRACE: ${error.stack}`);
+        console.error('ERROR during leaderboard initialization:', error);
+        if (error.stack) console.error(`STACK TRACE: ${error.stack}`);
         
         if (loadingOverlay) {
             loadingOverlay.style.display = 'none';
-            console.log('✅ Overlay de chargement masqué (après erreur)');
+            console.log('Loading overlay hidden (after error)');
         }
         
-        // Afficher un message d'erreur dans la liste
+        // Display error message in the list
         if (leaderboardList) {
             leaderboardList.innerHTML = `
                 <div style="color:red; padding:20px; text-align:center;">
-                    Une erreur est survenue lors du chargement du classement.<br>
-                    Détails: ${error.message || 'Erreur inconnue'}
+                    An error occurred while loading the leaderboard.<br>
+                    Details: ${error.message || 'Unknown error'}
                 </div>`;
-            console.log('✅ Message d\'erreur affiché dans la liste');
+            console.log('Error message displayed in the list');
         }
     });
     
-    // Mettre à jour la rangée utilisateur et initialiser le compte à rebours
-    console.log('⏳ Chargement de la ligne utilisateur...');
+    // Update user row and initialize countdown
+    console.log('Loading user row...');
     renderLeaderboardUserRow();
     
-    console.log('🔄🔄🔄 FIN INITIALISATION LEADERBOARD 🔄🔄🔄');
+    console.log('END LEADERBOARD INIT');
 }
 
-// Fonction pour cacher le leaderboard
+// Function to hide the leaderboard
 function hideLeaderboard() {
     const leaderboardScreen = document.getElementById('leaderboard-screen');
     if (leaderboardScreen) {
@@ -115,41 +115,41 @@ function hideLeaderboard() {
 
 // Function to get active season
 async function getActiveSeason() {
-    console.log('🔍🔍🔍 DÉBUT RÉCUPÉRATION SAISON ACTIVE 🔍🔍🔍');
+    console.log('START ACTIVE SEASON RETRIEVAL');
     
     try {
-        console.log('⏳ Envoi requête à /api/active-season...');
+        console.log('Sending request to /api/active-season...');
         // Use the correct working endpoint for active season
         const res = await fetch('/api/active-season');
         
-        console.log(`🔍 Statut réponse: ${res.status} ${res.statusText}`);
-        console.log(`🔍 Headers: ${JSON.stringify(Object.fromEntries([...res.headers]))}`);
+        console.log(`Response status: ${res.status} ${res.statusText}`);
+        console.log(`Headers: ${JSON.stringify(Object.fromEntries([...res.headers]))}`);
         
         if (!res.ok) {
-            console.error(`❌ Échec requête saison active: ${res.status} ${res.statusText}`);
+            console.error(`Failed to fetch active season: ${res.status} ${res.statusText}`);
             throw new Error(`Failed to fetch active season: ${res.status}`);
         }
         
         const responseText = await res.text();
-        console.log(`🔍 Réponse brute: ${responseText.substring(0, 200)}${responseText.length > 200 ? '...' : ''}`);
+        console.log(`Response text: ${responseText.substring(0, 200)}${responseText.length > 200 ? '...' : ''}`);
         
         let season;
         try {
             season = JSON.parse(responseText);
         } catch (e) {
-            console.error(`❌ Erreur parsing JSON:`, e);
-            console.error(`🔍 Contenu non parsable: ${responseText}`);
+            console.error(`Error parsing JSON:`, e);
+            console.error(`Unparsable content: ${responseText}`);
             throw new Error('Invalid JSON response from season endpoint');
         }
         
-        console.log(`✅ Données saison: ${JSON.stringify(season)}`);
+        console.log(`Season data: ${JSON.stringify(season)}`);
         
         if (!season || !season.id) {
-            console.error(`❌ Données saison invalides: ID manquant`);
+            console.error(`Season data invalid: missing ID`);
             throw new Error('Invalid season data: missing ID');
         }
         
-        console.log(`✅ Saison active trouvée: ${season.id} (Saison ${season.seasonNumber})`);
+        console.log(`Season active found: ${season.id} (Season ${season.seasonNumber})`);
         
         // Update podium prizes
         updatePrizeDisplay(season.prizeMoney, 1);
@@ -160,109 +160,109 @@ async function getActiveSeason() {
         const titleElement = document.getElementById('leaderboard-season-title');
         if (titleElement) {
             titleElement.textContent = `Season ${season.seasonNumber}`;
-            console.log(`✅ Titre de saison mis à jour: Season ${season.seasonNumber}`);
+            console.log(`Season title updated: Season ${season.seasonNumber}`);
         } else {
-            console.warn('⚠️ Élément #leaderboard-season-title non trouvé');
+            console.warn('Element #leaderboard-season-title not found');
         }
         
         // Initialize countdown with end date
         updateCountdown(season.endDate);
         
-        console.log('🔍🔍🔍 FIN RÉCUPÉRATION SAISON ACTIVE 🔍🔍🔍');
+        console.log('END ACTIVE SEASON RETRIEVAL');
         return season;
     } catch (error) {
-        console.error('❌❌❌ ERREUR lors de la récupération de la saison active:', error);
-        if (error.stack) console.error(`🔍 STACK TRACE: ${error.stack}`);
+        console.error('ERROR during active season retrieval:', error);
+        if (error.stack) console.error(`STACK TRACE: ${error.stack}`);
         throw error;
     }
 }
 
 // Function to load a specific page of leaderboard data
 async function loadLeaderboardPageData(page) {
-    console.log(`🔎🔎🔎 DÉBUT CHARGEMENT PAGE ${page} 🔎🔎🔎`);
+    console.log(`START PAGE ${page} LOADING`);
     
     if (!activeSeason) {
-        console.error('❌ Aucune saison active trouvée');
+        console.error('No active season found');
         throw new Error('No active season found');
     }
     
-    console.log(`🔍 Chargement UNIQUEMENT de la page ${page} (limite 15) pour la saison ${activeSeason.id}`);
+    console.log(`Loading UNIQUELY page ${page} (limit 15) for season ${activeSeason.id}`);
     
     try {
-        // Utiliser l'API existante qui supporte la pagination
-        // Mais il est possible qu'elle ignore les paramètres de pagination et renvoie tout
+        // Use existing API that supports pagination
+        // But it's possible it ignores pagination parameters and returns everything
         const apiUrl = `/api/seasons/${activeSeason.id}/ranking?page=${page}&limit=15`;
-        console.log(`🔍 URL API EXISTANTE: ${apiUrl}`);
+        console.log(`API URL: ${apiUrl}`);
         
-        // Enregistrer le temps de début pour mesurer la performance
+        // Register start time to measure performance
         const startTime = Date.now();
         
-        // Utiliser l'API existante avec pagination
-        console.log('⏳ Envoi de la requête à l\'API existante...');
+        // Use existing API with pagination
+        console.log('Sending request to existing API...');
         const rankingRes = await fetch(apiUrl);
         
-        // Calculer le temps de réponse
+        // Calculate response time
         const responseTime = Date.now() - startTime;
-        console.log(`⏱️ Temps de réponse: ${responseTime}ms`);
+        console.log(`Response time: ${responseTime}ms`);
         
-        // Vérifier le statut de la réponse
-        console.log(`🔍 Statut de la réponse: ${rankingRes.status} ${rankingRes.statusText}`);
-        console.log(`🔍 Headers: ${JSON.stringify(Object.fromEntries([...rankingRes.headers]))}`);
+        // Check response status
+        console.log(`Response status: ${rankingRes.status} ${rankingRes.statusText}`);
+        console.log(`Headers: ${JSON.stringify(Object.fromEntries([...rankingRes.headers]))}`);
         
         if (!rankingRes.ok) {
-            console.error(`❌ Échec de la requête: ${rankingRes.status} ${rankingRes.statusText}`);
+            console.error(`Request failed: ${rankingRes.status} ${rankingRes.statusText}`);
             
-            // Tenter de récupérer le corps d'erreur pour plus de détails
+            // Try to retrieve error body for more details
             try {
                 const errorText = await rankingRes.text();
-                console.error(`🔍 Corps de l'erreur: ${errorText}`);
+                console.error(`Error body: ${errorText}`);
             } catch (e) {
-                console.error('❌ Impossible de lire le corps de l\'erreur');
+                console.error('Failed to read error body');
             }
             
             throw new Error(`Failed to fetch leaderboard data: ${rankingRes.status}`);
         }
         
-        // Récupérer le corps de la réponse
+        // Get response body
         const responseText = await rankingRes.text();
         
-        // Afficher les premiers caractères du corps (pour éviter des logs trop longs)
-        console.log(`🔍 Début de la réponse: ${responseText.substring(0, 200)}${responseText.length > 200 ? '...' : ''}`);
+        // Display first characters of the body (to avoid too long logs)
+        console.log(`Response body: ${responseText.substring(0, 200)}${responseText.length > 200 ? '...' : ''}`);
         
         let rankingData;
         try {
             rankingData = JSON.parse(responseText);
         } catch (e) {
-            console.error(`❌ Erreur parsing JSON:`, e);
-            console.error(`🔍 Contenu non parsable: ${responseText}`);
+            console.error(`Error parsing JSON:`, e);
+            console.error(`Unparsable content: ${responseText}`);
             throw new Error('Invalid JSON response from leaderboard endpoint');
         }
         
-        // Utilisation directe des données paginées du backend
+        // Direct use of paginated data from backend
         const paginatedData = rankingData.items || [];
         const totalCount = rankingData.pagination ? rankingData.pagination.totalCount : undefined;
         
-        console.log(`📊 Nombre total d'éléments reçus (totalCount): ${totalCount}`);
-        console.log(`📊 Nombre d'éléments dans la page reçue: ${paginatedData.length}`);
+        console.log(`Total count: ${totalCount}`);
+        console.log(`Page size: ${paginatedData.length}`);
         
-        // hasMoreData déterminé à partir de la pagination backend
+        // hasMoreData determined from backend pagination
         hasMoreData = rankingData.pagination ? rankingData.pagination.hasMore : false;
-        console.log(`📊 A plus de données (hasMore): ${hasMoreData}`);
+        console.log(`More data available: ${hasMoreData}`);
         
         // Update the leaderboard UI
         renderLeaderboardItems(paginatedData, page === 0);
         
         // Update podium if this is the first page
         if (page === 0 && paginatedData.length > 0) {
-            // Pour le podium, utiliser les 3 premiers de la page reçue
+            // Use the first 3 users from the received page for the podium
             updatePodium(paginatedData.slice(0, 3));
         }
         
-        console.log(`🔎🔎🔎 FIN CHARGEMENT PAGE ${page} 🔎🔎🔎`);
+        console.log(`END OF PAGE LOADING ${page}`);
         return paginatedData;
     } catch (error) {
-        console.error(`❌❌❌ ERREUR lors du chargement de la page ${page}:`, error);
-        if (error.stack) console.error(`🔍 STACK TRACE: ${error.stack}`);
+        console.error(`ERROR during page ${page} loading:`, error);
+        if (error.stack) console.error(`STACK TRACE: ${error.stack}`);
         throw error;
     }
 }
@@ -285,7 +285,7 @@ async function loadNextLeaderboardPage() {
         // Hide loading indicator
         hideLoadingIndicator();
     } catch (error) {
-        console.error('❌ Error loading next leaderboard page:', error);
+        console.error('Error loading next leaderboard page:', error);
         hideLoadingIndicator();
     } finally {
         isLoadingMore = false;
@@ -505,17 +505,17 @@ function handleScroll(event) {
     }
 }
 
-// Fonction pour obtenir l'ID utilisateur actuel
+// Function to get the current user ID
 function getCurrentUserId() {
-    // Essayer d'abord la variable globale
+    // Try first the global variable
     let userId = window.userId || '';
     
-    // Si userId n'est pas une chaîne, essayer d'autres méthodes
+    // If userId is not a string, try other methods
     if (typeof userId !== 'string') {
         userId = '';
     }
     
-    // Essayer de récupérer du localStorage
+    // Try to get from localStorage
     if (!userId) {
         userId = localStorage.getItem('tidashUserId') || '';
     }
@@ -523,39 +523,39 @@ function getCurrentUserId() {
     return userId.trim();
 }
 
-// Fonction pour mettre à jour le compte à rebours de fin de saison
+// Function to update the end of season countdown
 function updateCountdown(endDateStr) {
-    // Éléments du compte à rebours
+    // Countdown elements
     const daysElement = document.getElementById('leaderboard-countdown-days');
     const hoursElement = document.getElementById('leaderboard-countdown-hours');
     const minutesElement = document.getElementById('leaderboard-countdown-minutes');
     
     if (!daysElement || !hoursElement || !minutesElement) {
-        console.error('❌ Éléments de compte à rebours non trouvés dans le DOM');
+        console.error('Countdown elements not found in the DOM');
         return;
     }
     
     try {
-        // Convertir la date de fin en objet Date
+        // Convert the end date to a Date object
         const endDate = new Date(endDateStr);
         
-        // Vérifier si la date est valide
+        // Check if the date is valid
         if (isNaN(endDate.getTime())) {
-            console.error('❌ Date de fin de saison invalide:', endDateStr);
+            console.error('Invalid end of season date:', endDateStr);
             daysElement.textContent = '00';
             hoursElement.textContent = '00';
             minutesElement.textContent = '00';
             return;
         }
         
-        console.log(`⏱️ Calcul du compte à rebours pour la date de fin: ${endDate.toLocaleString()}`);
+        console.log(`Countdown to end date: ${endDate.toLocaleString()}`);
         
-        // Fonction de mise à jour du compte à rebours
+        // Function to update the countdown timer
         const updateTimer = () => {
             const now = new Date();
             const diff = endDate.getTime() - now.getTime();
             
-            // Si la date est passée, afficher 00:00:00
+            // If the date is passed, display 00:00:00
             if (diff <= 0) {
                 daysElement.textContent = '00';
                 hoursElement.textContent = '00';
@@ -563,98 +563,98 @@ function updateCountdown(endDateStr) {
                 return;
             }
             
-            // Calculer jours, heures, minutes
+            // Calculate days, hours, minutes
             const days = Math.floor(diff / (1000 * 60 * 60 * 24));
             const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
             const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
             
-            // Mettre à jour les éléments avec padding
+            // Update elements with padding
             daysElement.textContent = days.toString().padStart(2, '0');
             hoursElement.textContent = hours.toString().padStart(2, '0');
             minutesElement.textContent = minutes.toString().padStart(2, '0');
             
-            // Logs pour débogage
-            console.log(`⏱️ Compte à rebours: ${days}D ${hours}H ${minutes}M`);
+            // Debug logs
+            console.log(`Countdown: ${days}D ${hours}H ${minutes}M`);
         };
         
-        // Mettre à jour immédiatement
+        // Update immediately
         updateTimer();
         
-        // Configurer la mise à jour chaque minute
+        // Update every minute
         const timerId = setInterval(updateTimer, 60000);
         
-        // Nettoyer l'intervalle quand le composant est caché
+        // Clear interval when the leaderboard is closed
         document.getElementById('close-leaderboard').addEventListener('click', () => {
             clearInterval(timerId);
         });
         
     } catch (error) {
-        console.error('❌ Erreur lors de la mise à jour du compte à rebours:', error);
+        console.error('Error updating countdown:', error);
         daysElement.textContent = '00';
         hoursElement.textContent = '00';
         minutesElement.textContent = '00';
     }
 }
 
-// Fonction principale pour mettre à jour la rangée utilisateur dans le leaderboard
+// Main function to update the user row in the leaderboard
 async function renderLeaderboardUserRow() {
     const userRowElement = document.getElementById('leaderboard-user-row');
     if (!userRowElement) return;
     
     try {
-        // 1. Récupérer la saison active
+        // 1. Get the active season
         let season;
         try {
-            // Essayer d'abord l'endpoint principal
+            // Try the main endpoint first
             const res = await fetch('/api/seasons/active');
             if (res.ok) {
                 season = await res.json();
                 // Store the season in the global variable for later use
                 activeSeason = season;
             } else {
-                // Solution de secours
+                // Fallback solution
                 const fallbackRes = await fetch('/api/active-season');
                 if (!fallbackRes.ok) {
-                    throw new Error('Impossible de récupérer la saison active');
+                    throw new Error('Failed to retrieve active season');
                 }
                 season = await fallbackRes.json();
                 // Store the season in the global variable for later use
                 activeSeason = season;
             }
             
-            console.log(`✅ Saison active trouvée: ${season.id} (Saison ${season.seasonNumber})`);
-            console.log(`📅 Date de fin de saison: ${season.endDate}`);
+            console.log(`Active season found: ${season.id} (Season ${season.seasonNumber})`);
+            console.log(`End date of season: ${season.endDate}`);
             
-            // Mettre à jour le titre de la saison
+            // Update the season title
             const titleElement = document.getElementById('leaderboard-season-title');
             if (titleElement) {
                 titleElement.textContent = `Season ${season.seasonNumber}`;
             }
             
-            // Initialiser le compte à rebours avec la date de fin
+            // Update the countdown with the end date
             updateCountdown(season.endDate);
             
-            // Afficher le prix pour le premier du podium
+            // Update the prize display
             updatePrizeDisplay(season.prizeMoney);
                 
         } catch (error) {
-            console.error('❌ Erreur lors de la récupération de la saison active:', error);
-            userRowElement.innerHTML = '<div style="color:orange;">Impossible de charger les informations de saison. ⚠️</div>';
+            console.error('Error retrieving active season:', error);
+            userRowElement.innerHTML = '<div style="color:orange;">Unable to load season information.</div>';
             return;
         }
             
-        // 2. Récupérer l'ID utilisateur
+        // 2. Get the user ID
         const userId = getCurrentUserId();
         if (!userId) {
-            userRowElement.innerHTML = '<div style="color:orange;">Impossible de déterminer votre identifiant. ⚠️</div>';
+            userRowElement.innerHTML = '<div style="color:orange;">Unable to determine your user ID.</div>';
             return;
         }
         
-        // 3. Utiliser l'endpoint le plus simple existant pour récupérer les données utilisateur
+        // 3. Use the most simple existing endpoint to retrieve user data
         try {
-            console.log(`📊 Récupération des données pour l'utilisateur ${userId} dans la saison ${season.id}...`);
+            console.log(`Retrieving data for user ${userId} in season ${season.id}...`);
             
-            // Utiliser l'API existante pour récupérer les données utilisateur + sa position
+            // Use the existing API to retrieve user data + their position
             const userDataRes = await fetch(`/api/users/${encodeURIComponent(userId)}`);
             let username = 'You';
             let avatarImgSrc = '';
@@ -663,7 +663,7 @@ async function renderLeaderboardUserRow() {
                 const userData = await userDataRes.json();
                 username = userData.gameUsername || 'You';
                 
-                // Utiliser l'avatar depuis les données utilisateur ou celui déjà chargé
+                // Use the avatar from the user data or the one already loaded
                 if (window.avatarSrc) {
                     avatarImgSrc = window.avatarSrc;
                 } else {
@@ -673,7 +673,7 @@ async function renderLeaderboardUserRow() {
                             }
                 }
             } else {
-                // Fallback pour l'avatar si les données utilisateur ne sont pas disponibles
+                // Fallback for the avatar if user data is not available
                 const profileAvatarImg = document.getElementById('avatarImg');
                 if (profileAvatarImg && profileAvatarImg.src) {
                     avatarImgSrc = profileAvatarImg.src;
@@ -682,43 +682,43 @@ async function renderLeaderboardUserRow() {
                 }
                 }
                 
-            // Récupérer le score de saison de l'utilisateur avec l'endpoint existant
+            // Retrieve the user's season score with the existing endpoint
             const seasonScoreRes = await fetch(`/api/seasons/${season.id}/scores/${encodeURIComponent(userId)}`);
             let userSeasonScore = 0;
             
             if (seasonScoreRes.ok) {
                 const scoreData = await seasonScoreRes.json();
                 userSeasonScore = scoreData.score || 0;
-                console.log(`✅ Score de saison récupéré: ${userSeasonScore}`);
+                console.log(`Score of season retrieved: ${userSeasonScore}`);
     }
 
-            // SOLUTION OPTIMISÉE: Récupérer la position de l'utilisateur avec la nouvelle API
+            // Retrieve the user's rank with the new API
             let userRank = '-';
             
             try {
-                console.log(`🔍 Tentative de récupération du rang pour ${userId} dans la saison ${season.id}...`);
+                console.log(`Retrieving rank for ${userId} in season ${season.id}...`);
                 
-                // Déterminer la base de l'URL avec le bon chemin
+                // Determine the base URL with the correct path
                 let baseUrl = window.location.origin;
                 
-                // Vérifier si nous sommes dans le chemin /test
+                // Check if we are in the /test path
                 const pathname = window.location.pathname;
                 const basePathMatch = pathname.match(/^\/([^\/]+)/);
                 const basePath = basePathMatch ? basePathMatch[1] : '';
                 
                 if (basePath) {
-                    console.log(`🌐 Détection d'un chemin de base: /${basePath}`);
-                    // Ajouter le chemin de base à l'URL
+                    console.log(`Base path detected: /${basePath}`);
+                    // Add the base path to the URL
                     baseUrl = `${baseUrl}/${basePath}`;
                 }
                 
-                console.log(`🌐 URL de base déterminée: ${baseUrl}`);
+                console.log(`Base URL determined: ${baseUrl}`);
                 
-                // URL complète avec le chemin de base correct
+                // Complete URL with the correct base path
                 const apiUrl = `${baseUrl}/api/seasons/${season.id}/user-position?userId=${encodeURIComponent(userId)}`;
-                console.log(`🔗 URL complète de l'API: ${apiUrl}`);
+                console.log(`Complete API URL: ${apiUrl}`);
                 
-                console.log(`⏳ Envoi de la requête...`);
+                console.log(`Sending request...`);
                 const userPositionRes = await fetch(apiUrl, {
                     method: 'GET',
                     headers: {
@@ -727,38 +727,38 @@ async function renderLeaderboardUserRow() {
                     }
                 });
                 
-                console.log(`📊 Statut de la réponse: ${userPositionRes.status} ${userPositionRes.statusText}`);
-                console.log(`📋 En-têtes de la réponse:`, Object.fromEntries([...userPositionRes.headers.entries()]));
+                console.log(`Response status: ${userPositionRes.status} ${userPositionRes.statusText}`);
+                console.log(`Response headers:`, Object.fromEntries([...userPositionRes.headers.entries()]));
                 
-                // Si la réponse est OK, essayer de récupérer le JSON
+                // If the response is OK, try to retrieve the JSON
                 if (userPositionRes.ok) {
-                    const responseText = await userPositionRes.text(); // D'abord récupérer le texte brut
-                    console.log(`📄 Réponse brute: ${responseText}`);
+                    const responseText = await userPositionRes.text(); // First retrieve the raw text
+                    console.log(`Raw response: ${responseText}`);
                     
                     let positionData;
                     try {
                         positionData = JSON.parse(responseText);
-                        console.log(`✅ Rang utilisateur récupéré:`, positionData);
+                        console.log(`User rank retrieved:`, positionData);
                         
                         if (positionData && positionData.position) {
                             userRank = positionData.position;
-                            console.log(`🏆 Position finale de l'utilisateur: ${userRank}`);
+                            console.log(`User rank: ${userRank}`);
                         }
                     } catch (jsonError) {
-                        console.error(`❌ Erreur lors du parsing JSON pour le rang utilisateur:`, jsonError);
-                        console.log(`📄 Réponse qui a causé l'erreur:`, responseText);
+                        console.error(`Error parsing JSON for user rank:`, jsonError);
+                        console.log(`Response that caused the error:`, responseText);
                     }
                 } else {
-                    console.error(`❌ Échec de récupération du rang: HTTP ${userPositionRes.status}`);
+                    console.error(`Failed to retrieve user rank: HTTP ${userPositionRes.status}`);
                 }
                 
             } catch (posError) {
-                console.error(`❌ Erreur lors de la récupération du rang utilisateur:`, posError);
+                console.error(`Error retrieving user rank:`, posError);
             }
             
-            // Afficher un tiret pour le rang si le score est 0
+            // Display a dash for the rank if the score is 0
             let displayRank = userSeasonScore === 0 ? '-' : userRank;
-            // Génération du HTML de la ligne utilisateur
+            // Generate the HTML for the user row
             userRowElement.innerHTML = `
                 <div class="leaderboard-rank">${displayRank}</div>
                 <div class="leaderboard-avatar"><img src="${avatarImgSrc}" alt="${username}"></div>
@@ -767,14 +767,14 @@ async function renderLeaderboardUserRow() {
             `;
             
         } catch (error) {
-            console.error('❌ Erreur lors de la récupération des données utilisateur:', error);
-            userRowElement.innerHTML = '<div style="color:orange;">Erreur lors du chargement de vos données. ⚠️</div>';
+            console.error('Error retrieving user data:', error);
+            userRowElement.innerHTML = '<div style="color:orange;">Error loading your data.</div>';
         }
         
     } catch (error) {
-        console.error('❌ Erreur globale dans renderLeaderboardUserRow:', error);
+        console.error('Global error in renderLeaderboardUserRow:', error);
         if (userRowElement) {
-            userRowElement.innerHTML = '<div style="color:orange;">Une erreur est survenue. ⚠️</div>';
+            userRowElement.innerHTML = '<div style="color:orange;">Error loading your data.</div>';
         }
     }
 }

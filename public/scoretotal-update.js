@@ -1,7 +1,7 @@
-// Script pour incrémenter le scoretotal du current user lors du clic sur HOME ou PLAY
-// Ce script doit être inclus dans index.html après les autres scripts principaux
+// Script to increment the current user's total score when clicking on HOME or PLAY
+// This script must be included in index.html after the main scripts
 
-// Utilitaire pour obtenir le userId (ou deviceId) déjà utilisé dans le jeu
+// Utility to get the userId (or deviceId) already used in the game
 function getCurrentUserIdOrDeviceId() {
     let telegramId = null;
     let deviceId = null;
@@ -9,13 +9,13 @@ function getCurrentUserIdOrDeviceId() {
         telegramId = window.Telegram.WebApp.initDataUnsafe.user.id.toString();
     }
     if (!telegramId) {
-        // fallback deviceId (même logique que dans initUserProfile)
+        // fallback deviceId (same logic as in initUserProfile)
         deviceId = getCookie && getCookie("tidashDeviceId");
     }
     return telegramId || deviceId;
 }
 
-// Fonction pour envoyer l'incrément du scoretotal au backend
+// Function to send the score increment to the backend
 function addScoreToScoreTotal(score) {
     const userIdOrDeviceId = getCurrentUserIdOrDeviceId();
     if (!userIdOrDeviceId) return;
@@ -24,22 +24,22 @@ function addScoreToScoreTotal(score) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: userIdOrDeviceId, scoreToAdd: score })
     }).then(() => {
-        // Optionnel : log, toast, etc.
+        // Optional : log, toast, etc.
     }).catch(() => {});
 }
 
-// Fonction pour fetch le scoretotal du current user et l'afficher
+// Function to fetch the current user's total score and display it
 function updateScoreTotalDisplay() {
     var scoreDiv = document.getElementById('scoretotal-value');
     if (!scoreDiv) return;
     scoreDiv.textContent = '-';
     const userIdOrDeviceId = getCurrentUserIdOrDeviceId();
     if (!userIdOrDeviceId) return;
-    // Essayer d'abord avec telegramId
+    // Try first with telegramId
     fetch('/api/users/telegram/' + userIdOrDeviceId)
         .then(r => {
             if (r.ok) return r.json();
-            // Si 404, essayer deviceId
+            // If 404, try deviceId
             if (r.status === 404) {
                 return fetch('/api/users/device/' + userIdOrDeviceId)
                     .then(r2 => r2.ok ? r2.json() : null);
@@ -55,7 +55,7 @@ function updateScoreTotalDisplay() {
 }
 
 
-// Affiche le scoretotal à chaque affichage de la page d'accueil
+// Display the scoretotal at each home screen display
 function observeHomeScreenDisplay() {
     var homeScreen = document.getElementById('home-screen');
     if (!homeScreen) return;
@@ -68,10 +68,10 @@ function observeHomeScreenDisplay() {
     }, 400);
 }
 
-// Variable globale pour stocker le dernier score de partie
+// Global variable to store the last game score
 window.lastGameScore = 0;
 
-// Détecte l'affichage de l'écran Game Over et stocke le score affiché
+// Detect the Game Over screen display and store the displayed score
 function observeGameOverDisplay() {
     var gameOver = document.getElementById('game-over');
     if (!gameOver) return;
@@ -87,11 +87,11 @@ function observeGameOverDisplay() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    updateScoreTotalDisplay(); // Correction : affichage immédiat au chargement
+    updateScoreTotalDisplay(); // Display the scoretotal immediately on load
     observeHomeScreenDisplay();
     observeGameOverDisplay();
     var homeBtn = document.getElementById('home-button');
     var playBtn = document.getElementById('play-again');
-    // On ne fait plus rien ici, le scoretotal est ajouté dès le passage au Game Over
+    // Do nothing here, the scoretotal is added as soon as the Game Over screen is displayed
 
 });

@@ -5,12 +5,12 @@ const fs = require('fs');
 const { Sequelize, DataTypes, Op } = require('sequelize');
 require('dotenv').config();
 
-// Le bot Telegram est déjà initialisé plus bas dans le code
+// The bot Telegram is already initialized below in the code
 
-// Chemin de la base de données persistante - FIXED to always use the external database path
+// Path to the persistent database - FIXED to always use the external database path
 const DB_PATH = '/var/lib/tidash_database.sqlite';
 
-// Vérifier si le fichier de base de données existe, sinon le créer
+// Verify if the database file exists, create it if it doesn't
 if (!fs.existsSync(DB_PATH)) {
   try {
     // Create directory if it doesn't exist (for production path)
@@ -19,18 +19,18 @@ if (!fs.existsSync(DB_PATH)) {
       fs.mkdirSync(dir, { recursive: true });
     }
     fs.writeFileSync(DB_PATH, '', { flag: 'wx' });
-    console.log(`📁 Database file created at ${DB_PATH}`);
+    console.log(`Database file created at ${DB_PATH}`);
   } catch (err) {
-    console.error(`❌ Error creating database file: ${err.message}`);
+    console.error(`Error creating database file: ${err.message}`);
     // Critical: Don't crash the server, but log the error
   }
 }
 
-// Initialiser la base de données SQLite avec des options robustes
+// Initialize the SQLite database with robust options
 const sequelize = new Sequelize({
   dialect: 'sqlite',
   storage: DB_PATH,
-  logging: false, // Désactiver les logs SQL pour la production
+  logging: false, // Disable SQL logs for production
   retry: {
     max: 3, // Maximum retry 3 times
     match: [/SQLITE_BUSY/], // Only retry for SQLITE_BUSY errors
@@ -47,7 +47,7 @@ const sequelize = new Sequelize({
   }
 });
 
-// Définition des modèles
+// Model definitions
 // HowToPlayLink: persistent single-row table for YouTube help link
 const HowToPlayLink = sequelize.define('HowToPlayLink', {
   id: {
@@ -136,7 +136,7 @@ const User = sequelize.define('User', {
   }
 });
 
-// Définir le modèle Season sans aucune référence à User
+// Define the Season model without any User references
 const Season = sequelize.define('Season', {
   id: {
     type: DataTypes.INTEGER,
@@ -203,7 +203,7 @@ const SeasonScore = sequelize.define('SeasonScore', {
   }
 });
 
-// Synchroniser les modèles avec la base de données de manière robuste
+// Synchronize models with the database robustly
 (async () => {
   let syncRetries = 0;
   const maxRetries = 3;
@@ -236,14 +236,14 @@ const SeasonScore = sequelize.define('SeasonScore', {
     try {
       // Use force: false to avoid dropping tables
       await sequelize.sync({ force: false });
-      console.log('🔄 Database synchronized successfully');
+      console.log('Database synchronized successfully');
       break; // Exit the loop if successful
     } catch (err) {
       syncRetries++;
-      console.error(`❌ Database sync error (attempt ${syncRetries}/${maxRetries}):`, err);
+      console.error(`Database sync error (attempt ${syncRetries}/${maxRetries}):`, err);
       
       if (syncRetries >= maxRetries) {
-        console.error('❌ Failed to synchronize database after maximum retries');
+        console.error('Failed to synchronize database after maximum retries');
         // Don't crash the server, continue with potentially limited functionality
       } else {
         // Wait before retrying (exponential backoff)
@@ -255,28 +255,28 @@ const SeasonScore = sequelize.define('SeasonScore', {
   }
 })();
 
-// Initialiser la base de données
+// Initialize the database
 (async () => {
   try {
-    // Vérifier si la table users existe et contient des données
+    // Check if the users table exists and contains data
     try {
       const count = await User.count();
       console.log(`📊 ${count} users found in the database`);
       
-      // Si la table est vide, migrer les données existantes si nécessaire
+      // If the table is empty, migrate existing data if necessary
       if (count === 0) {
-        console.log('La table users est vide, tentative de migration des données...');
+        console.log('The users table is empty, attempting to migrate data...');
         await migrateExistingData();
       }
     } catch (error) {
-      console.error('Erreur lors de la vérification des données:', error);
+      console.error('Error while checking the data:', error);
     }
   } catch (error) {
-    console.error('Erreur lors de l\'initialisation de la base de données:', error);
+    console.error('Error during database initialization:', error);
   }
 })();
 
-// Fonction pour migrer les données existantes du fichier JSON vers la base de données
+// Function to migrate existing data from the JSON file to the database
 async function migrateExistingData() {
   try {
     const dataDir = path.join(__dirname, 'data');
@@ -286,10 +286,10 @@ async function migrateExistingData() {
       const usersData = fs.readFileSync(usersFile, 'utf8');
       const users = JSON.parse(usersData);
       
-      console.log(`Migration de ${users.length} utilisateurs vers la base de données...`);
+      console.log(`Migrating ${users.length} users to the database...`);
       
       for (const user of users) {
-        // Vérifier si l'utilisateur existe déjà
+        // Check if the user already exists
         const [existingUser] = await User.findOrCreate({
           where: {
             [Op.or]: [
@@ -310,15 +310,15 @@ async function migrateExistingData() {
         });
       }
       
-      console.log('Migration terminée avec succès');
+      console.log('Migration completed successfully');
       
-      // Créer une sauvegarde du fichier JSON
+      // Create a backup of the JSON file
       fs.copyFileSync(usersFile, path.join(dataDir, 'users_backup.json'));
     } else {
-      console.log('Aucun fichier de données utilisateurs trouvé pour la migration');
+      console.log('No user data file found for migration');
     }
   } catch (error) {
-    console.error('Erreur lors de la migration des données:', error);
+    console.error('Error during data migration:', error);
   }
 }
 
@@ -327,7 +327,7 @@ async function createInitialSeason() {
   try {
     const seasonCount = await Season.count();
     if (seasonCount === 0) {
-      console.log('🏆 Creating initial season...');
+      console.log('Creating initial season...');
       
       // Set end date to 30 days from now
       const endDate = new Date();
@@ -341,14 +341,13 @@ async function createInitialSeason() {
         isClosed: false
       });
       
-      console.log(`✅ Initial season created: Season ${initialSeason.seasonNumber}`);
+      console.log(`Initial season created: Season ${initialSeason.seasonNumber}`);
     }
   } catch (error) {
-    console.error('❌ Error creating initial season:', error);
+    console.error('Error creating initial season:', error);
   }
 }
 
-// Commenté pour éviter la création automatique d'une saison 1 à chaque démarrage
 // createInitialSeason();
 
 const app = express();
@@ -356,25 +355,25 @@ const port = process.env.PORT || 3000;
 const botToken = process.env.TELEGRAM_BOT_TOKEN;
 const webAppUrl = process.env.WEBAPP_URL;
 
-// Middleware pour parser le JSON
+// Middleware for parsing JSON
 app.use(express.json());
 
-// Servir les fichiers statiques
+// Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Initialiser le bot Telegram
+// Initialize the bot Telegram
 const bot = new Telegraf(botToken);
 
-// Ajoutez ces logs avant et dans la commande /start
-console.log('Configuration du gestionnaire de commande /start');
+// Set up the /start command handler
+console.log('Setting up the /start command handler');
 
-// Gestion de la commande /help pour rediriger vers la vidéo YouTube
+// Handle the /help command to redirect to the YouTube video
 bot.help((ctx) => {
   ctx.reply('📺 Watch the tutorial video here: https://www.youtube.com/watch?v=t0fz4KVU7yw');
 });
 
 bot.start((ctx) => {
-  console.log('Commande /start reçue de:', ctx.from.id, ctx.from.username);
+  console.log('/start command received from:', ctx.from.id, ctx.from.username);
   ctx.reply("Let's see how long you last here 😏", {
     reply_markup: {
       inline_keyboard: [
@@ -384,44 +383,44 @@ bot.start((ctx) => {
       ]
     }
   }).then(() => {
-    console.log('Réponse envoyée avec succès');
+    console.log('Response sent successfully');
   }).catch(err => {
-    console.error('Erreur lors de l\'envoi de la réponse:', err);
+    console.error('Error while sending the response:', err);
   });
 });
 
-// Gestion du bouton Help
+// Handle the Help button
 bot.action('show_help', (ctx) => {
-  ctx.answerCbQuery(); // Ferme la bulle de chargement
+  ctx.answerCbQuery(); // Close the loading bubble
   ctx.reply('📺 Watch the tutorial video here: https://www.youtube.com/watch?v=t0fz4KVU7yw');
 });
 
-// Lancer le bot
+// Launch the bot
 bot.launch().then(() => {
-  console.log('Bot Telegram démarré');
+  console.log('Telegram Bot started');
 }).catch((err) => {
-  console.error('Erreur lors du démarrage du bot:', err);
+  console.error('Error during bot launch:', err);
 });
 
-// Route pour envoyer un message à tous les utilisateurs (broadcast)
+// Route to send a message to all users (broadcast)
 app.post('/api/broadcast', express.json(), async (req, res) => {
   try {
-    // Authentification basique admin par header (à sécuriser selon vos besoins)
-    // Par exemple : req.headers['x-admin-auth'] === 'votre_token_admin'
-    // Ici, on laisse passer pour simplifier, car l'auth est déjà côté admin.js
+    // Basic admin authentication by header (to be secured according to your needs)
+    // For example : req.headers['x-admin-auth'] === 'your_admin_token'
+    // Here, we let it pass for simplicity, since the authentication is already on the admin.js side
 
     const { message } = req.body;
     if (!message || typeof message !== 'string' || !message.trim()) {
-      return res.status(400).json({ error: 'Message invalide' });
+      return res.status(400).json({ error: 'Invalid message' });
     }
-    // Récupérer tous les utilisateurs avec telegramId non nul
+    // Retrieve all users with a non-null telegramId
     const users = await User.findAll({
       where: {
         telegramId: { [Sequelize.Op.not]: null }
       }
     });
     if (!users.length) {
-      return res.status(404).json({ error: 'Aucun utilisateur avec TelegramId' });
+      return res.status(404).json({ error: 'No users with TelegramId' });
     }
     let success = 0, fail = 0;
     for (const user of users) {
@@ -430,38 +429,38 @@ app.post('/api/broadcast', express.json(), async (req, res) => {
         success++;
       } catch (err) {
         fail++;
-        // Optionnel : log les erreurs individuelles
-        console.error(`Erreur envoi à ${user.telegramId}:`, err.message);
+        // Optional: log individual errors
+        console.error(`Error sending to ${user.telegramId}:`, err.message);
       }
     }
     res.json({ sent: success, failed: fail, total: users.length });
   } catch (error) {
-    console.error('Erreur lors du broadcast:', error);
-    res.status(500).json({ error: 'Erreur lors de l\'envoi du message.' });
+    console.error('Error during broadcast:', error);
+    res.status(500).json({ error: 'Error sending message' });
   }
 });
 
-// Route pour récupérer une saison spécifique
+// Route to retrieve a specific season
 app.get('/api/seasons/:id', async (req, res) => {
   const { id } = req.params;
   try {
     const season = await Season.findByPk(id);
     if (!season) {
-      return res.status(404).json({ error: 'Saison non trouvée' });
+      return res.status(404).json({ error: 'Season not found' });
     }
     res.json(season);
   } catch (error) {
-    console.error('Erreur lors de la récupération de la saison:', error);
-    res.status(500).json({ error: 'Erreur lors de la récupération de la saison' });
+    console.error('Error during season retrieval:', error);
+    res.status(500).json({ error: 'Error during season retrieval' });
   }
 });
 
-// Route pour le panneau d'administration
+// Route to serve the admin panel
 app.get('/admin754774', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin754774', 'index.html'));
 });
 
-// API pour récupérer tous les utilisateurs (avec pagination et recherche)
+// API to retrieve all users (with pagination and search)
 app.get('/api/users', async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -469,21 +468,21 @@ app.get('/api/users', async (req, res) => {
     const offset = (page - 1) * limit;
     const search = req.query.search || '';
     
-    console.log(`📋 Admin panel requesting users - Page: ${page}, Limit: ${limit}, Search: "${search}"`);
+    console.log(`Admin panel requesting users - Page: ${page}, Limit: ${limit}, Search: "${search}"`);
     
     let whereCondition = {};
     
     // Only add search conditions if a search term was provided
     if (search && search.trim() !== '') {
       try {
-        // Approche plus sûre pour SQLite - utiliser Op.like directement
+        // Safer approach for SQLite - use Op.like directly
         const searchPattern = `%${search}%`;
         
         whereCondition = {
           [Op.or]: [
             { gameId: { [Op.like]: searchPattern } },
             { gameUsername: { [Op.like]: searchPattern } },
-            // Gestion sécurisée des champs potentiellement null
+            // Secure handling of potentially null fields
             Sequelize.or(
               { telegramId: { [Op.like]: searchPattern } },
               { telegramId: null }
@@ -499,15 +498,15 @@ app.get('/api/users', async (req, res) => {
           ]
         };
       } catch (searchError) {
-        // En cas d'erreur dans la construction de la recherche, on continue sans filtre
-        console.error('❌ Error building search condition:', searchError);
-        // Continuer sans filtre de recherche plutôt que d'échouer complètement
+        // In case of error in search condition construction, continue without filter
+        console.error('Error building search condition:', searchError);
+        // Continue without search filter rather than failing completely
       }
     }
     
-    // Utiliser une approche plus robuste pour récupérer les utilisateurs
+    // Use a more robust approach to retrieve users
     try {
-      // Récupérer les utilisateurs avec pagination
+      // Retrieve users with pagination
       const { count, rows } = await User.findAndCountAll({
         where: whereCondition,
         order: [['bestScore', 'DESC']],
@@ -515,7 +514,7 @@ app.get('/api/users', async (req, res) => {
         offset
       });
       
-      console.log(`✅ Found ${count} users matching criteria`);
+      console.log(`Found ${count} users matching criteria`);
       
       res.json({
         total: count,
@@ -524,17 +523,17 @@ app.get('/api/users', async (req, res) => {
         users: rows
       });
     } catch (dbError) {
-      // Si la requête échoue, essayer une approche plus simple sans conditions de recherche
-      console.error('❌ Error with search query, falling back to simple query:', dbError);
+      // If the query fails, try a simpler approach without search conditions
+      console.error('Error with search query, falling back to simple query:', dbError);
       
-      // Requête de secours sans conditions de recherche
+      // Fallback query without search conditions
       const { count, rows } = await User.findAndCountAll({
         order: [['bestScore', 'DESC']],
         limit,
         offset
       });
       
-      console.log(`✅ Fallback query found ${count} users`);
+      console.log(`Fallback query found ${count} users`);
       
       res.json({
         total: count,
@@ -544,7 +543,7 @@ app.get('/api/users', async (req, res) => {
       });
     }
   } catch (error) {
-    console.error('❌ Error retrieving users:', error);
+    console.error('Error retrieving users:', error);
     res.status(500).json({ 
       error: 'Error retrieving users', 
       details: error.message,
@@ -558,7 +557,7 @@ app.get('/api/users/telegram/:telegramId', async (req, res) => {
   try {
     const { telegramId } = req.params;
     
-    console.log(`🔍 Attempting to find user with Telegram ID: ${telegramId}`);
+    console.log(`Attempting to find user with Telegram ID: ${telegramId}`);
     
     // Find user by Telegram ID
     const user = await User.findOne({ 
@@ -566,14 +565,14 @@ app.get('/api/users/telegram/:telegramId', async (req, res) => {
     });
     
     if (!user) {
-      console.log(`👤 User with Telegram ID ${telegramId} not found`);
+      console.log(`User with Telegram ID ${telegramId} not found`);
       return res.status(404).json({ error: 'User not found' });
     }
     
-    console.log(`✅ User with Telegram ID ${telegramId} found`);
+    console.log(`User with Telegram ID ${telegramId} found`);
     res.status(200).json(user);
   } catch (error) {
-    console.error('❌ Error retrieving user by Telegram ID:', error);
+    console.error('Error retrieving user by Telegram ID:', error);
     res.status(500).json({ 
       error: 'Error retrieving user by Telegram ID', 
       details: error.message 
@@ -586,7 +585,7 @@ app.get('/api/users/device/:deviceId', async (req, res) => {
   try {
     const { deviceId } = req.params;
     
-    console.log(`🔍 Attempting to find user with Device ID: ${deviceId}`);
+    console.log(`Attempting to find user with Device ID: ${deviceId}`);
     
     // Find user by device ID (stored in a new column)
     const user = await User.findOne({ 
@@ -594,14 +593,14 @@ app.get('/api/users/device/:deviceId', async (req, res) => {
     });
     
     if (!user) {
-      console.log(`👤 User with Device ID ${deviceId} not found`);
+      console.log(`User with Device ID ${deviceId} not found`);
       return res.status(404).json({ error: 'User not found' });
     }
     
-    console.log(`✅ User with Device ID ${deviceId} found`);
+    console.log(`User with Device ID ${deviceId} found`);
     res.status(200).json(user);
   } catch (error) {
-    console.error('❌ Error retrieving user by Device ID:', error);
+    console.error('Error retrieving user by Device ID:', error);
     res.status(500).json({ 
       error: 'Error retrieving user by Device ID', 
       details: error.message 
@@ -615,7 +614,7 @@ app.get('/api/users/device/:deviceId', async (req, res) => {
 app.get('/api/users/telegram/:telegramId', async (req, res) => {
   try {
     const { telegramId } = req.params;
-    console.log(`🔍 Looking up user by Telegram ID: ${telegramId}`);
+    console.log(`Looking up user by Telegram ID: ${telegramId}`);
     
     if (!telegramId) {
       return res.status(400).json({ error: 'Telegram ID is required' });
@@ -625,11 +624,11 @@ app.get('/api/users/telegram/:telegramId', async (req, res) => {
     const user = await User.findOne({ where: { telegramId } });
     
     if (!user) {
-      console.log(`⚠️ No user found with Telegram ID: ${telegramId}`);
+      console.log(`No user found with Telegram ID: ${telegramId}`);
       return res.status(404).json({ error: 'User not found' });
     }
     
-    console.log(`✅ Found user by Telegram ID: ${user.gameId}`);
+    console.log(`Found user by Telegram ID: ${user.gameId}`);
     
     // Get active season for this user
     const activeSeason = await Season.findOne({ where: { isActive: true } });
@@ -651,16 +650,16 @@ app.get('/api/users/telegram/:telegramId', async (req, res) => {
     const userData = user.toJSON();
     
     // Log the avatar path for debugging
-    console.log(`📷 Avatar path in database: ${userData.avatarSrc}`);
+    console.log(`Avatar path in database: ${userData.avatarSrc}`);
     
     // Make sure avatarSrc is always returned with the correct format
     if (!userData.avatarSrc) {
       userData.avatarSrc = '/avatars/avatar_default.jpg';
-      console.log('⚠️ No avatar found, using default');
+      console.log('No avatar found, using default');
     } else if (!userData.avatarSrc.startsWith('/') && !userData.avatarSrc.startsWith('http')) {
-      // Si c'est juste un nom de fichier (sans chemin), ajouter le préfixe /avatars/
+      // If it's just a file name (without path), add the /avatars/ prefix
       userData.avatarSrc = `/avatars/${userData.avatarSrc}`;
-      console.log(`📷 Fixed avatar path: ${userData.avatarSrc}`);
+      console.log(`Fixed avatar path: ${userData.avatarSrc}`);
     }
     
     // Return user data with season score
@@ -669,7 +668,7 @@ app.get('/api/users/telegram/:telegramId', async (req, res) => {
       seasonScore
     });
   } catch (error) {
-    console.error('❌ Error fetching user by Telegram ID:', error);
+    console.error('Error fetching user by Telegram ID:', error);
     res.status(500).json({ 
       error: 'Error fetching user', 
       details: error.message 
@@ -677,40 +676,40 @@ app.get('/api/users/telegram/:telegramId', async (req, res) => {
   }
 });
 
-// Route pour récupérer un utilisateur spécifique
+// Route to retrieve a specific user
 app.get('/api/users/:id', async (req, res) => {
   try {
     const { id } = req.params;
     
-    console.log(`Tentative de récupération de l'utilisateur avec ID: ${id}`);
+    console.log(`Attempting to retrieve user with ID: ${id}`);
     
-    // Récupérer l'utilisateur par gameId (qui est la clé primaire)
+    // Retrieve the user by gameId (which is the primary key)
     const user = await User.findByPk(id);
     
     if (!user) {
-      console.log(`Utilisateur avec ID ${id} non trouvé`);
+      console.log(`User with ID ${id} not found`);
       return res.status(404).json({ error: 'User not found' });
     }
     
-    console.log(`Utilisateur avec ID ${id} trouvé`);
+    console.log(`User with ID ${id} found`);
     res.status(200).json(user);
   } catch (error) {
-    console.error('Erreur lors de la récupération de l\'utilisateur:', error);
-    res.status(500).json({ error: 'Erreur lors de la récupération de l\'utilisateur', details: error.message });
+    console.error('Error retrieving the user:', error);
+    res.status(500).json({ error: 'Error retrieving the user', details: error.message });
   }
 });
 
-// API pour supprimer un utilisateur
+// API for deleting a user
 app.delete('/api/users/:id', async (req, res) => {
   try {
     const { id } = req.params;
     
-    console.log(`🗑️ Attempting to delete user with ID: ${id}`);
+    console.log(`Attempting to delete user with ID: ${id}`);
     
     // First check if the user exists
     const user = await User.findByPk(id);
     if (!user) {
-      console.log(`⚠️ User with ID ${id} not found for deletion`);
+      console.log(`User with ID ${id} not found for deletion`);
       return res.status(404).json({ error: 'User not found' });
     }
     
@@ -718,7 +717,7 @@ app.delete('/api/users/:id', async (req, res) => {
     const transaction = await sequelize.transaction();
     
     try {
-      // Désactiver temporairement les contraintes de clé étrangère
+      // Disable foreign key constraints temporarily
       await sequelize.query('PRAGMA foreign_keys = OFF;', { transaction });
       
       // Delete season scores first
@@ -739,26 +738,26 @@ app.delete('/api/users/:id', async (req, res) => {
         transaction
       });
       
-      // Réactiver les contraintes de clé étrangère
+      // Reactivate foreign key constraints
       await sequelize.query('PRAGMA foreign_keys = ON;', { transaction });
       
       // Commit the transaction
       await transaction.commit();
       
-      console.log(`✅ User ${id} deleted successfully`);
+      console.log(`User ${id} deleted successfully`);
       res.status(200).json({ message: 'User deleted successfully' });
     } catch (innerError) {
       // Rollback the transaction in case of error
       await transaction.rollback();
       
-      // Réactiver les contraintes de clé étrangère même en cas d'erreur
+      // Reactivate foreign key constraints even in case of error
       await sequelize.query('PRAGMA foreign_keys = ON;');
       
-      console.error(`❌ Transaction error deleting user ${id}:`, innerError);
+      console.error(`Transaction error deleting user ${id}:`, innerError);
       throw innerError;
     }
   } catch (error) {
-    console.error('❌ Error deleting user:', error);
+    console.error('Error deleting user:', error);
     res.status(500).json({ 
       error: 'Error deleting user', 
       details: error.message,
@@ -767,15 +766,15 @@ app.delete('/api/users/:id', async (req, res) => {
   }
 });
 
-// API pour enregistrer un nouvel utilisateur ou mettre à jour un utilisateur existant
-// Ajoute un score au scoretotal du user (par TelegramId ou deviceId)
+// API to register a new user or update an existing user
+// Add a score to the user's scoretotal (by TelegramId or deviceId)
 app.post('/api/users/add-scoretotal', async (req, res) => {
     try {
         const { id, scoreToAdd } = req.body;
         if (!id || typeof scoreToAdd !== 'number') {
             return res.status(400).json({ error: 'Missing id or scoreToAdd' });
         }
-        // Recherche par TelegramId d'abord, sinon par deviceId
+        // Search by TelegramId first, then by deviceId
         let user = await User.findOne({ where: { telegramId: id } });
         if (!user) {
             user = await User.findOne({ where: { deviceId: id } });
@@ -794,54 +793,54 @@ app.post('/api/users/add-scoretotal', async (req, res) => {
 app.post('/api/users', async (req, res) => {
   try {
     const userData = req.body;
-    console.log('📝 User data received:', userData);
+    console.log('User data received:', userData);
 
     // CRITICAL FIX: Get the active season first
     const activeSeason = await Season.findOne({ where: { isActive: true } });
     
-    // Logique simplifiée: garder uniquement un compte par ID Telegram
+    // Simplified logic: keep only one account per Telegram ID
     let user = null;
     
-    console.log('🔍 Début de la recherche d\'utilisateur');
+    console.log('Start of user search');
     
-    // Priorité absolue: recherche par ID Telegram
+    // Absolute priority: search by Telegram ID
     if (userData.telegramId && userData.telegramId.trim() !== '') {
-      console.log(`- Recherche avec telegramId: ${userData.telegramId}`);
+      console.log(`- Search with telegramId: ${userData.telegramId}`);
       
-      // Trouver tous les utilisateurs avec cet ID Telegram
+      // Find all users with this Telegram ID
       const usersWithSameTelegramId = await User.findAll({
         where: { telegramId: userData.telegramId }
       });
       
-      console.log(`🔍 Utilisateurs trouvés avec le même ID Telegram: ${usersWithSameTelegramId.length}`);
+      console.log(`Found ${usersWithSameTelegramId.length} users with the same Telegram ID`);
       
       if (usersWithSameTelegramId.length > 0) {
-        // Garder le premier utilisateur trouvé
+        // Keep the first user found
         user = usersWithSameTelegramId[0];
-        console.log(`✅ Utilisateur sélectionné avec telegramId: ${user.gameId}`);
+        console.log(`User selected with telegramId: ${user.gameId}`);
         
-        // Supprimer tous les autres comptes avec le même ID Telegram
+        // Delete all other accounts with the same Telegram ID
         if (usersWithSameTelegramId.length > 1) {
-          console.log(`🚩 Plusieurs utilisateurs trouvés (${usersWithSameTelegramId.length}) avec le même ID Telegram, nettoyage des doublons...`);
+          console.log(`Found ${usersWithSameTelegramId.length} users with the same Telegram ID, cleaning up duplicates...`);
           
           for (let i = 1; i < usersWithSameTelegramId.length; i++) {
-            console.log(`🚫 Suppression du compte en double: ${usersWithSameTelegramId[i].gameId}`);
+            console.log(`Deleting duplicate account: ${usersWithSameTelegramId[i].gameId}`);
             await usersWithSameTelegramId[i].destroy();
           }
         }
       }
     } else {
-      // Si pas d'ID Telegram, rechercher par deviceId ou gameId
+      // If no Telegram ID, search by deviceId or gameId
       const searchConditions = [];
       
       if (userData.gameId) {
         searchConditions.push({ gameId: userData.gameId });
-        console.log(`- Recherche avec gameId: ${userData.gameId}`);
+        console.log(`- Search with gameId: ${userData.gameId}`);
       }
       
       if (userData.deviceId && userData.deviceId.trim() !== '') {
         searchConditions.push({ deviceId: userData.deviceId });
-        console.log(`- Recherche avec deviceId: ${userData.deviceId}`);
+        console.log(`- Search with deviceId: ${userData.deviceId}`);
       }
       
       if (searchConditions.length > 0) {
@@ -850,16 +849,16 @@ app.post('/api/users', async (req, res) => {
         });
         
         if (user) {
-          console.log(`✅ Utilisateur trouvé sans ID Telegram: ${user.gameId}`);
+          console.log(`User found without Telegram ID: ${user.gameId}`);
         }
       }
     }
     
-    // Supprimer tous les utilisateurs sans ID Telegram si l'utilisateur actuel a un ID Telegram
+    // Delete all users without Telegram ID if the current user has a Telegram ID
     if (userData.telegramId && userData.telegramId.trim() !== '') {
-      // Ne pas exécuter cette opération si l'utilisateur est déjà trouvé et n'a pas d'ID Telegram
+      // Do not perform this operation if the user is already found and has no Telegram ID
       if (!(user && (!user.telegramId || user.telegramId.trim() === ''))) {
-        console.log('🚩 Recherche des comptes sans ID Telegram pour nettoyage...');
+        console.log('Searching for accounts without Telegram ID for cleanup...');
         
         const usersWithoutTelegram = await User.findAll({
           where: {
@@ -871,10 +870,10 @@ app.post('/api/users', async (req, res) => {
         });
         
         if (usersWithoutTelegram.length > 0) {
-          console.log(`🚫 Suppression de ${usersWithoutTelegram.length} comptes sans ID Telegram`);
+          console.log(`Found ${usersWithoutTelegram.length} accounts without Telegram ID, cleaning up...`);
           
           for (const userWithoutTelegram of usersWithoutTelegram) {
-            console.log(`- Suppression du compte sans ID Telegram: ${userWithoutTelegram.gameId}`);
+            console.log(`- Deleting account without Telegram ID: ${userWithoutTelegram.gameId}`);
             await userWithoutTelegram.destroy();
           }
         }
@@ -886,12 +885,12 @@ app.post('/api/users', async (req, res) => {
     
     try {
       if (user) {
-        // Mettre à jour l'utilisateur existant
-        console.log(`🔄 Updating existing user: ${user.gameId}`);
+        // Update existing user
+        console.log(`Updating existing user: ${user.gameId}`);
         
         // Log avatar data for debugging
-        console.log(`📷 Avatar reçu du client: ${userData.avatarSrc}`);
-        console.log(`📷 Avatar actuel dans la base de données: ${user.avatarSrc}`);
+        console.log(`Avatar received from client: ${userData.avatarSrc}`);
+        console.log(`Current avatar in database: ${user.avatarSrc}`);
         
         // Update user data
         await user.update({
@@ -901,8 +900,8 @@ app.post('/api/users', async (req, res) => {
           paypalEmail: userData.paypalEmail || user.paypalEmail,
           bestScore: Math.max(parseInt(userData.bestScore) || 0, user.bestScore || 0),
           lastLogin: new Date(),
-          // IMPORTANT: Utiliser userData.avatarSrc même s'il est undefined pour permettre la mise à jour
-          // Si userData.avatarSrc est explicitement défini (même vide), l'utiliser, sinon conserver l'ancien
+          // IMPORTANT: Use userData.avatarSrc even if it is undefined to allow updating
+          // If userData.avatarSrc is explicitly set (even empty), use it; otherwise, keep the old one
           avatarSrc: (
             userData.avatarSrc &&
             userData.avatarSrc !== "avatar_default.jpg" &&
@@ -935,7 +934,7 @@ app.post('/api/users', async (req, res) => {
               await seasonScore.update({
                 score: newScore
               }, { transaction });
-              console.log(`📊 Updated season score for user ${user.gameId}: ${currentScore} -> ${newScore}`);
+              console.log(`Updated season score for user ${user.gameId}: ${currentScore} -> ${newScore}`);
             }
           }
         }
@@ -947,16 +946,16 @@ app.post('/api/users', async (req, res) => {
         const userJson = user.toJSON();
         
         // Log the avatar path for debugging
-        console.log(`📷 Avatar path after update: ${userJson.avatarSrc}`);
+        console.log(`Avatar path after update: ${userJson.avatarSrc}`);
         
         // Make sure avatarSrc is always returned with the correct format
         if (!userJson.avatarSrc) {
           userJson.avatarSrc = '/avatars/avatar_default.jpg';
-          console.log('⚠️ No avatar found, using default');
+          console.log('No avatar found, using default');
         } else if (!userJson.avatarSrc.startsWith('/') && !userJson.avatarSrc.startsWith('http')) {
-          // Si c'est juste un nom de fichier (sans chemin), ajouter le préfixe /avatars/
+          // If it's just a file name (without path), add the /avatars/ prefix
           userJson.avatarSrc = `/avatars/${userJson.avatarSrc}`;
-          console.log(`📷 Fixed avatar path: ${userJson.avatarSrc}`);
+          console.log(`Fixed avatar path: ${userJson.avatarSrc}`);
         }
         
         // Return updated user data
@@ -971,25 +970,25 @@ app.post('/api/users', async (req, res) => {
           } : null
         });
       } else {
-        // Créer un nouvel utilisateur
-        console.log('➕ Creating new user');
+        // Create a new user
+        console.log('Creating new user');
         
-        // Générer un gameId unique si non fourni
+        // Generate a unique gameId if not provided
         if (!userData.gameId) {
-          // Générer un ID unique de 10 chiffres
+          // Generate a unique 10-digit ID
           const randomNum = Math.floor(1000000000 + Math.random() * 9000000000);
           userData.gameId = randomNum.toString().substring(0, 10);
-          console.log(`🆔 Generated new gameId (10 digits): ${userData.gameId}`);
+          console.log(`Generated new gameId (10 digits): ${userData.gameId}`);
         }
         
-        // Générer un nom d'utilisateur par défaut si non fourni
+        // Generate a default username if not provided
         if (!userData.gameUsername) {
           userData.gameUsername = `Player${Math.floor(Math.random() * 10000)}`;
-          console.log(`👤 Generated default username: ${userData.gameUsername}`);
+          console.log(`Generated default username: ${userData.gameUsername}`);
         }
         
         // Log avatar data for debugging
-        console.log(`📷 Avatar pour le nouvel utilisateur: ${userData.avatarSrc}`);
+        console.log(`Avatar for new user: ${userData.avatarSrc}`);
         
         // Create new user
         user = await User.create({
@@ -1001,7 +1000,7 @@ app.post('/api/users', async (req, res) => {
           bestScore: parseInt(userData.bestScore) || 0,
           registrationDate: new Date(),
           lastLogin: new Date(),
-          // S'assurer que l'avatar est correctement défini pour les nouveaux utilisateurs
+          // Ensure the avatar is properly set for new users
           avatarSrc: userData.avatarSrc || 'avatar_default.jpg',
           deviceId: userData.deviceId,
           musicEnabled: userData.musicEnabled !== undefined ? userData.musicEnabled : false
@@ -1015,7 +1014,7 @@ app.post('/api/users', async (req, res) => {
             score: parseInt(userData.seasonScore) || 0
           }, { transaction });
           
-          console.log(`📊 Created new season score for user ${user.gameId}: ${parseInt(userData.seasonScore) || 0}`);
+          console.log(`Created new season score for user ${user.gameId}: ${parseInt(userData.seasonScore) || 0}`);
         }
         
         // Commit the transaction
@@ -1025,16 +1024,16 @@ app.post('/api/users', async (req, res) => {
         const userJson = user.toJSON();
         
         // Log the avatar path for debugging
-        console.log(`📷 Avatar path for new user: ${userJson.avatarSrc}`);
+        console.log(`Avatar path for new user: ${userJson.avatarSrc}`);
         
         // Make sure avatarSrc is always returned with the correct format
         if (!userJson.avatarSrc) {
           userJson.avatarSrc = '/avatars/avatar_default.jpg';
-          console.log('⚠️ No avatar found, using default');
+          console.log('No avatar found, using default');
         } else if (!userJson.avatarSrc.startsWith('/') && !userJson.avatarSrc.startsWith('http')) {
-          // Si c'est juste un nom de fichier (sans chemin), ajouter le préfixe /avatars/
+          // If it's just a file name (without path), add the /avatars/ prefix
           userJson.avatarSrc = `/avatars/${userJson.avatarSrc}`;
-          console.log(`📷 Fixed avatar path: ${userJson.avatarSrc}`);
+          console.log(`Fixed avatar path: ${userJson.avatarSrc}`);
         }
         
         // Return created user data
@@ -1055,7 +1054,7 @@ app.post('/api/users', async (req, res) => {
       throw error;
     }
   } catch (error) {
-    console.error('❌ Error creating/updating user:', error);
+    console.error('Error creating/updating user:', error);
     res.status(500).json({ 
       error: 'Error creating/updating user', 
       details: error.message,
@@ -1064,22 +1063,22 @@ app.post('/api/users', async (req, res) => {
   }
 });
 
-// API pour récupérer les saisons
+// API to get seasons
 app.get('/api/seasons', async (req, res) => {
   try {
     const seasons = await Season.findAll({
       order: [['seasonNumber', 'DESC']]
     });
     
-    console.log('Saisons récupérées:', seasons.map(s => s.toJSON()));
+    console.log('Seasons retrieved:', seasons.map(s => s.toJSON()));
     res.json(seasons);
   } catch (error) {
-    console.error('Erreur lors de la récupération des saisons:', error);
-    res.status(500).json({ error: 'Erreur lors de la récupération des saisons' });
+    console.error('Error retrieving seasons:', error);
+    res.status(500).json({ error: 'Error retrieving seasons' });
   }
 });
 
-// API pour créer une nouvelle saison
+// API to create a new season
 app.post('/api/seasons', async (req, res) => {
   try {
     const { seasonNumber, startDate, endDate, prizeMoney, secondPrize, thirdPrize } = req.body;
@@ -1093,19 +1092,19 @@ app.post('/api/seasons', async (req, res) => {
     });
     res.status(201).json(season);
   } catch (error) {
-    console.error('Erreur lors de la création de la saison:', error);
-    res.status(500).json({ error: 'Erreur lors de la création de la saison' });
+    console.error('Error creating season:', error);
+    res.status(500).json({ error: 'Error creating season' });
   }
 });
 
-// API pour mettre à jour une saison
+// API to update a season
 app.put('/api/seasons/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { seasonNumber, startDate, endDate, prizeMoney, secondPrize, thirdPrize } = req.body;
     const season = await Season.findByPk(id);
     if (!season) {
-      return res.status(404).json({ error: 'Saison non trouvée' });
+      return res.status(404).json({ error: 'Season not found' });
     }
     season.seasonNumber = seasonNumber;
     season.startDate = startDate;
@@ -1116,26 +1115,26 @@ app.put('/api/seasons/:id', async (req, res) => {
     await season.save();
     res.json(season);
   } catch (error) {
-    console.error('Erreur lors de la mise à jour de la saison:', error);
-    res.status(500).json({ error: 'Erreur lors de la mise à jour de la saison' });
+    console.error('Error updating season:', error);
+    res.status(500).json({ error: 'Error updating season' });
   }
 });
 
-// API pour clôturer une saison
+// API to close a season
 app.post('/api/seasons/:id/close', async (req, res) => {
   const { id } = req.params;
   
   try {
     const season = await Season.findByPk(id);
     if (!season) {
-      return res.status(404).json({ error: 'Saison non trouvée' });
+      return res.status(404).json({ error: 'Season not found' });
     }
     
     if (season.isClosed) {
-      return res.status(400).json({ error: 'Cette saison est déjà clôturée' });
+      return res.status(400).json({ error: 'This season is already closed' });
     }
     
-    // Récupérer le gagnant de la saison (meilleur score)
+    // Retrieve the season winner (best score)
     const topScore = await SeasonScore.findOne({
       where: { seasonId: id },
       order: [['score', 'DESC']]
@@ -1148,62 +1147,62 @@ app.post('/api/seasons/:id/close', async (req, res) => {
     if (topScore) {
       winnerId = topScore.userId;
       winner = await User.findByPk(winnerId);
-      winnerSeasonScore = topScore.score; // Stocker le score de saison du gagnant
+      winnerSeasonScore = topScore.score; // Store the winner's season score
     }
     
-    // Mettre à jour la saison
+    // Update the season
     await season.update({
       isClosed: true,
       isActive: false,
       winnerId
     });
     
-    console.log('Saison clôturée avec succès:', season.toJSON());
+    console.log('Season closed successfully:', season.toJSON());
     
     res.json({ 
-      message: 'Saison clôturée avec succès',
+      message: 'Season closed successfully',
       season,
       winner,
-      winnerSeasonScore // Inclure le score de saison du gagnant dans la réponse
+      winnerSeasonScore // Include the winner's season score in the response
     });
   } catch (error) {
-    console.error('Erreur lors de la clôture de la saison:', error);
-    res.status(500).json({ error: 'Erreur lors de la clôture de la saison' });
+    console.error('Error closing season:', error);
+    res.status(500).json({ error: 'Error closing season' });
   }
 });
 
-// --- FIX: Optimisation du chargement du leaderboard par pages ---
-// Cette route remplace l'ancienne implémentation avec une version plus robuste
+// --- FIX: Optimize leaderboard loading by pages ---
+// This route replaces the old implementation with a more robust version
 app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
   try {
     const { seasonId } = req.params;
     
-    console.log(`🔍 Fetching ranking for season ${seasonId}`);
+    console.log(`Fetching ranking for season ${seasonId}`);
     
-    // Validation de l'ID de saison
+    // Validation of season ID
     if (!seasonId || isNaN(parseInt(seasonId))) {
-      console.error(`❌ Invalid season ID: ${seasonId}`);
+      console.error(`Invalid season ID: ${seasonId}`);
       return res.status(400).json({ error: 'Invalid season ID' });
     }
     
-    // Support pour pagination - avec limite obligatoire
+    // Support for pagination - with limit required
     const page = parseInt(req.query.page) || 0;
     const limit = Math.min(parseInt(req.query.limit) || 15, 15); // Maximum 15 items par page
     const offset = page * limit;
     
-    console.log(`🔍 Pagination: page=${page}, limit=${limit}, offset=${offset}`);
+    console.log(`Pagination: page=${page}, limit=${limit}, offset=${offset}`);
     
     // Find the season
     const season = await Season.findByPk(seasonId);
     if (!season) {
-      console.error(`❌ Season not found: ${seasonId}`);
+      console.error(`Season not found: ${seasonId}`);
       return res.status(404).json({ error: 'Season not found' });
     }
     
-    console.log(`✅ Found season: ${season.id} (Season ${season.seasonNumber})`);
+    console.log(`Found season: ${season.id} (Season ${season.seasonNumber})`);
     
-    // Optimisation: Récupérer les scores et les détails des utilisateurs en une seule requête
-    // Utilisation de jointure SQL manuelle pour optimiser les performances
+    // Optimization: Retrieve scores and user details in a single query
+    // Manual SQL join for performance optimization
     const query = `
       SELECT ss.*, u.gameUsername, u.avatarSrc
       FROM "SeasonScores" ss
@@ -1220,9 +1219,9 @@ app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
       nest: true
     });
     
-    // Transformer les résultats en format attendu
+    // Transform the results into the expected format
     const ranking = Array.isArray(scores) ? scores.map(score => {
-      // Normaliser le format des avatars
+      // Normalize avatar format
       let avatarSrc = score.avatarSrc;
       if (!avatarSrc) {
         avatarSrc = '/avatars/avatar_default.jpg';
@@ -1238,7 +1237,7 @@ app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
       };
     }) : [];
     
-    // Ajoute le comptage total pour la pagination
+    // Add total count for pagination
     const countQuery = `
       SELECT COUNT(*) as count
       FROM "SeasonScores"
@@ -1250,9 +1249,9 @@ app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
     });
     const totalCount = countResult[0]?.count || 0;
     
-    console.log(`✅ Found ${ranking.length} users in ranking for season ${seasonId} (page: ${page}), totalCount: ${totalCount}`);
+    console.log(`Found ${ranking.length} users in ranking for season ${seasonId} (page: ${page}), totalCount: ${totalCount}`);
     
-    // Retourne la structure complète attendue par le frontend
+    // Return the complete expected structure for the frontend
     res.status(200).json({
       items: ranking,
       pagination: {
@@ -1264,7 +1263,7 @@ app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('❌ Error fetching season ranking:', error);
+    console.error('Error fetching season ranking:', error);
     res.status(500).json({ 
       error: 'Error fetching season ranking', 
       details: error.message 
@@ -1272,120 +1271,120 @@ app.get('/api/seasons/:seasonId/ranking', async (req, res) => {
   }
 });
 
-// --- SOLUTION OPTIMISÉE: Calculer le rang utilisateur sans charger de liste ---
-// Cette route utilise une requête SQL optimisée qui compte simplement les scores supérieurs
+// --- SOLUTION OPTIMISÉE: Calculate user position without loading the list ---
+// This route uses an optimized SQL query that simply counts the scores higher than the user's score
 app.get('/api/seasons/:seasonId/user-position', async (req, res) => {
   try {
-    // Ajouter des logs détaillés pour mieux diagnostiquer
-    console.log(`🔍 API /user-position appelée avec les paramètres: ${JSON.stringify(req.params)} et query: ${JSON.stringify(req.query)}`);
-    console.log(`📌 Headers de la requête: ${JSON.stringify(req.headers)}`);
+    // Add detailed logs to better diagnose
+    console.log(`API /user-position called with parameters: ${JSON.stringify(req.params)} and query: ${JSON.stringify(req.query)}`);
+    console.log(`Headers of the request: ${JSON.stringify(req.headers)}`);
     
     const { seasonId } = req.params;
     const { userId } = req.query;
     
-    // Activer CORS pour toutes les origines et méthodes
+    // Enable CORS for all origins and methods
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
     
-    // Gestion de la méthode OPTIONS pour les requêtes préliminaires CORS
+    // Handle OPTIONS method for CORS preflight requests
     if (req.method === 'OPTIONS') {
-      console.log('🔄 Requête OPTIONS reçue - répondre avec les headers CORS');
+      console.log('Requête OPTIONS received - respond with CORS headers');
       return res.status(200).end();
     }
     
-    // Validation des paramètres
+    // Parameter validation
     if (!userId) {
-      console.log('⚠️ userId manquant dans la requête');
+      console.log('userId missing in the request');
       return res.status(400).json({ 
         error: 'userId query parameter is required',
         position: '-',
-        message: 'Le paramètre userId est requis'
+        message: 'userId query parameter is required'
       });
     }
     
     if (!seasonId || isNaN(parseInt(seasonId))) {
-      console.log(`⚠️ seasonId invalide: ${seasonId}`);
+      console.log(`seasonId invalid: ${seasonId}`);
       return res.status(400).json({ 
         error: 'Invalid season ID',
         position: '-',
-        message: 'ID de saison invalide'
+        message: 'Invalid season ID'
       });
     }
     
-    console.log(`🔍 Calcul du rang pour l'utilisateur ${userId} dans la saison ${seasonId}`);
+    console.log(`Calculating position for user ${userId} in season ${seasonId}`);
     
-    // Vérifier si la saison existe
+    // Check if the season exists
     const season = await Season.findByPk(seasonId);
     if (!season) {
-      console.log(`⚠️ Saison non trouvée: ${seasonId}`);
+      console.log(`Season not found: ${seasonId}`);
       return res.status(404).json({ 
         error: 'Season not found',
         position: '-',
-        message: 'La saison demandée n\'existe pas'
+        message: 'Season not found'
       });
     }
     
-    console.log(`✅ Saison trouvée: ${season.id} (Saison ${season.seasonNumber})`);
+    console.log(`Season found: ${season.id} (Season ${season.seasonNumber})`);
     
-    // Récupérer le score de l'utilisateur
+    // Retrieve the user's score
     const userScore = await SeasonScore.findOne({
       where: { seasonId, userId }
     });
     
     if (!userScore) {
-      console.log(`⚠️ Score non trouvé pour l'utilisateur ${userId} dans la saison ${seasonId}`);
+      console.log(`Score not found for user ${userId} in season ${seasonId}`);
       return res.status(200).json({ 
         position: '-', 
         score: 0,
-        message: 'Aucun score de saison trouvé pour cet utilisateur'
+        message: 'No season score found for this user'
       });
     }
     
-    console.log(`✅ Score trouvé pour l'utilisateur ${userId}: ${userScore.score}`);
+    console.log(`Score found for user ${userId}: ${userScore.score}`);
     
-    // Utiliser COUNT pour calculer le rang de manière efficace - compter les scores supérieurs
+    // Use COUNT to calculate the rank efficiently - count higher scores
     const rankQuery = `
       SELECT COUNT(*) as higherScores
       FROM "SeasonScores"
       WHERE "seasonId" = ? AND "score" > ?
     `;
     
-    console.log(`🔍 Exécution de la requête SQL: ${rankQuery.replace(/\s+/g, ' ')}`);
-    console.log(`🔍 Paramètres: [${seasonId}, ${userScore.score}]`);
+    console.log(`Executing SQL query: ${rankQuery.replace(/\s+/g, ' ')}`);
+    console.log(`Parameters: [${seasonId}, ${userScore.score}]`);
     
     const [rankResult] = await sequelize.query(rankQuery, {
       replacements: [seasonId, userScore.score],
       type: Sequelize.QueryTypes.SELECT
     });
     
-    // La position est le nombre de scores supérieurs + 1
+    // The position is the number of higher scores + 1
     const position = rankResult.higherScores + 1;
     
-    console.log(`✅ Utilisateur ${userId} est classé #${position} dans la saison ${seasonId} avec un score de ${userScore.score}`);
+    console.log(`User ${userId} is ranked #${position} in season ${seasonId} with a score of ${userScore.score}`);
     
-    // Définir le type de contenu explicitement et renvoyer le résultat
+    // Set the content type explicitly and return the result
     res.header('Content-Type', 'application/json');
     res.status(200).json({
       userId,
       position,
       score: userScore.score,
-      message: 'Rang calculé avec succès'
+      message: 'User position calculated successfully'
     });
   } catch (error) {
-    console.error('❌ Erreur lors du calcul de la position utilisateur:', error);
+    console.error('Error calculating user position:', error);
     
-    // Toujours renvoyer une réponse cohérente, même en cas d'erreur
+    // Always return a consistent response, even in case of error
     res.status(500).json({ 
       error: 'Error calculating user position',
       details: error.message,
       position: '-',
-      message: 'Une erreur est survenue lors du calcul du rang utilisateur'
+      message: 'An error occurred while calculating user position'
     });
   }
 });
 
-// Route pour récupérer le classement global
+// Route to fetch the global leaderboard
 app.get('/api/global-ranking', async (req, res) => {
   const limit = req.query.limit ? parseInt(req.query.limit) : 100;
   
@@ -1414,8 +1413,8 @@ app.get('/api/global-ranking', async (req, res) => {
     
     res.json(ranking);
   } catch (error) {
-    console.error('Erreur lors de la récupération du classement global:', error);
-    res.status(500).json({ error: 'Erreur lors de la récupération du classement global' });
+    console.error('Error retrieving global ranking:', error);
+    res.status(500).json({ error: 'Error retrieving global ranking' });
   }
 });
 
@@ -1425,7 +1424,7 @@ app.get('/api/seasons/:seasonId/scores/:userId', async (req, res) => {
   try {
     const { seasonId, userId } = req.params;
     
-    console.log(`🔍 Fetching score for user ${userId} in season ${seasonId}`);
+    console.log(`Fetching score for user ${userId} in season ${seasonId}`);
     
     // Find the season
     const season = await Season.findByPk(seasonId);
@@ -1434,7 +1433,7 @@ app.get('/api/seasons/:seasonId/scores/:userId', async (req, res) => {
     }
     
     // Log the prize money for debugging
-    console.log(`💰 Prize money for season ${season.id}: ${season.prizeMoney}`);
+    console.log(`Prize money for season ${season.id}: ${season.prizeMoney}`);
     
     // Find the season score
     const seasonScore = await SeasonScore.findOne({
@@ -1445,14 +1444,14 @@ app.get('/api/seasons/:seasonId/scores/:userId', async (req, res) => {
     });
     
     if (!seasonScore) {
-      console.log(`⚠️ No score found for user ${userId} in season ${seasonId}`);
+      console.log(`No score found for user ${userId} in season ${seasonId}`);
       return res.status(404).json({ error: 'Season score not found' });
     }
     
-    console.log(`✅ Score found for user ${userId} in season ${seasonId}: ${seasonScore.score}`);
+    console.log(`Score found for user ${userId} in season ${seasonId}: ${seasonScore.score}`);
     res.status(200).json(seasonScore);
   } catch (error) {
-    console.error('❌ Error retrieving season score:', error);
+    console.error('Error retrieving season score:', error);
     res.status(500).json({ 
       error: 'Error retrieving season score', 
       details: error.message 
@@ -1490,7 +1489,7 @@ app.post('/api/seasons/:seasonId/scores/:userId/reset', async (req, res) => {
       // Commit the transaction
       await transaction.commit();
       
-      console.log(`🔄 Season score explicitly reset to 0 for user ${userId} in season ${seasonId}`);
+      console.log(`Season score explicitly reset to 0 for user ${userId} in season ${seasonId}`);
       
       // Return success
       res.status(200).json({ 
@@ -1505,12 +1504,12 @@ app.post('/api/seasons/:seasonId/scores/:userId/reset', async (req, res) => {
       throw error;
     }
   } catch (error) {
-    console.error('❌ Error resetting season score:', error);
+    console.error('Error resetting season score:', error);
     res.status(500).json({ error: 'Error resetting season score', details: error.message });
   }
 });
 
-// API pour récupérer les scores d'un utilisateur
+// API to retrieve a user's scores
 app.get('/api/users/:userId/scores', async (req, res) => {
   try {
     const { userId } = req.params;
@@ -1541,7 +1540,7 @@ app.get('/api/users/:userId/scores', async (req, res) => {
       // Extra safeguard: If this is a new season (indicated by creation of record),
       // ensure the score is set to 0
       if (created) {
-        console.log(`🔄 Created new season score record for ${userId} in season ${activeSeason.id}`);
+        console.log(`Created new season score record for ${userId} in season ${activeSeason.id}`);
       }
       
       response.seasonScore = seasonScore.score;
@@ -1553,10 +1552,10 @@ app.get('/api/users/:userId/scores', async (req, res) => {
       };
     }
     
-    console.log(`📊 Scores fetched for user ${userId}:`, response);
+    console.log(`Scores fetched for user ${userId}:`, response);
     res.status(200).json(response);
   } catch (error) {
-    console.error('❌ Error fetching user scores:', error);
+    console.error('Error fetching user scores:', error);
     res.status(500).json({ error: 'Error fetching user scores', details: error.message });
   }
 });
@@ -1566,7 +1565,7 @@ app.get('/api/users/:userId/preferences', async (req, res) => {
   try {
     const { userId } = req.params;
     
-    console.log(`🔍 Fetching preferences for user ${userId}`);
+    console.log(`Fetching preferences for user ${userId}`);
     
     // Find the user
     const user = await User.findByPk(userId);
@@ -1579,7 +1578,7 @@ app.get('/api/users/:userId/preferences', async (req, res) => {
       musicEnabled: user.musicEnabled || false
     });
   } catch (error) {
-    console.error('❌ Error fetching user preferences:', error);
+    console.error('Error fetching user preferences:', error);
     res.status(500).json({ 
       error: 'Error fetching user preferences', 
       details: error.message 
@@ -1596,7 +1595,7 @@ app.post('/api/users/preferences', async (req, res) => {
       return res.status(400).json({ error: 'User ID is required' });
     }
     
-    console.log(`🔄 Saving preferences for user ${userId}: musicEnabled=${musicEnabled}`);
+    console.log(`Saving preferences for user ${userId}: musicEnabled=${musicEnabled}`);
     
     // Find the user
     const user = await User.findByPk(userId);
@@ -1617,7 +1616,7 @@ app.post('/api/users/preferences', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('❌ Error saving user preferences:', error);
+    console.error('Error saving user preferences:', error);
     res.status(500).json({ 
       error: 'Error saving user preferences', 
       details: error.message 
@@ -1633,15 +1632,15 @@ app.get('/api/users', async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
     
-    console.log(`🔍 Admin fetching users - Page: ${page}, Limit: ${limit}`);
+    console.log(`Admin fetching users - Page: ${page}, Limit: ${limit}`);
     
     // CRITICAL FIX: Check database connection before querying
     if (sequelize.connectionManager.hasOwnProperty('pool') && 
         !sequelize.connectionManager.pool.hasOwnProperty('_closed') && 
         !sequelize.connectionManager.pool._closed) {
-      console.log('✅ Database connection is open');
+      console.log('Database connection is open');
     } else {
-      console.error('❌ Database connection appears to be closed');
+      console.error('Database connection appears to be closed');
       // Don't throw, continue with attempt to query
     }
     
@@ -1649,9 +1648,9 @@ app.get('/api/users', async (req, res) => {
     let totalUsers = 0;
     try {
       totalUsers = await User.count();
-      console.log(`✅ User count successful: ${totalUsers} users`);
+      console.log(`User count successful: ${totalUsers} users`);
     } catch (countError) {
-      console.error('❌ Error counting users:', countError);
+      console.error('Error counting users:', countError);
       // Continue with totalUsers = 0
     }
     
@@ -1663,9 +1662,9 @@ app.get('/api/users', async (req, res) => {
         limit: limit,
         offset: offset
       });
-      console.log(`✅ Successfully retrieved ${users.length} users`);
+      console.log(`Successfully retrieved ${users.length} users`);
     } catch (findError) {
-      console.error('❌ Error finding users:', findError);
+      console.error('Error finding users:', findError);
       // Continue with empty users array
     }
     
@@ -1676,7 +1675,7 @@ app.get('/api/users', async (req, res) => {
         formattedUsers = users.map(user => {
           try {
             if (!user || typeof user.toJSON !== 'function') {
-              console.error('❌ Invalid user object:', user);
+              console.error('Invalid user object:', user);
               return {
                 gameId: 'error',
                 gameUsername: 'Invalid user data',
@@ -1693,7 +1692,7 @@ app.get('/api/users', async (req, res) => {
                 userData.createdAt = new Date(userData.createdAt).toLocaleString();
               }
             } catch (dateError) {
-              console.error('❌ Error formatting createdAt date:', dateError);
+              console.error('Error formatting createdAt date:', dateError);
               userData.createdAt = 'Invalid date';
             }
             
@@ -1702,13 +1701,13 @@ app.get('/api/users', async (req, res) => {
                 userData.lastLogin = new Date(userData.lastLogin).toLocaleString();
               }
             } catch (dateError) {
-              console.error('❌ Error formatting lastLogin date:', dateError);
+              console.error('Error formatting lastLogin date:', dateError);
               userData.lastLogin = 'Invalid date';
             }
             
             return userData;
           } catch (userError) {
-            console.error('❌ Error formatting user:', userError);
+            console.error('Error formatting user:', userError);
             // Return a minimal valid user object to prevent errors
             return {
               gameId: 'error',
@@ -1719,14 +1718,14 @@ app.get('/api/users', async (req, res) => {
           }
         });
       } else {
-        console.error('❌ Users is not an array:', users);
+        console.error('Users is not an array:', users);
       }
     } catch (mapError) {
-      console.error('❌ Error mapping users:', mapError);
+      console.error('Error mapping users:', mapError);
       // Continue with empty formattedUsers array
     }
     
-    console.log(`✅ Final formatted users count: ${formattedUsers.length}`);
+    console.log(`Final formatted users count: ${formattedUsers.length}`);
     
     // CRITICAL: admin.js expects this exact structure at lines 294-298
     // The error occurs at line 325 in admin.js where it checks users.length
@@ -1737,11 +1736,11 @@ app.get('/api/users', async (req, res) => {
       totalPages: Math.ceil((totalUsers || 0) / limit)
     };
     
-    console.log(`✅ Sending response with ${responseData.users.length} users, total: ${responseData.total}, pages: ${responseData.totalPages}`);
+    console.log(`Sending response with ${responseData.users.length} users, total: ${responseData.total}, pages: ${responseData.totalPages}`);
     
     return res.status(200).json(responseData);
   } catch (error) {
-    console.error('❌ Unhandled error in /api/users endpoint:', error);
+    console.error('Error in /api/users endpoint:', error);
     // Even in error case, return a valid response structure
     // This is critical to prevent the TypeError in admin.js
     return res.status(200).json({ 
@@ -1756,7 +1755,7 @@ app.get('/api/users', async (req, res) => {
 // API endpoint for admin to get active season (alternative endpoint for compatibility)
 app.get('/api/active-season', async (req, res) => {
   try {
-    console.log('🔍 Admin fetching active season');
+    console.log('Admin fetching active season');
     
     // Find the active season
     const activeSeason = await Season.findOne({ 
@@ -1764,14 +1763,14 @@ app.get('/api/active-season', async (req, res) => {
     });
     
     if (!activeSeason) {
-      console.log('⚠️ No active season found');
+      console.log('No active season found');
       return res.status(404).json({ error: 'No active season found' });
     }
     
-    console.log(`✅ Active season found: ${activeSeason.id}, Season ${activeSeason.seasonNumber}`);
+    console.log(`Active season found: ${activeSeason.id}, Season ${activeSeason.seasonNumber}`);
     res.status(200).json(activeSeason);
   } catch (error) {
-    console.error('❌ Error retrieving active season:', error);
+    console.error('Error retrieving active season:', error);
     res.status(500).json({ 
       error: 'Error retrieving active season', 
       details: error.message 
@@ -1785,7 +1784,7 @@ app.post('/api/seasons/:seasonId/scores', async (req, res) => {
     const { seasonId } = req.params;
     const { userId, score } = req.body;
     
-    console.log(`🔍 Creating/updating score for user ${userId} in season ${seasonId}`);
+    console.log(`Creating/updating score for user ${userId} in season ${seasonId}`);
     
     // Validate required fields
     if (!userId) {
@@ -1799,7 +1798,7 @@ app.post('/api/seasons/:seasonId/scores', async (req, res) => {
     }
     
     // Log the prize money for debugging
-    console.log(`💰 Prize money for season ${season.id}: ${season.prizeMoney}`);
+    console.log(`Prize money for season ${season.id}: ${season.prizeMoney}`);
     
     // Find the user
     const user = await User.findByPk(userId);
@@ -1821,16 +1820,16 @@ app.post('/api/seasons/:seasonId/scores', async (req, res) => {
     // If not created, update the score if the new score is higher
     if (!created && score > seasonScore.score) {
       await seasonScore.update({ score });
-      console.log(`✅ Updated score for user ${userId} in season ${seasonId}: ${score}`);
+      console.log(`Updated score for user ${userId} in season ${seasonId}: ${score}`);
     } else if (created) {
-      console.log(`✅ Created new score for user ${userId} in season ${seasonId}: ${score || 0}`);
+      console.log(`Created new score for user ${userId} in season ${seasonId}: ${score || 0}`);
     } else {
-      console.log(`ℹ️ No update needed for user ${userId} in season ${seasonId}`);
+      console.log(`No update needed for user ${userId} in season ${seasonId}`);
     }
     
     res.status(created ? 201 : 200).json(seasonScore);
   } catch (error) {
-    console.error('❌ Error creating/updating season score:', error);
+    console.error('Error creating/updating season score:', error);
     res.status(500).json({ 
       error: 'Error creating/updating season score', 
       details: error.message 
@@ -1838,43 +1837,43 @@ app.post('/api/seasons/:seasonId/scores', async (req, res) => {
   }
 });
 
-// API pour supprimer une saison
+// API to delete a season
 app.delete('/api/seasons/:id', async (req, res) => {
   const { id } = req.params;
   
   try {
-    // Vérifier si la saison existe
+    // Check if the season exists
     const season = await Season.findByPk(id);
     if (!season) {
       return res.status(404).json({ error: 'Season not found' });
     }
     
-    // Désactiver temporairement les contraintes de clé étrangère
+    // Temporarily disable foreign key constraints
     await sequelize.query('PRAGMA foreign_keys = OFF;');
     
     try {
-      // Supprimer les scores de saison associés
+      // Delete associated season scores
       await sequelize.query('DELETE FROM "SeasonScores" WHERE "seasonId" = ?', {
         replacements: [id]
       });
       
-      // Supprimer la saison
+      // Delete the season
       await sequelize.query('DELETE FROM "Seasons" WHERE "id" = ?', {
         replacements: [id]
       });
       
-      // Réactiver les contraintes de clé étrangère
+      // Reactivate foreign key constraints
       await sequelize.query('PRAGMA foreign_keys = ON;');
       
-      console.log(`🗑️ Season ${id} deleted successfully`);
+      console.log(`Season ${id} deleted successfully`);
       res.status(200).json({ message: 'Season deleted successfully' });
     } catch (innerError) {
-      // Réactiver les contraintes de clé étrangère même en cas d'erreur
+      // Reactivate foreign key constraints even in case of error
       await sequelize.query('PRAGMA foreign_keys = ON;');
       throw innerError;
     }
   } catch (error) {
-    console.error('❌ Error deleting season:', error);
+    console.error('Error deleting season:', error);
     res.status(500).json({ 
       error: 'Error deleting season', 
       details: error.message,
@@ -1883,18 +1882,18 @@ app.delete('/api/seasons/:id', async (req, res) => {
   }
 });
 
-// Route pour récupérer le score de saison d'un utilisateur spécifique
+// Route to retrieve a user's season score
 app.get('/api/seasons/:seasonId/scores/:userId', async (req, res) => {
   try {
     const { seasonId, userId } = req.params;
     
-    // Vérifier si la saison existe
+    // Check if the season exists
     const season = await Season.findByPk(seasonId);
     if (!season) {
       return res.status(404).json({ error: 'Season not found' });
     }
     
-    // Récupérer le score de saison de l'utilisateur
+    // Retrieve the user's season score
     const seasonScore = await SeasonScore.findOne({
       where: { 
         seasonId: seasonId,
@@ -1903,14 +1902,14 @@ app.get('/api/seasons/:seasonId/scores/:userId', async (req, res) => {
     });
     
     if (!seasonScore) {
-      // Si aucun score n'est trouvé, renvoyer 0
+      // If no score is found, return 0
       return res.json({ score: 0 });
     }
     
-    console.log(`📊 Retrieved season score for user ${userId} in season ${seasonId}: ${seasonScore.score}`);
+    console.log(`Retrieved season score for user ${userId} in season ${seasonId}: ${seasonScore.score}`);
     res.json({ score: seasonScore.score });
   } catch (error) {
-    console.error('❌ Error retrieving season score:', error);
+    console.error('Error retrieving season score:', error);
     res.status(500).json({ 
       error: 'Error retrieving season score', 
       details: error.message
@@ -1948,7 +1947,7 @@ app.post('/api/seasons/:seasonId/scores/:userId/reset', async (req, res) => {
       // Commit the transaction
       await transaction.commit();
       
-      console.log(`🔄 Season score explicitly reset to 0 for user ${userId} in season ${seasonId}`);
+      console.log(`Season score explicitly reset to 0 for user ${userId} in season ${seasonId}`);
       
       // Return success
       res.status(200).json({ 
@@ -1963,7 +1962,7 @@ app.post('/api/seasons/:seasonId/scores/:userId/reset', async (req, res) => {
       throw error;
     }
   } catch (error) {
-    console.error('❌ Error resetting season score:', error);
+    console.error('Error resetting season score:', error);
     res.status(500).json({ error: 'Error resetting season score', details: error.message });
   }
 });
@@ -2046,7 +2045,7 @@ app.post('/api/promo-banner', upload.single('image'), async (req, res) => {
 });
 
 
-// NOUVELLE API spécifique pour la pagination stricte du leaderboard
+// NEW API SPECIFIC FOR STRICT PAGINATION OF LEADERBOARD
 app.get('/api/leaderboard/paginated/:seasonId', async (req, res) => {
   try {
     const { seasonId } = req.params;
@@ -2054,31 +2053,31 @@ app.get('/api/leaderboard/paginated/:seasonId', async (req, res) => {
     const limit = Math.min(parseInt(req.query.limit) || 15, 15); // Hard limit at 15 items per page
     const offset = page * limit;
     
-    console.log('🔎🔎🔎 DÉBUT API PAGINATION 🔎🔎🔎');
-    console.log(`📋 URL COMPLÈTE APPELÉE: ${req.originalUrl}`);
-    console.log(`📋 MÉTHODE: ${req.method}`);
-    console.log(`📋 PARAMS: ${JSON.stringify(req.params)}`);
-    console.log(`📋 QUERY: ${JSON.stringify(req.query)}`);
-    console.log(`📋 PAGINATION CALCULÉE: page=${page}, limit=${limit}, offset=${offset}`);
+    console.log('START PAGINATION');
+    console.log(`FULL URL CALLED: ${req.originalUrl}`);
+    console.log(`METHOD: ${req.method}`);
+    console.log(`PARAMS: ${JSON.stringify(req.params)}`);
+    console.log(`QUERY: ${JSON.stringify(req.query)}`);
+    console.log(`PAGINATION: page=${page}, limit=${limit}, offset=${offset}`);
     
-    // Validation de l'ID de saison
+    // Validation of season ID
     if (!seasonId || isNaN(parseInt(seasonId))) {
-      console.error(`❌ ID DE SAISON INVALIDE: ${seasonId}`);
+      console.error(`INVALID SEASON ID: ${seasonId}`);
       return res.status(400).json({ error: 'Invalid season ID' });
     }
     
     // Find the season
     const season = await Season.findByPk(seasonId);
     if (!season) {
-      console.error(`❌ SAISON NON TROUVÉE: ${seasonId}`);
+      console.error(`SEASON NOT FOUND: ${seasonId}`);
       return res.status(404).json({ error: 'Season not found' });
     }
     
-    console.log(`✅ SAISON TROUVÉE: ID=${season.id}, Numéro=${season.seasonNumber}`);
+    console.log(`SEASON FOUND: ID=${season.id}, Numéro=${season.seasonNumber}`);
     
-    // Obtenir le nombre total d'enregistrements pour cette saison (pour le débogage)
+    // Get the total number of records for this season (for debugging)
     const totalCount = await SeasonScore.count({ where: { seasonId } });
-    console.log(`📊 TOTAL DES SCORES POUR CETTE SAISON: ${totalCount}`);
+    console.log(`TOTAL SCORES FOR THIS SEASON: ${totalCount}`);
     
     // Use direct SQL query with LIMIT and OFFSET for strict pagination
     const query = `
@@ -2090,10 +2089,10 @@ app.get('/api/leaderboard/paginated/:seasonId', async (req, res) => {
       LIMIT ? OFFSET ?
     `;
     
-    console.log(`🔍 EXÉCUTION REQUÊTE SQL: ${query.replace(/\s+/g, ' ')}`);
-    console.log(`🔍 PARAMÈTRES: [${seasonId}, ${limit}, ${offset}]`);
+    console.log(`SQL QUERY: ${query.replace(/\s+/g, ' ')}`);
+    console.log(`PARAMETERS: [${seasonId}, ${limit}, ${offset}]`);
     
-    // Capture le temps avant la requête
+    // Capture the time before the query
     const startTime = Date.now();
     
     const [scores] = await sequelize.query(query, {
@@ -2102,18 +2101,18 @@ app.get('/api/leaderboard/paginated/:seasonId', async (req, res) => {
       raw: true
     });
     
-    // Calcule le temps d'exécution
+    // Calculate execution time
     const execTime = Date.now() - startTime;
-    console.log(`⏱️ TEMPS D'EXÉCUTION DE LA REQUÊTE: ${execTime}ms`);
+    console.log(`EXECUTION TIME: ${execTime}ms`);
     
     // Log the actual number of results
-    console.log(`✅ RÉSULTATS PAGINÉS: ${scores ? scores.length : 0} utilisateurs`);
+    console.log(`PAGINATED RESULTS: ${scores ? scores.length : 0} users`);
     
     if (scores && scores.length > 0) {
-      console.log(`📋 PREMIER RÉSULTAT: ${JSON.stringify(scores[0])}`);
-      console.log(`📋 DERNIER RÉSULTAT: ${JSON.stringify(scores[scores.length - 1])}`);
+      console.log(`FIRST RESULT: ${JSON.stringify(scores[0])}`);
+      console.log(`LAST RESULT: ${JSON.stringify(scores[scores.length - 1])}`);
     } else {
-      console.log(`❌ AUCUN RÉSULTAT TROUVÉ POUR CETTE PAGE`);
+      console.log(`NO RESULTS FOUND FOR THIS PAGE`);
     }
     
     // Transform data to expected format
@@ -2134,7 +2133,7 @@ app.get('/api/leaderboard/paginated/:seasonId', async (req, res) => {
       };
     }) : [];
     
-    // Prépare la réponse
+    // Prepare the response
     const response = {
       items: ranking,
       pagination: {
@@ -2146,14 +2145,14 @@ app.get('/api/leaderboard/paginated/:seasonId', async (req, res) => {
       }
     };
     
-    console.log(`📤 ENVOI RÉPONSE: ${ranking.length} items, hasMore=${response.pagination.hasMore}`);
-    console.log('🔎🔎🔎 FIN API PAGINATION 🔎🔎🔎');
+    console.log(`RESPONSE SENT: ${ranking.length} items, hasMore=${response.pagination.hasMore}`);
+    console.log('END API PAGINATION');
     
     // Return paginated data with pagination metadata
     res.status(200).json(response);
   } catch (error) {
-    console.error('❌❌❌ ERREUR API PAGINATION:', error);
-    console.error(`🔍 STACK TRACE: ${error.stack}`);
+    console.error('ERROR API PAGINATION:', error);
+    console.error(`STACK TRACE: ${error.stack}`);
     
     res.status(500).json({ 
       error: 'Error fetching paginated leaderboard', 
@@ -2164,9 +2163,9 @@ app.get('/api/leaderboard/paginated/:seasonId', async (req, res) => {
 });
 
 
-// Démarrer le serveur
+// START SERVER
 app.listen(port, '0.0.0.0', () => {
-  console.log(`Serveur démarré sur le port ${port}`);
+  console.log(`Server started on port ${port}`);
 });
 
 // Graceful shutdown handling

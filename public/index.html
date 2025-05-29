@@ -4,13 +4,13 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src='//whephiwums.com/sdk.js' data-zone='9302441' data-sdk='show_9302441'></script>    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <!-- Méta-tags pour forcer l'orientation portrait -->
+    <!-- Meta-tags to force portrait orientation -->
     <meta name="screen-orientation" content="portrait">
     <meta name="x5-orientation" content="portrait">
     <meta name="msapplication-orientation" content="portrait">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
-    <title>TiDash Game</title>
+    <title>TiDash</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script 
         async 
@@ -28,13 +28,13 @@
 </script>
 
 
-    <!-- Préchargement des sons -->
+    <!-- Preloading sounds -->
     <audio id="userTapSound" src="sounds/UserTap.mp3" preload="auto"></audio>
     <audio id="successSound" src="sounds/Success.mp3" preload="auto"></audio>
     <audio id="gameOverSound" src="sounds/Termine.mp3" preload="auto"></audio>
     <audio id="showScoreSound" src="sounds/Show_GameOver.mp3" preload="auto"></audio>
     <audio id="borderTouchSound" src="sounds/BorderTouch.mp3" preload="auto"></audio>
-    <!-- Élément audio pour la musique de fond -->
+    <!-- Audio element for background music -->
     <audio id="backgroundMusic" preload="auto"></audio>
     
     <style>
@@ -47,7 +47,7 @@
             align-items: center;
             height: 100vh;
             margin: 0;
-            background-color: #0A0A0A; /* Noir presque pur */
+            background-color: #0A0A0A;
             /* overflow: hidden;  <-- removed to allow settings scroll on Android */
             touch-action: manipulation;
             position: relative;
@@ -57,19 +57,19 @@
             position: relative;
             width: 90%;
             max-width: 400px;
-            height: 90vh; /* Augmenté de 80vh à 90vh pour réduire l'espace vertical */
-            max-height: 800px; /* Augmenté pour maintenir les proportions */
+            height: 90vh;
+            max-height: 800px;
             border-radius: 20px;
             overflow: hidden;
             box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
-            background-color: #121212; /* Gris très foncé */
+            background-color: #121212;
             border: 10px solid #0A0A0A;
-            margin: 20px auto; /* Ajout d'une marge automatique pour centrer avec moins d'espace vertical */
+            margin: 20px auto;
         }
         
         #game-canvas {
-            background-color: #121212; /* Gris très foncé - même que le container */
-            background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)); /* Même superposition que le home-screen */
+            background-color: #121212;
+            background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3));
             display: block;
             width: 100%;
             height: 100%;
@@ -83,8 +83,8 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: #121212; /* Gris très foncé - même que le container */
-            background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)); /* Même superposition que le home-screen */
+            background-color: #121212;
+            background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3));
             display: none;
             flex-direction: column;
             justify-content: flex-start;
@@ -104,7 +104,7 @@
         #score-display {
             font-size: 4rem;
             margin-bottom: 10px;
-            color: #00FF9D; /* Vert original */
+            color: #00FF9D;
             font-weight: bold;
         }
         
@@ -146,10 +146,10 @@
             box-sizing: border-box;
             pointer-events: auto;
             z-index: 5;
-            background-color: rgba(0, 0, 0, 0.3); /* Légèrement transparent */
+            background-color: rgba(0, 0, 0, 0.3);
         }
         
-        /* Style pour le bouton cadeau */
+        /* Style for the gift button */
         #gift-button {
             position: absolute;
             top: 20px;
@@ -173,7 +173,7 @@
             object-fit: contain;
         }
         
-        /* Style pour la pastille rouge de notification */
+        /* Style for the red notification badge */
         .notification-badge {
             position: absolute;
             top: 0px;
@@ -185,13 +185,13 @@
             border: 1px solid rgba(0, 0, 0, 0.5);
         }
         
-        /* Style pour le container de saison - Version 2025 */
+        /* Style for the season container */
         .season-container {
             position: relative;
-            width: 200px; /* Réduit la largeur */
-            height: 55px; /* Réduit la hauteur */
-            margin: 0 auto 70px auto; /* Augmente davantage la marge inférieure */
-            margin-top: -90px; /* Remonte beaucoup plus le groupe saison */
+            width: 200px;
+            height: 55px;
+            margin: 0 auto 70px auto;
+            margin-top: -90px;
             background-image: url('ressources/back_season.jpg');
             background-size: cover;
             border-radius: 20px;
@@ -204,7 +204,7 @@
             overflow: hidden;
             box-shadow: 0 0 20px rgba(0, 255, 157, 0.7);
             z-index: 6;
-            backdrop-filter: blur(5px); /* Effet moderne de verre givré */
+            backdrop-filter: blur(5px);
             -webkit-backdrop-filter: blur(5px);
             border: 1px solid rgba(255, 255, 255, 0.18);
             transition: all 0.3s ease;
@@ -222,16 +222,16 @@
         }
         
         .season-prize {
-            font-size: 0.8rem; /* Réduit la taille de police */
+            font-size: 0.8rem;
             font-weight: 600;
-            margin-bottom: 2px; /* Réduit l'espace */
+            margin-bottom: 2px;
             font-family: 'Orbitron', sans-serif;
             text-shadow: 0 0 10px rgba(0, 255, 157, 0.8);
             letter-spacing: 0.5px;
         }
         
         .season-name {
-            font-size: 1rem; /* Réduit la taille de police */
+            font-size: 1rem;
             font-weight: 700;
             text-transform: uppercase;
             font-family: 'Orbitron', sans-serif;
@@ -239,11 +239,11 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            color: transparent; /* Remplacement de text-fill-color par color */
+            color: transparent;
             letter-spacing: 1px;
         }
         
-        /* Style pour les particules - Version 2025 */
+        /* Style for particles */
         .particles-container {
             position: absolute;
             top: 0;
@@ -284,7 +284,6 @@
             }
         }
         
-        /* Style pour le bouton d'aide et le bouton son */
         #help-button, #sound-toggle {
             position: absolute;
             bottom: 20px;
@@ -312,9 +311,9 @@
         #game-title-container {
             text-align: center;
             margin-bottom: 50px;
-            margin-top: -40px; /* Remonte encore plus le titre */
+            margin-top: -40px;
             z-index: 6;
-            position: relative; /* Assure un bon positionnement */
+            position: relative;
         }
         
         #game-button-container {
@@ -345,7 +344,7 @@
         #score-display {
             font-size: 4rem;
             margin-bottom: 10px;
-            color: #00FF9D; /* Vert original */
+            color: #00FF9D;
             font-weight: bold;
         }
         
@@ -400,7 +399,6 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
         }
         
-        /* Style pour le profil utilisateur */
         .user-profile {
             position: absolute;
             top: 20px;
@@ -409,7 +407,7 @@
             display: flex;
             align-items: center;
             z-index: 10;
-            flex-direction: row-reverse; /* Inverser l'ordre pour mettre l'avatar à droite */
+            flex-direction: row-reverse;
         }
         
         .avatar-container {
@@ -440,14 +438,14 @@
         
         .user-info {
             color: white;
-            text-align: right; /* Aligner le texte à droite */
+            text-align: right;
         }
         
         .username {
             font-size: 11px;
             font-weight: bold;
             margin: 0;
-            margin-bottom: 2px; /* Espacement entre username et ID */
+            margin-bottom: 2px;
         }
         
         .user-id {
@@ -456,7 +454,6 @@
             margin: 0;
         }
         
-        /* Styles pour la page de paramètres */
         #settings-screen {
             position: fixed;
             top: 0;
@@ -485,7 +482,7 @@
             padding: 20px;
             box-sizing: border-box;
             color: white;
-            padding-bottom: 100px; /* Espace supplémentaire en bas pour faciliter le défilement */
+            padding-bottom: 100px;
         }
         
         .settings-header {
@@ -639,7 +636,7 @@
             margin-bottom: 30px;
             position: relative;
             z-index: 2;
-            padding-bottom: 30px; /* Ajouter de l'espace en bas */
+            padding-bottom: 30px;
         }
         
         .avatars-grid {
@@ -693,7 +690,6 @@
             opacity: 1;
         }
         
-        /* Optimisation des images d'avatar */
         .preload-images {
             position: absolute;
             width: 0;
@@ -702,7 +698,6 @@
             z-index: -1;
         }
         
-        /* Styles pour le bouton de son */
         .sound-toggle {
             position: absolute;
             bottom: 20px;
@@ -733,23 +728,20 @@
             display: none;
         }
         
-        /* Correction pour iOS */
         .avatars-wrapper {
             position: relative;
-            padding-bottom: 60px; /* Espace supplémentaire en bas */
+            padding-bottom: 60px;
         }
         
         .ios-spacer {
-            height: 60px; /* Espace supplémentaire pour éviter la zone noire */
+            height: 60px;
             width: 100%;
         }
         
-        /* Styles spécifiques pour les appareils Android */
         .android-device {
-            -webkit-tap-highlight-color: transparent; /* Désactiver le surlignage au toucher sur Android */
+            -webkit-tap-highlight-color: transparent;
         }
         
-        /* Styles for the season information section */
         .season-info-container {
     position: absolute;
     top: 20px;
@@ -857,7 +849,7 @@
         
         .season-label {
             color: #FFFFFF;
-            font-size: 9px; /* Même taille que l'ID utilisateur */
+            font-size: 9px;
             font-weight: 300;
             margin-bottom: 2px;
             text-align: left;
@@ -866,7 +858,7 @@
         
         .season-prize {
             color: #00FF9D;
-            font-size: 11px; /* Même taille que le nom d'utilisateur */
+            font-size: 11px;
             font-weight: 600;
             text-align: left;
             line-height: 1.2;
@@ -876,8 +868,8 @@
             0%, 100% { background-position: 0% 0% }
             50% { background-position: 100% 100% }
         }
-        /* Diamond scoretotal (centré en bas) */
-    #scoretotal-diamond {
+    
+        #scoretotal-diamond {
         width: 28px;
         height: 28px;
         background: linear-gradient(135deg, #00ff9d 0%, #00c97b 100%);
@@ -909,7 +901,7 @@
 <body>
     <div class="preload-images" id="preload-container"></div>
     <div class="container">
-        <!-- Profil utilisateur -->
+        <!-- User profile -->
         <div class="user-profile" id="profile-button">
             <div class="avatar-container">
                 <div class="avatar-border"></div>
@@ -946,12 +938,12 @@
                 <button id="play-button" class="game-button">Tap to Start</button>
             </div>
             
-            <!-- Zone losange scoretotal -->
+            <!-- Scoretotal area -->
             <div id="scoretotal-area" style="position:absolute;left:0;right:0;bottom:36px;display:flex;flex-direction:column;align-items:center;z-index:20;">
                 <div id="scoretotal-diamond"></div>
                 <div id="scoretotal-value">-</div>
             </div>
-            <!-- Bouton d'aide -->
+            <!-- Help button -->
             <div id="help-button">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -960,7 +952,7 @@
                 </svg>
             </div>
             
-            <!-- Bouton pour activer/désactiver le son -->
+            <!-- Sound toggle button -->
             <div id="sound-toggle" class="sound-toggle muted">
                 <svg class="sound-on" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M14.5 8.5C14.5 8.5 16 9.57 16 12C16 14.43 14.5 15.5 14.5 15.5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -1003,7 +995,7 @@
             <div class="leaderboard-user-row" id="gameover-user-row"></div>
         </div>
         
-        <!-- Page de paramètres -->
+        <!-- Settings screen -->
         <div id="settings-screen">
             <div class="android-scroll-container">
                 <div class="settings-content">
@@ -1054,7 +1046,7 @@
                     <div class="avatars-wrapper">
                         <div class="section-title">Select your avatar</div>
                         <div class="avatars-grid" id="avatars-grid">
-                            <!-- Les avatars seront ajoutés dynamiquement ici -->
+                            <!-- Avatars will be added dynamically here -->
                         </div>
                         <div class="ios-spacer"></div>
                     </div>
@@ -1077,13 +1069,13 @@
         const playBtn = document.getElementById('play-button');
         const reviveBtn = document.getElementById('revive-button');
 
-        // Variable pour suivre si le joueur a déjà utilisé le bouton Revive
+        // Variable to track if the player has already used the Revive button
         let hasUsedRevive = false;
 
         // Double-tap prevention
         document.addEventListener('touchend', function(event) {
             const now = Date.now();
-            const DOUBLE_TAP_THRESHOLD = 300;
+            const DOUBLE_TAP_THRESHOLD = 150;
             if (now - lastTouchEnd <= DOUBLE_TAP_THRESHOLD) {
                 event.preventDefault();
             }
@@ -1096,20 +1088,20 @@
         let gameRunning = false;
         let gameMode = 'home'; // 'home', 'game', 'gameOver'
         let score = 0;
-        let bestScore = 0; // Sera initialisé correctement dans initUserProfile
-        let seasonScore = 0; // Ajout d'une variable pour suivre le score de la saison en cours
+        let bestScore = 0; // Will be initialized correctly in initUserProfile
+        let seasonScore = 0; // Added variable to track the season score
         
-        // Variables pour les étoiles
+        // Variables for stars
         let stars = [];
-        const maxStars = 45; // Nombre d'étoiles
+        const maxStars = 45; // Number of stars
         
-        // Variables pour le profil utilisateur
+        // Variables for user profile
         let username = "";
         let userId = "";
         let avatarSrc = "/avatars/avatar_default.jpg";
         let paypalEmail = "";
         
-        // Variables pour la musique de fond
+        // Variables for background music
         let homeMusics = [
             "home_musics/dont-talk-315229.mp3",
             "home_musics/Onchain.mp3",
@@ -1131,45 +1123,45 @@
         let currentMusicIndex = -1;
         let backgroundMusicElement = document.getElementById('backgroundMusic');
         
-        // Variable pour suivre si la musique est en attente d'autoplay
+        // Variable to track if the music is pending autoplay
         window.musicPendingAutoplay = true;
         
-        // Variables pour gérer séparément la musique de fond et les effets sonores
-        let isMusicEnabled = false; // Contrôle uniquement la musique de fond
-        let isGameSoundEnabled = true; // Contrôle uniquement les effets sonores du jeu (toujours activés par défaut)
+        // Variables to manage separately background music and game sounds
+        let isMusicEnabled = false; // Controls only background music
+        let isGameSoundEnabled = true; // Controls only game sounds (always enabled by default)
         let userPrefersMusicEnabled = false; // Changed from localStorage to variable
         
-        // Variable pour suivre si la musique a déjà été activée par l'utilisateur
+        // Variable to track if the music has already been activated by the user
         let musicActivatedByUser = false;
         
-        // Système audio optimisé pour mobile avec Web Audio API
+        // Optimized audio system for mobile with Web Audio API
         let audioContext;
         const audioBuffers = {};
         const audioSources = {};
         let audioInitialized = false;
         
-        // Initialiser le système audio
+        // Initialize audio system
         function initAudioSystem() {
             try {
-                // Créer le contexte audio
+                // Create audio context
                 window.AudioContext = window.AudioContext || window.webkitAudioContext;
                 audioContext = new AudioContext();
                 
-                // Précharger les sons
+                // Preload sounds
                 preloadSounds();
                 
-                // Marquer comme initialisé
+                // Mark as initialized
                 audioInitialized = true;
                 
-                console.log("Système audio initialisé");
+                console.log("Audio system initialized");
             } catch (error) {
-                console.error("Erreur d'initialisation audio:", error);
-                // Fallback à la méthode standard si Web Audio API n'est pas supportée
+                console.error("Audio initialization error:", error);
+                // Fallback to the standard method if Web Audio API is not supported
                 audioInitialized = false;
             }
         }
         
-        // Précharger les sons pour une lecture instantanée
+        // Preload sounds for instant playback
         function preloadSounds() {
             const sounds = {
                 'userTap': document.getElementById('userTapSound'),
@@ -1179,121 +1171,121 @@
                 'borderTouch': document.getElementById('borderTouchSound')
             };
             
-            // Pour chaque son
+            // For each sound
             for (const [name, audioElement] of Object.entries(sounds)) {
                 if (!audioElement) continue;
                 
-                // Stocker l'élément audio pour le fallback
+                // Store the audio element for fallback
                 audioSources[name] = audioElement;
                 
-                // Précharger avec Web Audio API
+                // Preload with Web Audio API
                 if (audioContext) {
                     fetch(audioElement.src)
                         .then(response => response.arrayBuffer())
                         .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
                         .then(audioBuffer => {
                             audioBuffers[name] = audioBuffer;
-                            console.log(`Son ${name} préchargé`);
+                            console.log(`Sound ${name} preloaded`);
                         })
                         .catch(error => {
-                            console.error(`Erreur lors du préchargement du son ${name}:`, error);
+                            console.error(`Error preloading sound ${name}:`, error);
                         });
                 }
             }
         }
         
-        // Jouer un son avec le moins de latence possible
+        // Play sound with minimal latency
         function playSound(name) {
-            // Ne jouer les sons que si on est en mode jeu et si le son est activé
+            // Only play sounds if we're in game mode and the sound is enabled
             if (gameMode !== 'game' && name === 'borderTouch') {
                 return;
             }
             
-            // Désactiver les bruitages si la musique de fond est activée
+            // Disable sounds if background music is enabled
             if (!isGameSoundEnabled || isMusicEnabled) {
                 return;
             }
             
-            // Si le système audio n'est pas initialisé, l'initialiser
+            // If the audio system is not initialized, initialize it
             if (!audioInitialized && typeof AudioContext !== 'undefined') {
                 initAudioSystem();
             }
             
             try {
-                // Si Web Audio API est disponible et le son est préchargé
+                // If Web Audio API is available and the sound is preloaded
                 if (audioInitialized && audioContext && audioBuffers[name]) {
-                    // Vérifier si le contexte est suspendu (restriction mobile)
+                    // Check if the context is suspended (mobile restriction)
                     if (audioContext.state === 'suspended') {
                         audioContext.resume();
                     }
                     
-                    // Créer une source sonore
+                    // Create a sound source
                     const source = audioContext.createBufferSource();
                     source.buffer = audioBuffers[name];
                     
-                    // Connecter à la sortie audio
+                    // Connect to the audio output
                     source.connect(audioContext.destination);
                     
-                    // Jouer immédiatement
+                    // Play immediately
                     source.start(0);
                     return;
                 }
                 
-                // Fallback à la méthode standard
+                // Fallback to the standard method
                 if (audioSources[name]) {
                     const audio = audioSources[name];
                     audio.currentTime = 0;
                     
-                    // Utiliser une promesse pour gérer la lecture
+                    // Use a promise to handle playback
                     const playPromise = audio.play();
                     if (playPromise !== undefined) {
                         playPromise.catch(error => {
-                            console.error(`Erreur de lecture audio (${name}):`, error);
+                            console.error(`Audio playback error (${name}):`, error);
                             
-                            // Si l'erreur est liée à l'interaction utilisateur, initialiser le système audio
+                            // If the error is related to user interaction, initialize the audio system
                             if (error.name === 'NotAllowedError') {
-                                // On ne peut rien faire ici, il faut une interaction utilisateur
-                                console.log("Interaction utilisateur requise pour la lecture audio");
+                                // We can't do anything here, we need user interaction
+                                console.log("User interaction required for audio playback");
                             }
                         });
                     }
                 }
             } catch (error) {
-                console.error(`Erreur lors de la lecture du son ${name}:`, error);
+                console.error(`Error playing sound ${name}:`, error);
             }
         }
         
-        // Activer l'audio sur interaction utilisateur
+        // Activate audio on user interaction
         function setupAudioActivation() {
             const activateAudio = () => {
-                // Initialiser le système audio
+                // Initialize the audio system
                 if (!audioInitialized) {
                     initAudioSystem();
                 }
                 
-                // Jouer un son silencieux pour débloquer l'audio sur mobile
+                // Play a silent sound to unlock audio on mobile
                 if (audioContext && audioContext.state === 'suspended') {
                     audioContext.resume().then(() => {
-                        console.log("Contexte audio repris");
+                        console.log("Audio context resumed");
                         
-                        // Créer un oscillateur silencieux pour "réveiller" l'audio
+                        // Create a silent oscillator to "wake up" the audio
                         const oscillator = audioContext.createOscillator();
                         const gainNode = audioContext.createGain();
-                        gainNode.gain.value = 0; // Volume à 0
+                        gainNode.gain.value = 0;
                         oscillator.connect(gainNode);
                         gainNode.connect(audioContext.destination);
                         oscillator.start(0);
-                        oscillator.stop(audioContext.currentTime + 0.001); // Jouer pendant 1ms
+                        oscillator.stop(audioContext.currentTime + 0.001)
                     });
                 }
                 
-                // Supprimer les écouteurs d'événements
+                // Remove event listeners
                 document.removeEventListener('click', activateAudio, true);
                 document.removeEventListener('touchstart', activateAudio, true);
                 document.removeEventListener('keydown', activateAudio, true);
             };
             
-            // Ajouter les écouteurs d'événements
+            // Add event listeners
             document.addEventListener('click', activateAudio, true);
             document.addEventListener('touchstart', activateAudio, true);
             document.addEventListener('keydown', activateAudio, true);
@@ -1318,47 +1310,47 @@
         let gameOverAnimation = false;
         let gameOverAnimationComplete = false;
         let lastSquareTime = 0;
-        let squareInterval = 1100; // Intervalle augmenté pour réduire la difficulté
+        let squareInterval = 1100; // Increased interval to reduce difficulty
         let lastFrameTime = 0;
         let greenSquareChance = 0.2; // 20% chance for green squares
-        let lineProximityThreshold = 0; // Distance minimale entre les carrés et la ligne
-        let canSpawnNewSquare = true; // Variable pour contrôler l'apparition des carrés
+        let lineProximityThreshold = 0; // Minimal distance between squares and the line
+        let canSpawnNewSquare = true; // Variable to control square appearance
 
         // Return to home screen
         function goToHome() {
-            // Nettoyer l'état du jeu
+            // Clean up the game state
             squares = [];
             fadingSquares = [];
             particles = [];
             
-            // Changer le mode de jeu
+            // Change the game mode
             gameMode = 'home';
             
-            // Masquer l'écran de game over et afficher l'écran d'accueil
+            // Hide the game over screen and show the home screen
             gameOverScreen.style.display = 'none';
             homeScreen.style.display = 'flex';
             
-            // Réinitialiser les variables d'animation
+            // Reset animation variables
             gameOverAnimation = false;
             gameOverAnimationComplete = false;
             
-            // Réinitialiser la position de la balle et de la ligne pour l'écran d'accueil
+            // Reset ball and line positions for the home screen
             ball.x = canvas.width / 2;
             ball.y = canvas.height * 0.5;
             ball.direction = Math.random() > 0.5 ? 1 : -1;
             ball.speed = canvas.width * 0.0008;
             
-            // Réinitialiser la position de la ligne
+            // Reset line position for the home screen
             line.x = (canvas.width - line.width) / 2;
             line.y = ball.y - ball.radius;
             
-            // Effacer complètement le canvas pour éviter les artefacts visuels
+            // Clear the canvas completely to avoid visual artifacts
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // Réafficher le profil utilisateur sur l'écran d'accueil
+            // Show the user profile on the home screen
             document.getElementById("profile-button").style.display = 'flex';
             
-            // Assurer que la boucle de jeu est en cours d'exécution pour l'animation de l'écran d'accueil
+            // Ensure the game loop is running for the home screen animation
             if (!gameRunning) {
                 gameRunning = true;
                 lastFrameTime = null;
@@ -1368,15 +1360,15 @@
                 window.gameLoopAnimationId = requestAnimationFrame(gameLoop);
             }
             
-            // Gérer la musique de fond (démarrer sur l'écran d'accueil)
+            // Manage background music (start on home screen)
             manageBackgroundMusic();
             
-            console.log("🎮 Retour à l'écran d'accueil");
+            console.log("Return to home screen");
         }
 
         // Initialize the game
         function initGame() {
-            console.log("🎮 Initialisation du jeu...");
+            console.log("Game initialization...");
             
             // Set canvas size to match container
             canvas.width = canvas.offsetWidth;
@@ -1398,20 +1390,20 @@
             line.x = (canvas.width - line.width) / 2;
             line.y = ball.y - ball.radius; // Center the ball on the line
             
-            // Initialiser les étoiles
+            // Initialize the stars
             initStars();
             
-            // Configurer l'activation audio
+            // Configure audio activation
             setupAudioActivation();
             
-            // CRITIQUE: Récupérer d'abord le meilleur score de saison depuis le serveur
-            // avant d'initialiser le profil utilisateur
+            // CRITICAL: First retrieve the best season score from the server
+            // before initializing the user profile
             fetchUserSeasonScore();
             
-            // Initialiser le profil utilisateur
+            // Initialize the user profile
             initUserProfile();
             
-            // Envoyer les données utilisateur au serveur pour le panneau d'admin
+            // Send user data to the server for the admin panel
             sendUserDataToServer();
             
             // Reset game state
@@ -1422,57 +1414,57 @@
             gameOverAnimationComplete = false;
             score = 0;
             
-            // Réinitialiser le temps de frame pour éviter les sauts
+            // Reset the frame time to avoid jumps
             lastFrameTime = null;
             
-            // Assurer que la boucle de jeu est en cours d'exécution pour l'animation de l'écran d'accueil
-            // Utiliser la même approche que dans goToHome()
+            // Ensure the game loop is running for the home screen animation
+            // Use the same approach as in goToHome()
             gameRunning = true;
             
-            // Annuler l'animation frame précédente si elle existe
+            // Cancel the previous animation frame if it exists
             if (window.gameLoopAnimationId) {
                 cancelAnimationFrame(window.gameLoopAnimationId);
             }
             
-            // Démarrer une nouvelle boucle de jeu
+            // Start a new game loop
             window.gameLoopAnimationId = requestAnimationFrame(gameLoop);
             
-            console.log("🎮 Jeu initialisé avec la balle en mouvement sur l'écran d'accueil");
+            console.log("Game initialized with the ball in motion on the home screen");
         }
         
-        // Initialiser les étoiles
+        // Initialize stars
         function initStars() {
             stars = [];
             for (let i = 0; i < maxStars; i++) {
                 stars.push({
                     x: Math.random() * canvas.width,
                     y: Math.random() * canvas.height,
-                    radius: Math.random() * 1.2 + 0.3, // Taille entre 0.3 et 1.5 pixels
-                    opacity: Math.random() * 0.4 + 0.3, // Opacité entre 0.3 et 0.7 (augmentée pour plus de visibilité)
-                    speed: Math.random() * 0.2 + 0.05, // Vitesse entre 0.05 et 0.25 pixels par frame
-                    direction: Math.random() * Math.PI * 2 // Direction aléatoire en radians
+                    radius: Math.random() * 1.2 + 0.3, // Size between 0.3 and 1.5 pixels
+                    opacity: Math.random() * 0.4 + 0.3, // Opacity between 0.3 and 0.7 (increased for better visibility)
+                    speed: Math.random() * 0.2 + 0.05, // Speed between 0.05 and 0.25 pixels per frame
+                    direction: Math.random() * Math.PI * 2 // Random direction in radians
                 });
             }
         }
         
-        // Dessiner les étoiles
+        // Draw stars
         function drawStars() {
-            // Ne dessiner les étoiles que sur l'écran d'accueil et pendant le jeu
+            // Draw stars only on the home screen and during the game
             if (gameMode === 'home' || gameMode === 'game') {
                 for (let i = 0; i < stars.length; i++) {
                     const star = stars[i];
                     
-                    // Mise à jour de la position
+                    // Update position
                     star.x += Math.cos(star.direction) * star.speed;
                     star.y += Math.sin(star.direction) * star.speed;
                     
-                    // Si l'étoile sort de l'écran, la replacer de l'autre côté
+                    // If the star goes off the screen, replace it on the other side
                     if (star.x < 0) star.x = canvas.width;
                     if (star.x > canvas.width) star.x = 0;
                     if (star.y < 0) star.y = canvas.height;
                     if (star.y > canvas.height) star.y = 0;
                     
-                    // Dessiner l'étoile
+                    // Draw the star
                     ctx.beginPath();
                     ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
                     ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
@@ -1483,18 +1475,18 @@
 
         // Start the actual gameplay
         function startGame() {
-            console.log("🎮 Starting new game from home screen");
+            console.log("Starting new game from home screen");
             
             // Hide home screen
             homeScreen.style.display = 'none';
             
-            // Masquer le profil utilisateur pendant le jeu
+            // Hide the user profile during the game
             document.getElementById("profile-button").style.display = 'none';
             
-            // Effacer complètement le canvas pour éviter les artefacts visuels
+            // Clear the canvas completely to avoid visual artifacts
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // Reset game state - Utiliser la fonction resetGame() sans réinitialiser à nouveau
+            // Reset game state - Use the resetGame() function without reinitializing
             resetGame();
             
             // Play sound effect
@@ -1503,11 +1495,11 @@
 
         // Game loop
         function gameLoop(timestamp) {
-            // Gérer le deltaTime avec une limite maximale pour éviter les comportements erratiques après pause
+            // Handle deltaTime with a maximum limit to avoid erratic behaviors after pause
             if (!lastFrameTime) lastFrameTime = timestamp;
             let deltaTime = timestamp - lastFrameTime;
             
-            // Limiter deltaTime à 100ms max pour éviter les sauts trop grands après pause/inactivité
+            // Limit deltaTime to 100ms max to avoid too large jumps after pause/inactivity
             if (deltaTime > 100) deltaTime = 100;
             
             lastFrameTime = timestamp;
@@ -1515,11 +1507,11 @@
             // Clear canvas
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // Dessiner les étoiles en arrière-plan
+            // Draw stars in the background
             drawStars();
             
-            // Mettre à jour la position de la balle pour tous les modes (y compris l'écran d'accueil)
-            // La balle doit bouger sur l'écran d'accueil mais sans faire de son
+            // Update ball position for all modes (including the home screen)
+            // The ball should move on the home screen but without making a sound
             if (gameMode !== 'gameOver' || !gameOverAnimation) {
                 ball.x += ball.speed * ball.direction * deltaTime;
                 
@@ -1546,12 +1538,12 @@
             // Always draw the line
             drawLine();
             
-            // Ne dessiner la balle que si on n'est pas en animation de game over
+            // Draw the ball only if we're not in a game over animation
             if (gameMode !== 'gameOver' || !gameOverAnimation) {
                 drawBall();
             }
             
-            // Gestion des éléments de jeu (particules, carrés, etc.)
+            // Handle game elements (particles, squares, etc.)
             if (gameMode === 'game' || gameMode === 'gameOver') {
                 // Update and draw particles - Déplacer avant les carrés pour que les particules soient visibles
                 updateParticles(deltaTime);
@@ -1562,19 +1554,19 @@
                 // Update and draw fading squares
                 updateFadingSquares(deltaTime);
                 
-                // Vérifier si l'animation de game over est terminée
+                // Check if the game over animation is complete
                 if (gameMode === 'gameOver' && gameOverAnimation && particles.length === 0 && fadingSquares.length === 0) {
                     gameOverAnimationComplete = true;
-                    console.log("💥 Game over animation completed");
+                    console.log("Game over animation completed");
                 }
                 
                 if (gameMode === 'game') {
                     // Check for collisions
                     if (checkCollisions()) {
-                        // Ne pas quitter la boucle de jeu, laisser l'animation de game over se dérouler
-                        console.log("💥 Collision detected, starting game over animation");
+                        // Do not quit the game loop, let the game over animation continue
+                        console.log("Collision detected, starting game over animation");
                     } else {
-                        // Spawn new squares seulement si on n'est pas en game over
+                        // Spawn new squares only if we're not in a game over
                         if ((squares.length === 0) || (squares.length > 0 && squares[squares.length-1].y > canvas.height * 0.33)) {
                             spawnSquare();
                             lastSquareTime = Date.now();
@@ -1591,17 +1583,17 @@
                 }
             }
             
-            // Continue the game loop avec une meilleure gestion des animation frames
+            // Continue the game loop with better animation frame management
             if (gameRunning) {
-                // Annuler l'animation frame précédente si elle existe
+                // Cancel the previous animation frame if it exists
                 if (window.gameLoopAnimationId) {
                     cancelAnimationFrame(window.gameLoopAnimationId);
                 }
                 
-                // Demander une nouvelle frame
+                // Request a new frame
                 window.gameLoopAnimationId = requestAnimationFrame(gameLoop);
             } else if (window.gameLoopAnimationId) {
-                // Nettoyer l'animation frame si le jeu est arrêté
+                // Clean up the animation frame if the game is stopped
                 cancelAnimationFrame(window.gameLoopAnimationId);
                 window.gameLoopAnimationId = null;
             }
@@ -1640,10 +1632,10 @@
                 x: x,
                 y: -size,
                 size: size,
-                speed: canvas.height * 0.0005, // Revenir à la vitesse originale
+                speed: canvas.height * 0.0005,
                 isGreen: isGreen,
                 rotation: 0,
-                rotationSpeed: 0.01 * (Math.random() > 0.5 ? 1 : -1), // Vitesse de rotation fixe et modérée
+                rotationSpeed: 0.01 * (Math.random() > 0.5 ? 1 : -1),
                 angle: limitedAngle,
                 velocityX: Math.sin(limitedAngle),
                 velocityY: Math.cos(limitedAngle)
@@ -1688,7 +1680,7 @@
                 ctx.save();
                 ctx.translate(square.x + square.size/2, square.y + square.size/2);
                 ctx.rotate(square.rotation);
-                ctx.fillStyle = square.isGreen ? '#00FF9D' : '#FFFFFF'; // Couleur verte pour les carrés verts
+                ctx.fillStyle = square.isGreen ? '#00FF9D' : '#FFFFFF';
                 ctx.fillRect(-square.size/2, -square.size/2, square.size, square.size);
                 ctx.restore();
             }
@@ -1719,8 +1711,8 @@
                 ctx.save();
                 ctx.translate(square.x + square.originalSize/2, square.y + square.originalSize/2);
                 ctx.rotate(square.rotation);
-                ctx.fillStyle = square.isGreen ? '#00FF9D' : '#FFFFFF'; // Couleur verte pour les carrés verts
-                ctx.globalAlpha = 1 - fadeProgress; // Also fade opacity
+                ctx.fillStyle = square.isGreen ? '#00FF9D' : '#FFFFFF';
+                ctx.globalAlpha = 1 - fadeProgress;
                 ctx.fillRect(-newSize/2, -newSize/2, newSize, newSize);
                 ctx.globalAlpha = 1;
                 ctx.restore();
@@ -1729,14 +1721,14 @@
 
         // Create explosion particles from the ball
         function createExplosion(x, y, color) {
-            console.log(`💥 Creating explosion at (${x}, ${y}) with color ${color}`);
+            console.log(`Creating explosion at (${x}, ${y}) with color ${color}`);
             
-            const particleCount = 120; // Augmenter légèrement le nombre de particules
-            const particleSize = ball.radius / 4; // Particules plus fines (divisé par 4 au lieu de 2)
+            const particleCount = 120;
+            const particleSize = ball.radius / 4;
             
             for (let i = 0; i < particleCount; i++) {
                 const angle = Math.random() * Math.PI * 2;
-                const speed = Math.random() * 8 + 3; // Vitesse plus élevée
+                const speed = Math.random() * 8 + 3;
                 const distance = Math.random() * ball.radius;
                 
                 particles.push({
@@ -1744,43 +1736,43 @@
                     y: y + Math.sin(angle) * distance,
                     vx: Math.cos(angle) * speed,
                     vy: Math.sin(angle) * speed,
-                    size: particleSize * (Math.random() * 0.5 + 0.3), // Particules plus fines
+                    size: particleSize * (Math.random() * 0.5 + 0.3),
                     color: color || '#00FF9D',
                     alpha: 1,
-                    fadeSpeed: 0.01 + Math.random() * 0.02, // Ralentir la disparition
-                    creationTime: Date.now() // Ajouter un timestamp de création pour débogage
+                    fadeSpeed: 0.01 + Math.random() * 0.02,
+                    creationTime: Date.now()
                 });
             }
         }
 
         // Update and draw particles
         function updateParticles(deltaTime) {
-            // Si aucune particule, ne rien faire
+            // If no particle, do nothing
             if (particles.length === 0) return;
             
-            // Limiter le deltaTime pour les particules pour éviter les comportements erratiques
+            // Limit the deltaTime for particles to avoid erratic behaviors
             const particleDeltaTime = Math.min(deltaTime, 100);
             
-            // Tracer le nombre de particules pour débogage
+            // Trace the number of particles for debugging
             if (particles.length > 0 && particles.length % 50 === 0) {
-                console.log(`✨ Updating ${particles.length} particles`);
+                console.log(`Updating ${particles.length} particles`);
             }
             
             for (let i = particles.length - 1; i >= 0; i--) {
                 const particle = particles[i];
                 
-                // Vérifier si la particule est trop ancienne (plus de 10 secondes) pour éviter les fuites de mémoire
+                // Check if the particle is too old (more than 10 seconds) to avoid memory leaks
                 const particleAge = Date.now() - (particle.creationTime || Date.now());
-                if (particleAge > 10000) { // 10 secondes max
+                if (particleAge > 10000) { // 10 seconds max
                     particles.splice(i, 1);
                     continue;
                 }
                 
-                // Update position - avec un facteur de vitesse constant pour éviter les variations de deltaTime
+                // Update position - with a constant speed factor to avoid deltaTime variations
                 particle.x += particle.vx * particleDeltaTime * 0.1;
                 particle.y += particle.vy * particleDeltaTime * 0.1;
                 
-                // Update alpha - ralentir la disparition
+                // Update alpha - slow down the disappearance
                 particle.alpha -= particle.fadeSpeed * particleDeltaTime * 0.03;
                 
                 // Remove faded particles
@@ -1796,7 +1788,7 @@
                 ctx.beginPath();
                 ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
                 ctx.fill();
-                ctx.restore(); // Toujours restaurer le contexte pour réinitialiser globalAlpha
+                ctx.restore(); // Always restore the context to reset globalAlpha
             }
         }
 
@@ -1804,7 +1796,7 @@
         function drawBall() {
             ctx.beginPath();
             ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
-            ctx.fillStyle = '#00FF9D'; // Vert original
+            ctx.fillStyle = '#00FF9D'; // Original green
             ctx.fill();
             ctx.closePath();
         }
@@ -1853,7 +1845,7 @@
                 if (distance < ball.radius + square.size / 2) {
                     // If it's a green square, collect it
                     if (square.isGreen) {
-                        // Jouer le son quand la balle touche un carré vert
+                        // Play the sound when the ball touches a green square
                         playSound('success');
                         
                         // Remove the square
@@ -1865,13 +1857,13 @@
                         // Update season score if current score is better
                         if (score > seasonScore) {
                             seasonScore = score;
-                            console.log(`🏆 New season best: ${seasonScore}`);
+                            console.log(`New season best: ${seasonScore}`);
                         }
                         
                         // Update best score if needed
                         if (score > bestScore) {
                             bestScore = score;
-                            console.log(`🌟 New all-time best: ${bestScore}`);
+                            console.log(`New all-time best: ${bestScore}`);
                         }
                         
                         // Create explosion effect
@@ -1883,7 +1875,7 @@
                         return false;
                     } else {
                         // Game over if it's a white square
-                        // Jouer le son quand la balle touche un carré blanc
+                        // Play the sound when the ball touches a white square
                         playSound('gameOver');
                         
                         // Set game over mode first to prevent multiple collisions
@@ -1891,17 +1883,17 @@
                         gameOverAnimation = true;
                         gameOverAnimationComplete = false;
                         
-                        console.log("🎮 Game over sequence started");
+                        console.log("Game over sequence started");
                         
-                        // Créer un effet d'explosion uniquement pour la balle
+                        // Create an explosion effect only for the ball
                         createExplosion(ball.x, ball.y, '#00FF9D');
                         
-                        // Ajouter tous les carrés au tableau des carrés en train de disparaitre
-                        // pour qu'ils disparaissent progressivement comme à la fin de leur chute
+                        // Add all squares to the fading squares array
+                        // so they fade out gradually like at the end of their fall
                         for (let i = 0; i < squares.length; i++) {
                             const square = squares[i];
                             
-                            // Ajouter le carré aux carrés en train de disparaitre
+                            // Add the square to the fading squares array
                             fadingSquares.push({
                                 x: square.x,
                                 y: square.y,
@@ -1910,17 +1902,17 @@
                                 rotationSpeed: square.rotationSpeed,
                                 isGreen: square.isGreen,
                                 fadeStartTime: Date.now(),
-                                fadeTime: 1000 // Disparition en 1 seconde
+                                fadeTime: 1000
                             });
                         }
                         
-                        // Vider le tableau des carrés originaux puisqu'ils sont maintenant en train de disparaitre
+                        // Empty the original squares array since they are now fading
                         squares.length = 0;
                         
-                        // Afficher l'écran de game over avec un délai plus long pour voir l'animation complète
+                        // Show the game over screen with a longer delay to see the complete animation
                         setTimeout(() => {
                             handleGameOver();
-                        }, 1000); // Délai augmenté pour voir l'animation complète
+                        }, 1000);
                         
                         return true;
                     }
@@ -1951,49 +1943,49 @@
             const seasonScoreElement = document.getElementById('season-score');
             seasonScoreElement.style.display = 'block';
             
-            // Mise à jour de la rangée utilisateur avec les informations les plus récentes
+            // Update the user row with the latest information
             if (window.renderGameOverStickyUserRow) {
                 window.renderGameOverStickyUserRow();
             }
             
-            // Essayer d'utiliser d'abord le score de saison connu, qui a été actualisé juste avant
+            // Try to use the known season score first, which was updated just before
             if (score > seasonScore) {
-                // Si le score actuel est meilleur, l'afficher immédiatement
+                // If the current score is better, display it immediately
                 seasonScoreElement.textContent = `Season Best: ${score} 🏆`;
                 
-                // Mettre à jour côté serveur en arrière-plan (sans bloquer l'UI)
+                // Update the server in the background (without blocking the UI)
                 saveBestSeasonScore(score);
             } else {
-                // Utiliser la valeur déjà récupérée juste avant
+                // Use the value already retrieved just before
                 seasonScoreElement.textContent = `Season Best: ${seasonScore} 🏆`;
             }
             
-            // Mettre à jour le mode de jeu
+            // Update the game mode
             gameMode = 'gameOver';
             
-            // Gérer la musique de fond (arrêter pendant le game over)
+            // Manage background music (stop during game over)
             manageBackgroundMusic();
             
-            // Afficher l'écran de game over
+            // Show the game over screen
             const gameOverScreen = document.getElementById('game-over');
             gameOverScreen.style.display = 'flex';
             
-            // Forcer un reflow pour que la transition fonctionne
+            // Force a reflow to make the transition work
             void gameOverScreen.offsetWidth;
             
-            // Ajouter la classe visible pour déclencher l'animation
+            // Add the visible class to trigger the animation
             gameOverScreen.classList.add('visible');
             console.log("Game over screen displayed");
         }
         
-        // Fonction utilitaire pour enregistrer le meilleur score de saison en arrière-plan
+        // Function to save the best season score in the background
         function saveBestSeasonScore(newScore) {
-            console.log(`🏆 Saving new season best: ${newScore}`);
+            console.log(`Saving new season best: ${newScore}`);
             
-            // Mise à jour de la variable locale
+            // Update the local variable
             seasonScore = newScore;
             
-            // Mettre à jour côté serveur sans attendre la réponse
+            // Update the server in the background without waiting for the response
             fetch('/api/seasons/active')
               .then(response => response.ok ? response.json() : null)
               .then(seasonData => {
@@ -2006,48 +1998,48 @@
                       body: JSON.stringify({ userId: userId, score: newScore })
                   });
               })
-              .catch(err => console.error("❌ Error saving season best:", err));
+              .catch(err => console.error("Error saving season best:", err));
         }
         
         // Function to hide game over screen
         function hideGameOver() {
-            // Masquer immédiatement l'écran de game over sans animation
+            // Hide the game over screen immediately without animation
             gameOverScreen.style.display = 'none';
-            // Réinitialiser la classe visible pour les futures utilisations
+            // Reset the visible class for future uses
             gameOverScreen.classList.remove('visible');
             
-            // Réinitialiser l'état de l'animation de fin de jeu
+            // Reset the state of the end game animation
             gameOverAnimation = false;
             gameOverAnimationComplete = false;
         }
 
         // Function to reset the game and start a new game
         function resetGame() {
-            console.log("🔄 Resetting game completely");
+            console.log("Resetting game completely");
             
             // Hide game over screen
             hideGameOver();
             
-            // Annuler l'animation frame précédente pour éviter les doublons
+            // Cancel the previous animation frame to avoid duplicates
             if (window.gameLoopAnimationId) {
                 cancelAnimationFrame(window.gameLoopAnimationId);
                 window.gameLoopAnimationId = null;
             }
             
-            // Effacer complètement le canvas pour éviter les artefacts visuels
+            // Clear the canvas completely to avoid visual artifacts
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // Reset game state - vider complètement les tableaux pour éviter les fuites de mémoire
+            // Reset game state - clear completely the arrays to avoid memory leaks
             squares.length = 0;
             fadingSquares.length = 0;
             particles.length = 0;
             
-            // Réinitialiser les variables de jeu
+            // Reset the game variables
             gameOverAnimation = false;
             gameOverAnimationComplete = false;
             score = 0;
             
-            // Réinitialiser la variable hasUsedRevive quand on commence une nouvelle partie
+            // Reset the hasUsedRevive variable when starting a new game
             hasUsedRevive = false;
             
             // Update game mode
@@ -2073,19 +2065,19 @@
             // Manage background music for game mode
             manageBackgroundMusic();
             
-            // Réinitialiser le temps de frame pour éviter les sauts
+            // Reset the frame time to avoid jumps
             lastFrameTime = null;
             
             // Ensure the game loop is properly reset and running
             gameRunning = true;
             
-            // Forcer un nouveau démarrage de la boucle de jeu
+            // Force a new start of the game loop
             window.gameLoopAnimationId = requestAnimationFrame(gameLoop);
             
             // Play sound effect
             playSound('userTap');
             
-            console.log("🎮 Game reset and restarted");
+            console.log("Game reset and restarted");
         }
 
         // Handle screen tap/click
@@ -2094,7 +2086,7 @@
                 // Change ball direction
                 ball.direction *= -1;
                 
-                // Jouer le son quand l'utilisateur touche l'écran
+                // Play sound when the user touches the screen
                 playSound('userTap');
             }
         }
@@ -2124,7 +2116,7 @@
             // Redraw stars for new dimensions
             initStars();
             
-            console.log(`📱 Canvas resized to ${canvas.width}x${canvas.height}`);
+            console.log(`Canvas resized to ${canvas.width}x${canvas.height}`);
         }
 
         // Handle window resize
@@ -2147,7 +2139,7 @@
 
         playBtn.addEventListener('click', startGame);
 
-        // Générer un nom d'utilisateur aléatoire
+        // Generate a random username
         function generateRandomUsername() {
             const adjectives = [
                 "Cosmic", "Stellar", "Quantum", "Neon", "Cyber", 
@@ -2169,7 +2161,7 @@
             return randomAdjective + randomNoun;
         }
         
-        // Générer un ID à 10 chiffres
+        // Generate a random ID of 10 digits
         function generateRandomUserId() {
             let id = "";
             for (let i = 0; i < 10; i++) {
@@ -2178,57 +2170,56 @@
             return id;
         }
         
-        // Sélectionner un avatar aléatoire
+        // Select a random avatar
         function getRandomAvatar() {
             return "/avatars/avatar_default.jpg";
         }
         
-        // Variable pour éviter les créations multiples de comptes
+        // Variable to avoid multiple account creations
         let isCreatingUser = false;
         
-        // Initialiser ou récupérer le profil utilisateur
+        // Initialize or retrieve the user profile
         function initUserProfile() {
             try {
-                console.log("👤 Initializing user profile...");
+                console.log("Initializing user profile...");
                 
-                // Vérifier d'abord si nous avons déjà un ID utilisateur en mémoire
-                // Cela aidera à éviter la réinitialisation des données lors du rechargement de la page
+                // Check if we already have a user ID in memory
                 const storedUserId = localStorage.getItem("tidashUserId");
                 const storedUsername = localStorage.getItem("tidashUsername");
                 
-                // Vérifier si nous avons un ID Telegram disponible via l'API Telegram
+                // Check if we have a Telegram ID available via the Telegram API
                 let telegramId = null;
                 let telegramUsername = null;
                 
                 if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
                     telegramId = window.Telegram.WebApp.initDataUnsafe.user.id.toString();
                     telegramUsername = window.Telegram.WebApp.initDataUnsafe.user.username || null;
-                    console.log("📱 Found Telegram user:", telegramId, telegramUsername);
+                    console.log("Found Telegram user:", telegramId, telegramUsername);
                     
-                    // Si nous avons un ID Telegram, effacer le localStorage pour éviter les conflits
+                    // If we have a Telegram ID, clear the localStorage to avoid conflicts
                     if (telegramId) {
                         localStorage.removeItem("tidashUserId");
                         localStorage.removeItem("tidashUsername");
-                        console.log("🧹 Cleared localStorage to avoid conflicts with Telegram account");
+                        console.log("Cleared localStorage to avoid conflicts with Telegram account");
                     }
                 }
                 
                 if (storedUserId && !telegramId) {
-                    console.log("💾 Found stored user ID in localStorage:", storedUserId);
+                    console.log("Found stored user ID in localStorage:", storedUserId);
                 }
                 
-                // Get device ID from cookie (plus persistant que localStorage)
+                // Get device ID from cookie (more persistent than localStorage)
                 let deviceId = getCookie("tidashDeviceId");
                 if (!deviceId) {
                     deviceId = generateRandomUserId();
                     setCookie("tidashDeviceId", deviceId, 365); // Cookie valide 1 an
-                    console.log("🆕 Generated new device ID:", deviceId);
+                    console.log("Generated new device ID:", deviceId);
                 } else {
-                    console.log("📱 Found existing device ID in cookie:", deviceId);
+                    console.log("Found existing device ID in cookie:", deviceId);
                 }
                 
-                // Si nous avons un ID Telegram, nous l'utilisons comme identifiant principal
-                // au lieu du deviceId pour la recherche d'utilisateur
+                // If we have a Telegram ID, we use it as the primary identifier
+                // instead of deviceId for user lookup
                 const searchEndpoint = telegramId 
                     ? `/api/users/telegram/${telegramId}` 
                     : `/api/users/device/${deviceId}`;
@@ -2238,22 +2229,22 @@
                     .then(response => {
                         if (response.status === 404) {
                             // User not found, create a new user
-                            console.log("👤 User not found on server, creating new user...");
+                            console.log("User not found on server, creating new user...");
                             
-                            // Vérifier si une création est déjà en cours
+                            // Check if a creation is already in progress
                             if (isCreatingUser) {
-                                console.log("⚠️ User creation already in progress, skipping duplicate creation");
+                                console.log("User creation already in progress, skipping duplicate creation");
                                 return null;
                             }
                             
-                            // Marquer qu'une création est en cours
+                            // Mark that a creation is in progress
                             isCreatingUser = true;
                             
-                            // TOUJOURS générer un nouvel ID pour les nouveaux joueurs
+                            // Always generate a new ID for new players
                             userId = generateRandomUserId();
-                            console.log("🆕 Génération obligatoire d'un nouvel ID de jeu:", userId);
+                            console.log("Generated new ID for new player:", userId);
                             
-                            // Pour le nom d'utilisateur, on peut utiliser celui stocké ou en générer un nouveau
+                            // Use the stored username or generate a new one
                             username = storedUsername || generateRandomUsername();
                             
                             // Create new user data
@@ -2266,13 +2257,13 @@
                                 deviceId: deviceId
                             };
                             
-                            // Ajouter les informations Telegram si disponibles
+                            // Add Telegram information if available
                             if (telegramId) {
                                 userData.telegramId = telegramId;
                                 userData.telegramUsername = telegramUsername;
                             }
                             
-                            console.log("📝 Creating new user:", userData);
+                            console.log("Creating new user:", userData);
                             
                             // Send new user data to server
                             return fetch('/api/users', {
@@ -2289,27 +2280,27 @@
                                 return response.json();
                             })
                             .then(data => {
-                                console.log("✅ New user created:", data);
+                                console.log("New user created:", data);
                                 
-                                // Stocker l'ID et le nom d'utilisateur localement pour la persistance
+                                // Store the ID and username locally for persistence
                                 localStorage.setItem("tidashUserId", userId);
                                 localStorage.setItem("tidashUsername", username);
                                 
-                                // Vérifier s'il y a une saison active et inscrire l'utilisateur
-                                console.log("🏆 Checking for active season to add new user to ranking...");
+                                // Check for an active season and register the user
+                                console.log("Checking for active season to add new user to ranking...");
                                 fetch('/api/seasons/active')
                                     .then(response => {
                                         if (response.ok) {
                                             return response.json();
                                         } else {
-                                            console.log("⚠️ No active season found");
+                                            console.log("No active season found");
                                             return null;
                                         }
                                     })
                                     .then(seasonData => {
                                         if (seasonData && seasonData.id) {
-                                            console.log(`🏆 Adding user ${userId} to season ${seasonData.id} with initial score 0`);
-                                            // Ajouter l'utilisateur au classement de la saison avec un score de 0
+                                            console.log(`Adding user ${userId} to season ${seasonData.id} with initial score 0`);
+                                            // Add the user to the season ranking with a score of 0
                                             return fetch(`/api/seasons/${seasonData.id}/scores/${userId}`, {
                                                 method: 'POST',
                                                 headers: {
@@ -2321,11 +2312,11 @@
                                     })
                                     .then(response => {
                                         if (response && response.ok) {
-                                            console.log("✅ User added to season ranking successfully");
+                                            console.log("User added to season ranking successfully");
                                         }
                                     })
                                     .catch(error => {
-                                        console.error("❌ Error adding user to season ranking:", error);
+                                        console.error("Error adding user to season ranking:", error);
                                     });
                                 
                                 // Update UI
@@ -2333,9 +2324,9 @@
                                 updateScoreDisplay();
                                 updateSoundToggleDisplay();
                                 
-                                // Réinitialiser le drapeau de création
+                                // Reset the creation flag
                                 isCreatingUser = false;
-                                console.log("💾 User creation completed, flag reset");
+                                console.log("User creation completed, flag reset");
                                 
                                 return null; // Return null to indicate we've handled this case
                             });
@@ -2347,54 +2338,54 @@
                     })
                     .then(data => {
                         if (data) {
-                            console.log("✅ User data loaded from server:", data);
+                            console.log("User data loaded from server:", data);
                             
-                            // IMPORTANT: Conserver les données existantes de l'utilisateur
-                            // Ne pas générer de nouveaux ID ou noms d'utilisateur s'ils existent déjà
+                            // IMPORTANT: Keep existing user data
+                            // Do not generate new IDs or usernames if they already exist
                             let needsUpdate = false;
                             
-                            // Utiliser l'ID du serveur s'il existe
+                            // Use the server ID if it exists
                             if (data.gameId) {
                                 userId = data.gameId;
-                                console.log("👤 Using existing game ID from server:", userId);
-                                // Mettre à jour le stockage local
+                                console.log("Using existing game ID from server:", userId);
+                                // Update the local storage
                                 localStorage.setItem("tidashUserId", userId);
                             } 
-                            // Sinon, utiliser l'ID stocké localement s'il existe
+                            // Otherwise, use the stored ID from localStorage if it exists
                             else if (storedUserId) {
                                 userId = storedUserId;
                                 needsUpdate = true;
-                                console.log("💾 Using stored game ID from localStorage:", userId);
+                                console.log("Using stored game ID from localStorage:", userId);
                             } 
-                            // En dernier recours, générer un nouvel ID
+                            // As a last resort, generate a new ID
                             else {
                                 userId = generateRandomUserId();
                                 needsUpdate = true;
-                                console.log("🆕 Generated new game ID as last resort:", userId);
+                                console.log("Generated new game ID as last resort:", userId);
                                 localStorage.setItem("tidashUserId", userId);
                             }
                             
-                            // Même logique pour le nom d'utilisateur
+                            // Same logic for the username
                             if (data.gameUsername) {
                                 username = data.gameUsername;
-                                console.log("👤 Using existing username from server:", username);
+                                console.log("Using existing username from server:", username);
                                 localStorage.setItem("tidashUsername", username);
                             } 
                             else if (storedUsername) {
                                 username = storedUsername;
                                 needsUpdate = true;
-                                console.log("💾 Using stored username from localStorage:", username);
+                                console.log("Using stored username from localStorage:", username);
                             } 
                             else {
                                 username = generateRandomUsername();
                                 needsUpdate = true;
-                                console.log("🆕 Generated new username as last resort:", username);
+                                console.log("Generated new username as last resort:", username);
                                 localStorage.setItem("tidashUsername", username);
                             }
                             
                             // Handle avatar path correctly
                             if (data.avatarSrc) {
-                                console.log('💾 Avatar from server:', data.avatarSrc);
+                                console.log('Avatar from server:', data.avatarSrc);
                                 
                                 // Ensure avatar path is absolute and clean (remove any cache parameters)
                                 let cleanAvatarSrc = data.avatarSrc;
@@ -2410,19 +2401,19 @@
                                     avatarSrc = window.location.origin + '/avatars/' + cleanAvatarSrc;
                                 }
                                 
-                                // Ajouter un paramètre de cache-busting pour forcer le rechargement de l'image
+                                // Add a cache-busting parameter to force image reload
                                 avatarSrc = avatarSrc.includes('?') 
                                     ? avatarSrc + '&t=' + new Date().getTime() 
                                     : avatarSrc + '?t=' + new Date().getTime();
                                     
-                                console.log('📷 Processed avatar URL:', avatarSrc);
+                                console.log('Processed avatar URL:', avatarSrc);
                             } else {
                                 // Default avatar with absolute path
                                 avatarSrc = window.location.origin + '/avatars/avatar_default.jpg';
-                                console.log('⚠️ No avatar found in server data, using default');
+                                console.log('No avatar found in server data, using default');
                             }
                             
-                            // Conserver les autres données utilisateur
+                            // Keep the other user data
                             paypalEmail = data.paypalEmail || "";
                             bestScore = parseInt(data.bestScore || "0");
                             seasonScore = parseInt(data.seasonScore || "0");
@@ -2432,10 +2423,10 @@
                             
                             // Only update the server if we needed to update ID or username
                             if (needsUpdate) {
-                                console.log("🔄 Updating user data on server with preserved information");
+                                console.log("Updating user data on server with preserved information");
                                 setTimeout(() => sendUserDataToServer(), 500);
                             } else {
-                                console.log("✅ User data is complete, no updates needed");
+                                console.log("User data is complete, no updates needed");
                             }
                             
                             // Update UI elements
@@ -2455,9 +2446,9 @@
                             return data;
                         }
                         
-                        // Fallback - utiliser les données stockées localement si disponibles
+                        // Fallback - Use locally stored data if available
                         if (storedUserId && storedUsername) {
-                            console.log("💾 Falling back to stored user data due to server error");
+                            console.log("Falling back to stored user data due to server error");
                             userId = storedUserId;
                             username = storedUsername;
                             avatarSrc = window.location.origin + '/avatars/avatar_default.jpg';
@@ -2467,13 +2458,13 @@
                             updateScoreDisplay();
                             updateSoundToggleDisplay();
                         } else {
-                            console.log("🔄 No stored data available, creating temporary user");
-                            // Créer un utilisateur temporaire
+                            console.log("No stored data available, creating temporary user");
+                            // Create a temporary user
                             userId = generateRandomUserId();
                             username = generateRandomUsername();
                             avatarSrc = window.location.origin + '/avatars/avatar_default.jpg';
                             
-                            // Stocker localement
+                            // Store locally
                             localStorage.setItem("tidashUserId", userId);
                             localStorage.setItem("tidashUsername", username);
                             
@@ -2484,10 +2475,10 @@
                         }
                     })
                     .catch(error => {
-                        console.error("❌ Error initializing user profile:", error);
+                        console.error("Error initializing user profile:", error);
                     });
             } catch (error) {
-                console.error("❌ Error in initUserProfile:", error);
+                console.error("Error in initUserProfile:", error);
                 
                 // Emergency fallback
                 username = generateRandomUsername();
@@ -2502,7 +2493,7 @@
         // Function to populate the avatar grid
         function populateAvatarGrid() {
             try {
-                console.log("🖼️ Populating avatar grid...");
+                console.log("Populating avatar grid...");
                 const avatarsGrid = document.getElementById('avatars-grid');
                 
                 // Clear existing avatars
@@ -2551,19 +2542,19 @@
                     avatarsGrid.appendChild(avatarItem);
                 });
                 
-                console.log(`✅ Added ${avatars.length} avatars to the grid`);
+                console.log(`Added ${avatars.length} avatars to the grid`);
                 
                 // Initialize avatar selection
                 initAvatarSelection();
             } catch (error) {
-                console.error("❌ Error populating avatar grid:", error);
+                console.error("Error populating avatar grid:", error);
             }
         }
 
         // Function to initialize avatar selection
         function initAvatarSelection() {
             try {
-                console.log("🖼️ Initializing avatar selection...");
+                console.log("Initializing avatar selection...");
 
                 // Get all avatar items
                 const avatarItems = document.querySelectorAll('.avatar-item');
@@ -2578,7 +2569,7 @@
                 let avatarFilename = currentAvatarSrc.split('/').pop();
                 avatarFilename = avatarFilename.split('?')[0]; // Remove query string
 
-                console.log(`🔍 Looking for avatar: ${avatarFilename}`);
+                console.log(`Looking for avatar: ${avatarFilename}`);
 
                 // Find and select the matching avatar (ignore query string in img.src)
                 let found = false;
@@ -2589,13 +2580,13 @@
                         if (imgFilename === avatarFilename) {
                             item.classList.add('selected');
                             found = true;
-                            console.log(`✅ Selected avatar: ${itemImg.src}`);
+                            console.log(`Selected avatar: ${itemImg.src}`);
                         }
                     }
                 });
 
                 if (!found) {
-                    console.log("⚠️ Matching avatar not found, selecting default");
+                    console.log("Matching avatar not found, selecting default");
                     // Select default avatar if no match found
                     const defaultAvatar = document.querySelector('.avatar-item:first-child');
                     if (defaultAvatar) {
@@ -2618,7 +2609,7 @@
                         let selectedAvatarSrc = this.querySelector('img').src;
                         let avatarFilename = selectedAvatarSrc.split('/').pop().split('?')[0];
                         const avatarPath = '/avatars/' + avatarFilename;
-                        console.log('📷 Selected avatar filename:', avatarFilename);
+                        console.log('Selected avatar filename:', avatarFilename);
 
                         // Update avatar in UI with a new cache-busting parameter (remove any existing one first)
                         const cacheBuster = '?t=' + new Date().getTime();
@@ -2629,7 +2620,7 @@
                         // Update avatarSrc variable with the full path for display
                         avatarSrc = window.location.origin + '/avatars/' + avatarFilename;
 
-                        console.log('📷 Avatar selected (full path):', avatarSrc);
+                        console.log('Avatar selected (full path):', avatarSrc);
 
                         // Save to server with a small delay to ensure UI updates first
                         setTimeout(() => {
@@ -2641,16 +2632,16 @@
                             sendUserDataToServer(forceAvatarUpdate)
                                 .then(response => {
                                     if (response && response.user) {
-                                        console.log('✅ Avatar saved successfully on server:', response.user.avatarSrc);
+                                        console.log('Avatar saved successfully on server:', response.user.avatarSrc);
                                     }
                                 });
                         }, 100);
 
-                        console.log(`🖼️ Avatar updated: ${avatarPath}`);
+                        console.log(`Avatar updated: ${avatarPath}`);
                     });
                 });
             } catch (error) {
-                console.error("❌ Error initializing avatar selection:", error);
+                console.error("Error initializing avatar selection:", error);
             }
         }
         
@@ -2666,14 +2657,14 @@
                     }
                 }
             } catch (error) {
-                console.error("❌ Error updating sound toggle display:", error);
+                console.error("Error updating sound toggle display:", error);
             }
         }
         
         // Function to send user data to server
         function sendUserDataToServer(forceUpdate = {}) {
             try {
-                console.log("📤 Sending user data to server...");
+                console.log("Sending user data to server...");
                 
                 // Get device ID from cookie
                 const deviceId = getCookie("tidashDeviceId") || "";
@@ -2688,28 +2679,28 @@
                     gameUsername: username,
                     bestScore: bestScore,
                     seasonScore: seasonScore,
-                    // Traitement de l'avatar
+                    // Processing the avatar
                     avatarSrc: (() => {
-                        // Si une mise à jour forcée de l'avatar est demandée
+                        // If a forced avatar update is requested
                         if (forceUpdate.avatarFilename) {
-                            console.log('💾 Mise à jour forcée de l\'avatar:', forceUpdate.avatarFilename);
+                            console.log('Forced avatar update:', forceUpdate.avatarFilename);
                             return forceUpdate.avatarFilename;
                         }
                         
                         let cleanAvatarSrc = avatarSrc;
-                        // Supprimer les paramètres de cache
+                        // Remove cache parameters
                         if (cleanAvatarSrc.includes('?')) {
                             cleanAvatarSrc = cleanAvatarSrc.split('?')[0];
                         }
-                        // Extraire uniquement le nom du fichier si c'est un chemin complet
+                        // Extract only the filename if it's a complete path
                         if (cleanAvatarSrc.includes('/avatars/')) {
                             const avatarFilename = cleanAvatarSrc.split('/avatars/').pop();
-                            console.log('💾 Envoi du nom de fichier avatar au serveur:', avatarFilename);
-                            return avatarFilename; // Envoyer uniquement le nom du fichier
+                            console.log('Sending avatar filename to server:', avatarFilename);
+                            return avatarFilename; // Send only the filename
                         }
-                        // Si c'est déjà juste un nom de fichier, le retourner tel quel
+                        // If it's already just a filename, return it as is
                         if (!cleanAvatarSrc.includes('/') && !cleanAvatarSrc.startsWith('http')) {
-                            console.log('💾 Nom de fichier avatar déjà propre:', cleanAvatarSrc);
+                            console.log('Avatar filename already clean:', cleanAvatarSrc);
                             return cleanAvatarSrc;
                         }
                         return cleanAvatarSrc;
@@ -2721,7 +2712,7 @@
                     telegramUsername: telegramUsername
                 };
                 
-                console.log("📋 User data to send:", userData);
+                console.log("User data to send:", userData);
                 
                 // Send data to server
                 return fetch('/api/users', {
@@ -2738,7 +2729,7 @@
                     return response.json();
                 })
                 .then(data => {
-                    console.log('✅ User data saved successfully:', data);
+                    console.log('User data saved successfully:', data);
                     
                     // Update user data from response if available
                     if (data.user) {
@@ -2753,19 +2744,17 @@
                     return data;
                 })
                 .catch(error => {
-                    console.error('❌ Error saving user data:', error);
+                    console.error('Error saving user data:', error);
                 });
             } catch (error) {
-                console.error("❌ Error in sendUserDataToServer:", error);
+                console.error("Error in sendUserDataToServer:", error);
             }
         }
-        
-        // Fonction supprimée - plus d'effet de particules
         
         // Function to update season info display
         function updateSeasonInfoDisplay() {
             try {
-                console.log('🔄 Updating season info display...');
+                console.log('Updating season info display...');
                 
                 // Get the season info container and elements
                 const seasonInfoContainer = document.getElementById('season-info-container');
@@ -2773,7 +2762,7 @@
                 const seasonPrizeElement = document.querySelector('.season-prize');
                 
                 if (!seasonInfoContainer || !seasonNumberElement || !seasonPrizeElement) {
-                    console.error('❌ Season info elements not found');
+                    console.error('Season info elements not found');
                     return;
                 }
                 
@@ -2785,12 +2774,10 @@
                 .then(response => {
                     if (!response.ok) {
                         if (response.status === 404) {
-                            console.log('⚠️ No active season found');
-                            // Même s'il n'y a pas de saison active, on affiche le conteneur avec des valeurs par défaut
+                            console.log('No active season found');
+                            // Even if there is no active season, display the container with default values
                             seasonNumberElement.textContent = 'Season -';
                             seasonPrizeElement.textContent = `- Prize`;
-                            
-                            // Plus d'effet de particules
                             
                             return null;
                         }
@@ -2801,13 +2788,13 @@
                 .then(data => {
                     if (!data) return; // Skip if no data
                     
-                    console.log('💾 Season data received from admin endpoint:', data);
+                    console.log('Season data received from admin endpoint:', data);
                     
                     // Get season number and prize money
                     const seasonNumber = data.seasonNumber || 1;
                     const prizeMoney = data.prizeMoney || 500;
                     
-                    console.log(`🏆 Updating season display: Season ${seasonNumber}, Prize $${prizeMoney}`);
+                    console.log(`Updating season display: Season ${seasonNumber}, Prize $${prizeMoney}`);
                     
                     // Update the elements
                     seasonNumberElement.textContent = `Season ${seasonNumber}`;
@@ -2815,27 +2802,22 @@
                     
                     // Show the container
                     seasonInfoContainer.style.display = 'block';
-                    
-                    // Plus d'effet de particules
                 })
                 .catch(error => {
-                    console.error('❌ Error updating season info display:', error);
-                    // Même en cas d'erreur, on affiche le conteneur avec des valeurs par défaut
+                    console.error('Error updating season info display:', error);
+                    // Even in case of error, display the container with default values
                     seasonNumberElement.textContent = 'Season -';
                     seasonPrizeElement.textContent = `- Prize`;
-                    
-                    // Plus d'effet de particules
                 });
-                
             } catch (error) {
-                console.error('❌ Error in updateSeasonInfoDisplay:', error);
+                console.error('Error in updateSeasonInfoDisplay:', error);
             }
         }
         
         // Function to check for new season
         function checkForNewSeason(forceReset = false) {
             try {
-                console.log("🔍 Checking for active season...");
+                console.log("Checking for active season...");
                 
                 fetch('/api/seasons/active')
                 .then(response => {
@@ -2849,13 +2831,13 @@
                 })
                 .then(data => {
                     if (!data) {
-                        console.log("ℹ️ No active season, keeping existing season score: " + seasonScore);
+                        console.log("No active season, keeping existing season score: " + seasonScore);
                         // Still update any UI elements with the current seasonScore value
                         updateScoreDisplay();
                         return seasonScore;
                     }
                     
-                    console.log(`✅ Active season found: ${data.id}, Season ${data.seasonNumber}`);
+                    console.log(`Active season found: ${data.id}, Season ${data.seasonNumber}`);
                     
                     // Get user's score for this season
                     return fetch(`/api/seasons/${data.id}/scores/${userId}`)
@@ -2864,7 +2846,7 @@
                         // Use the server's score as the source of truth
                         let serverSeasonBest = serverData && serverData.score ? parseInt(serverData.score) : 0;
                         
-                        console.log(`🎮 Game Over - Current game score: ${score}, Server season best: ${serverSeasonBest}`);
+                        console.log(`Game Over - Current game score: ${score}, Server season best: ${serverSeasonBest}`);
                         
                         // IMPORTANT FIX: Always check if we need to update the season score
                         // We need to handle two cases:
@@ -2878,9 +2860,9 @@
                             // Update our local variable
                             if (score > serverSeasonBest) {
                                 seasonScore = score;
-                                console.log(`🏆 New season best achieved: ${seasonScore}`);
+                                console.log(`New season best achieved: ${seasonScore}`);
                             } else {
-                                console.log(`📊 First game in new season: ${score}`);
+                                console.log(`First game in new season: ${score}`);
                                 // Even if it's not a personal best, we need to record it for the first game
                                 seasonScore = score;
                             }
@@ -2901,7 +2883,7 @@
                         }
                     })
                     .catch(error => {
-                        console.error('❌ Error getting season score from server:', error);
+                        console.error('Error getting season score from server:', error);
                         // Fallback to local data if server request fails
                         const seasonScoreElement = document.getElementById('season-score');
                         if (seasonScoreElement) {
@@ -2911,14 +2893,14 @@
                     });
                 })
                 .catch(error => {
-                    console.error('❌ Error checking active season:', error);
+                    console.error('Error checking active season:', error);
                     const seasonScoreElement = document.getElementById('season-score');
                     if (seasonScoreElement) {
                         seasonScoreElement.style.display = 'none';
                     }
                 });
             } catch (error) {
-                console.error("❌ Error in checkForNewSeason:", error);
+                console.error("Error in checkForNewSeason:", error);
             }
         }
         
@@ -2953,12 +2935,12 @@
                 // Ensure avatar path is valid and add cache-busting parameter
                 let avatarUrl = avatarSrc;
                 
-                // Si l'avatar n'a pas de paramètre de cache, en ajouter un
+                // If the avatar doesn't have a cache parameter, add one
                 if (!avatarUrl.includes('?')) {
                     avatarUrl += '?t=' + new Date().getTime();
                 }
                 
-                console.log('📷 Mise à jour de l\'avatar dans l\'interface:', avatarUrl);
+                console.log('Updating the avatar in the interface:', avatarUrl);
                 
                 // Update avatar
                 document.getElementById('avatarImg').src = avatarUrl;
@@ -2982,7 +2964,7 @@
                     settingsUserId.textContent = userId;
                 }
             } catch (error) {
-                console.error("❌ Error updating user profile display:", error);
+                console.error("Error updating user profile display:", error);
             }
         }
         
@@ -2999,17 +2981,17 @@
                     seasonScoreElement.textContent = `Season Best: ${seasonScore}`;
                 }
             } catch (error) {
-                console.error("❌ Error updating score display:", error);
+                console.error("Error updating score display:", error);
             }
         }
         
         // Function to fetch the current user's season score from the server
         function fetchUserSeasonScore() {
-            console.log("🔍 Fetching user's season score from server (enhanced version)...");
+            console.log("Fetching user's season score from server (enhanced version)...");
             
-            // Vérifier que l'utilisateur est correctement initialisé
+            // Check that the user is correctly initialized
             if (!userId) {
-                console.warn("⚠️ Cannot fetch season score - userId is not defined");
+                console.warn("Cannot fetch season score - userId is not defined");
                 return Promise.resolve(0);
             }
             
@@ -3022,46 +3004,46 @@
                     return response.json();
                 })
                 .then(season => {
-                    console.log(`✅ Active season found: ${season.id}, Season ${season.seasonNumber}`);
+                    console.log(`Active season found: ${season.id}, Season ${season.seasonNumber}`);
                     
-                    // Récupérer le score de l'utilisateur directement
+                    // Get the user's score directly
                     return fetch(`/api/seasons/${season.id}/scores/${encodeURIComponent(userId)}`)
                         .then(response => {
                             if (response.ok) {
                                 return response.json();
                             } else {
-                                // Si l'API de score échoue, retourner un score par défaut
-                                console.log(`⚠️ Impossible de récupérer le score de saison, utilisation de la valeur par défaut`);
+                                // If the score API fails, return a default score
+                                console.log(`Unable to retrieve the season score, using default value`);
                                 return { score: 0 };
                             }
                         })
                         .then(scoreData => {
-                            // Extraire le score
+                            // Extract the score
                             const serverSeasonScore = scoreData.score || 0;
-                            console.log(`📊 Score de saison récupéré: ${serverSeasonScore}`);
+                            console.log(`Season score retrieved: ${serverSeasonScore}`);
                             
-                            // Récupérer également la position (rang) de l'utilisateur pour l'affichage
-                            // Déterminer la base de l'URL avec le bon chemin
+                            // Get the user's position (rank) for display
+                            // Determine the base URL with the correct path
                             let baseUrl = window.location.origin;
                             
-                            // Vérifier si nous sommes dans le chemin /test
+                            // Check if we are in the /test path
                             const pathname = window.location.pathname;
                             const basePathMatch = pathname.match(/^\/([^\/]+)/);
                             const basePath = basePathMatch ? basePathMatch[1] : '';
                             
                             if (basePath) {
-                                console.log(`🌐 Détection d'un chemin de base: /${basePath}`);
-                                // Ajouter le chemin de base à l'URL
+                                console.log(`Detection of a base path: /${basePath}`);
+                                // Add the base path to the URL
                                 baseUrl = `${baseUrl}/${basePath}`;
                             }
                             
-                            console.log(`🌐 URL de base déterminée pour requête de rang: ${baseUrl}`);
+                            console.log(`Base URL determined for rank request: ${baseUrl}`);
                             
-                            // URL complète avec le chemin de base correct
+                            // Complete URL with the correct base path
                             const rankApiUrl = `${baseUrl}/api/seasons/${season.id}/user-position?userId=${encodeURIComponent(userId)}`;
-                            console.log(`🔗 URL complète de l'API de rang: ${rankApiUrl}`);
+                            console.log(`API rank URL: ${rankApiUrl}`);
                             
-                            console.log(`⏳ Envoi de la requête pour le rang...`);
+                            console.log(`Sending request for rank...`);
                             return fetch(rankApiUrl, {
                                 method: 'GET',
                                 headers: {
@@ -3070,70 +3052,70 @@
                                 }
                             })
                                 .then(rankResponse => {
-                                    console.log(`📊 Statut de la réponse de rang: ${rankResponse.status} ${rankResponse.statusText}`);
+                                    console.log(`Rank response status: ${rankResponse.status} ${rankResponse.statusText}`);
                                     
-                                    // Même si la requête de position échoue, on a déjà le score
+                                    // Even if the position request fails, we already have the score
                                     if (rankResponse.ok) {
                                         return rankResponse.text().then(responseText => {
-                                            console.log(`📄 Réponse brute du rang: ${responseText}`);
+                                            console.log(`Raw rank response: ${responseText}`);
                                             
                                             try {
                                                 const rankData = JSON.parse(responseText);
-                                                console.log(`🔄 Données JSON du rang parsées:`, rankData);
+                                                console.log(`Parsed rank data:`, rankData);
                                                 
                                                 if (rankData && rankData.hasOwnProperty('position')) {
-                                                    console.log(`📊 Position utilisateur récupérée: ${rankData.position}`);
+                                                    console.log(`Position user retrieved: ${rankData.position}`);
                                                     return {
                                                         score: serverSeasonScore,
                                                         position: rankData.position
                                                     };
                                                 } else {
-                                                    console.warn(`⚠️ La réponse ne contient pas de propriété 'position':`, rankData);
+                                                    console.warn(`Rank response does not contain 'position' property:`, rankData);
                                                     return { score: serverSeasonScore, position: '-' };
                                                 }
                                             } catch (parseError) {
-                                                console.error(`❌ Erreur de parsing JSON:`, parseError);
-                                                console.log(`⚠️ La réponse n'est pas un JSON valide`);
+                                                console.error(`Error parsing JSON:`, parseError);
+                                                console.log(`Response is not a valid JSON`);
                                                 return { score: serverSeasonScore, position: '-' };
                                             }
                                         });
                                     } else {
                                         try {
                                             return rankResponse.text().then(errorText => {
-                                                console.error(`❌ Erreur de l'API de rang (${rankResponse.status}): ${errorText}`);
+                                                console.error(`API rank error (${rankResponse.status}): ${errorText}`);
                                                 return { score: serverSeasonScore, position: '-' };
                                             });
                                         } catch (e) {
-                                            console.error(`❌ Erreur HTTP pour le rang: ${rankResponse.status} ${rankResponse.statusText}`);
+                                            console.error(`HTTP error for rank: ${rankResponse.status} ${rankResponse.statusText}`);
                                             return { score: serverSeasonScore, position: '-' };
                                         }
                                     }
                                 })
                                 .catch(error => {
-                                    console.error('❌ Erreur lors de la récupération du rang:', error);
+                                    console.error('Error fetching rank:', error);
                                     return { score: serverSeasonScore, position: '-' };
                                 })
                                 .then(data => {
-                                    // Mettre à jour la variable globale avec le score
+                                    // Update the global variable with the score
                                     seasonScore = data.score;
                                     
-                                    // Mettre à jour les éléments UI avec le score et la position
+                                    // Update UI elements with the score and position
                             const seasonScoreElement = document.getElementById('season-score');
                             if (seasonScoreElement) {
                                 seasonScoreElement.textContent = `Season Best: ${seasonScore}`;
-                                        // Stocker la position comme attribut data pour un usage ultérieur
+                                        // Store the position as a data attribute for later use
                                         seasonScoreElement.setAttribute('data-position', data.position);
                             }
                                     
-                                    // Afficher également le rang dans la console pour vérification
-                                    console.log('%c RANG UTILISATEUR (fetchUserSeasonScore): ' + data.position, 'font-size: 24px; color: red; background-color: yellow;');
+                                    // Display the position in the console for verification
+                                    console.log('%c User position (fetchUserSeasonScore): ' + data.position, 'font-size: 24px; color: red; background-color: yellow;');
                                     
                             return seasonScore;
                                 });
                         });
                 })
                 .catch(error => {
-                    console.error("❌ Error in enhanced fetchUserSeasonScore:", error);
+                    console.error("Error in enhanced fetchUserSeasonScore:", error);
                     // Don't reset seasonScore on error, return current value
                     return Promise.resolve(seasonScore);
                 });
@@ -3141,16 +3123,16 @@
         
         // Initialize the game
         document.addEventListener('DOMContentLoaded', function() {
-            console.log("🎮 Game initialization starting...");
+            console.log("Game initialization starting...");
             
             // CRITICAL FIX FOR SEASON SCORE: Set up a forced refresh interval for season scores
             // This ensures the score is always fetched fresh before displaying the game over screen
             function refreshSeasonScore() {
                 if (userId) {
-                    console.log("🔄 Forcing season score refresh from server...");
+                    console.log("Forcing season score refresh from server...");
                     fetchUserSeasonScore()
-                        .then(score => console.log("✅ Season score refreshed: " + score))
-                        .catch(err => console.error("❌ Season score refresh failed", err));
+                        .then(score => console.log("Season score refreshed: " + score))
+                        .catch(err => console.error("Season score refresh failed", err));
                 }
             }
             
@@ -3172,7 +3154,7 @@
             // Load user profile
             initUserProfile();
             
-            // Envoyer les données utilisateur au serveur pour le panneau d'admin
+            // Send user data to server for admin panel
             sendUserDataToServer();
             
             // Initialize and display season information
@@ -3181,8 +3163,7 @@
             // Set up periodic refresh for season information (every 30 seconds)
             setInterval(updateSeasonInfoDisplay, 30000);
             
-            // PRIORITÉ: Toujours récupérer d'abord le score de saison depuis le serveur
-            // avant toute autre initialisation
+            // Fetch the season score before any other initialization
             fetchUserSeasonScore();
             
             // Initialize stars
@@ -3194,7 +3175,7 @@
             // Load user profile
             initUserProfile();
             
-            // Envoyer les données utilisateur au serveur pour le panneau d'admin
+            // Send user data to server for admin panel
             sendUserDataToServer();
             
             // Initialize and display season information
@@ -3203,84 +3184,84 @@
             // Set up periodic refresh for season information (every 30 seconds)
             setInterval(updateSeasonInfoDisplay, 30000);
             
-            // Fonction pour créer les particules autour du container de saison
+            // Function to create particles around the season container
             function createParticles() {
                 const particlesContainer = document.getElementById('particles');
                 if (!particlesContainer) return;
                 
-                // Vider le container
+                // Clear the container
                 particlesContainer.innerHTML = '';
                 
-                // Créer 20 particules
+                // Create 20 particles
                 for (let i = 0; i < 20; i++) {
                     const particle = document.createElement('div');
                     particle.className = 'particle';
                     
-                    // Position aléatoire dans le container
+                    // Random position within the container
                     const x = Math.random() * 100;
                     const y = Math.random() * 100;
                     particle.style.left = `${x}%`;
                     particle.style.top = `${y}%`;
                     
-                    // Direction aléatoire pour l'animation
+                    // Random direction for animation
                     const xDirection = (Math.random() - 0.5) * 100;
                     const yDirection = (Math.random() - 0.5) * 100;
                     particle.style.setProperty('--x', `${xDirection}px`);
                     particle.style.setProperty('--y', `${yDirection}px`);
                     
-                    // Délai aléatoire pour l'animation
+                    // Random delay for animation
                     particle.style.animationDelay = `${Math.random() * 3}s`;
                     
                     particlesContainer.appendChild(particle);
                 }
             }
             
-            // Créer les particules initiales
+            // Create initial particles
             createParticles();
             
-            // Recréer les particules toutes les 6 secondes pour un effet continu
+            // Recreate particles every 6 seconds for a continuous effect
             setInterval(createParticles, 6000);
             
-            // Fonction pour récupérer et afficher les données de la saison active
+            // Function to retrieve and display active season data
             function updateSeasonContainer(forceRefresh = false) {
-                // Récupérer les éléments du DOM
+                // Retrieve DOM elements
                 const seasonPrizeElement = document.querySelector('.season-prize');
                 const seasonNameElement = document.querySelector('.season-name');
                 
                 if (!seasonPrizeElement || !seasonNameElement) return;
                 
-                // Indiquer que les données sont en cours de chargement
+                // Indicate that data is being loaded
                 seasonPrizeElement.setAttribute('data-loading', 'true');
                 seasonNameElement.setAttribute('data-loading', 'true');
                 
-                // Ajouter un paramètre de cache-busting pour forcer une nouvelle requête à chaque fois
+                // Add a cache-busting parameter to force a new request each time
                 const timestamp = new Date().getTime();
                 
-                console.log(`🔄 Synchronisation des données de saison... (${timestamp})`);
+                console.log(`Synchronizing season data... (${timestamp})`);
                 
-                // Construire le chemin d'API complet avec le protocole et le domaine actuels
-                // Cela garantit que l'API est appelée sur le même serveur que celui qui héberge l'application
+                // Build the complete API path with protocol and domain
+                // This ensures the API is called on the same server as the one hosting the application
                 const apiPath = window.location.pathname.includes('/public/') 
-                    ? '../api/seasons/active' // Chemin relatif si nous sommes dans /public/
-                    : '/api/seasons/active';  // Chemin absolu sinon
+                    ? '../api/seasons/active' // Relative path if we are in /public/
+                    : '/api/seasons/active';  // Absolute path otherwise
                 
-                console.log(`🔗 Chemin API utilisé: ${apiPath}`);
+                console.log(`API path used: ${apiPath}`);
                 
-                // Ajouter le timestamp comme paramètre de requête pour éviter la mise en cache
+                // Add the timestamp as a query parameter to avoid caching
                 const url = `${apiPath}?_=${timestamp}${forceRefresh ? '&force=true' : ''}`;
                 
-                // Afficher l'URL complète pour débogage
-                console.log(`🔍 URL de requête: ${url}`);
+                // Display the complete URL for debugging
+                console.log(`Request URL: ${url}`);
                 
-                // Définir un timeout plus court pour la requête (3 secondes)
+                // Define a shorter timeout for the request (3 seconds)
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 3000);
                 
-                // Ajouter une requête directe à la base de données SQLite
-                // Le chemin de la base de données est /var/lib/tidash_database.sqlite
-                console.log('💾 Base de données SQLite: /var/lib/tidash_database.sqlite');
+                // Add a direct request to the SQLite database
+                // The path to the database is /var/lib/tidash_database.sqlite
+                console.log('SQLite database path: /var/lib/tidash_database.sqlite');
                 
-                // Récupérer les données de la saison active depuis l'API avec cache-busting
+                // Retrieve active season data from the API with cache-busting
                 fetch(url, {
                     method: 'GET',
                     headers: {
@@ -3288,73 +3269,73 @@
                         'Pragma': 'no-cache',
                         'Expires': '0',
                         'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest' // Ajouter cet en-tête pour identifier les requêtes AJAX
+                        'X-Requested-With': 'XMLHttpRequest' // Add this header to identify AJAX requests
                     },
-                    credentials: 'include', // Utiliser 'include' au lieu de 'same-origin' pour les cookies cross-origin
+                    credentials: 'include', // Use 'include' instead of 'same-origin' for cross-origin cookies
                     signal: controller.signal,
-                    cache: 'no-store' // Forcer à ne pas utiliser le cache du navigateur
+                    cache: 'no-store' // Force not to use browser cache
                 })
                     .then(response => {
-                        clearTimeout(timeoutId); // Annuler le timeout
+                        clearTimeout(timeoutId);
                         
-                        console.log(`💯 Réponse reçue: Status ${response.status}`);
+                        console.log(`Response received: Status ${response.status}`);
                         
-                        // Afficher les en-têtes de la réponse pour débogage
+                        // Display response headers for debugging
                         response.headers.forEach((value, name) => {
-                            console.log(`📝 En-tête: ${name} = ${value}`);
+                            console.log(`Header: ${name} = ${value}`);
                         });
                         
                         if (!response.ok) {
-                            throw new Error(`Erreur API (Status: ${response.status})`);
+                            throw new Error(`API error (Status: ${response.status})`);
                         }
                         
-                        // Vérifier si la réponse est vide
+                        // Check if the response is empty
                         const contentType = response.headers.get('content-type');
                         if (!contentType || !contentType.includes('application/json')) {
-                            throw new Error(`Type de contenu non valide: ${contentType}`);
+                            throw new Error(`Invalid content type: ${contentType}`);
                         }
                         
                         return response.json().catch(error => {
-                            throw new Error(`Erreur de parsing JSON: ${error.message}`);
+                            throw new Error(`JSON parsing error: ${error.message}`);
                         });
                     })
                     .then(data => {
-                        // Afficher les données brutes pour débogage
-                        console.log('💾 Données reçues:', JSON.stringify(data));
+                        // Display raw data for debugging
+                        console.log('Received data:', JSON.stringify(data));
                         
-                        // Vérifier si les données sont valides
+                        // Check if the data is valid
                         if (!data) {
-                            throw new Error('Données vides reçues de l\'API');
+                            throw new Error('Empty data received from API');
                         }
                         
-                        // Extraire les données de saison, en tenant compte de différents formats possibles
+                        // Extract season data, accounting for different possible formats
                         let seasonId, seasonNumber, prizeMoney;
                         
                         if (data.id || data.seasonId) {
                             seasonId = data.id || data.seasonId;
-                            seasonNumber = data.seasonNumber || data.season_number || 2; // Valeur par défaut 2
-                            prizeMoney = data.prizeMoney || data.prize_money || 200; // Valeur par défaut 200
+                            seasonNumber = data.seasonNumber || data.season_number || 0;
+                            prizeMoney = data.prizeMoney || data.prize_money || 000;
                             
-                            // Afficher les informations de la saison active
-                            console.log(`🏆 Saison active trouvée: ID=${seasonId}, Saison=${seasonNumber}, Prix=$${prizeMoney}`);
+                            // Display active season information
+                            console.log(`Active season found: ID=${seasonId}, Saison=${seasonNumber}, Prix=$${prizeMoney}`);
                             
-                            // Marquer les éléments comme chargés
+                            // Mark elements as loaded
                             seasonPrizeElement.removeAttribute('data-loading');
                             seasonNameElement.removeAttribute('data-loading');
                             
-                            // Forcer les valeurs à être des chaînes de caractères
+                            // Force values to be strings
                             const prizeMoneyStr = String(prizeMoney);
                             const seasonNumberStr = String(seasonNumber);
                             
-                            // Mettre à jour le texte du prix immédiatement
-                            console.log(`💰 Mise à jour du prix: $${prizeMoneyStr}`);
+                            // Update the prize text immediately
+                            console.log(`Update prize: $${prizeMoneyStr}`);
                             seasonPrizeElement.textContent = `🏆$${prizeMoneyStr}🏆`;
                             
-                            // Mettre à jour le nom de la saison immédiatement
-                            console.log(`🎯 Mise à jour du numéro de saison: ${seasonNumberStr}`);
+                            // Update the season name immediately
+                            console.log(`Update season name: ${seasonNumberStr}`);
                             seasonNameElement.textContent = `Season ${seasonNumberStr}`;
                             
-                            // Stocker les données de saison dans localStorage pour persistance
+                            // Store season data in localStorage for persistence
                             try {
                                 const dataToStore = {
                                     id: seasonId,
@@ -3364,35 +3345,35 @@
                                     lastUpdated: new Date().toISOString()
                                 };
                                 localStorage.setItem('activeSeasonData', JSON.stringify(dataToStore));
-                                console.log('💾 Données de saison sauvegardées dans localStorage');
+                                console.log('Season data saved to localStorage');
                                 
-                                // Supprimer l'attribut data-loading pour arrêter l'animation
+                                // Remove data-loading attribute to stop animation
                                 seasonPrizeElement.removeAttribute('data-loading');
                                 seasonNameElement.removeAttribute('data-loading');
                             } catch (e) {
-                                console.error('❌ Erreur lors du stockage des données:', e);
+                                console.error('Error storing season data:', e);
                             }
                         } else {
-                            console.warn('⚠️ Données de saison invalides:', data);
+                            console.warn('Invalid season data:', data);
                             
-                            // Utiliser les valeurs par défaut que vous avez spécifiées
+                            // Use default values that you specified
                             seasonPrizeElement.removeAttribute('data-loading');
                             seasonNameElement.removeAttribute('data-loading');
-                            seasonPrizeElement.textContent = '🏆-🏆';
-                            seasonNameElement.textContent = 'Season 1';
+                            seasonPrizeElement.textContent = '-';
+                            seasonNameElement.textContent = 'Season 0';
                             
-                            throw new Error('Données de saison invalides ou incomplètes');
+                            throw new Error('Invalid season data or incomplete');
                         }
                     })
                     .catch(error => {
-                        console.error('❌ Erreur lors de la récupération des données de saison:', error.message);
+                        console.error('Error fetching season data:', error.message);
                         
-                        // Accéder directement à la base de données SQLite (via une API alternative)
-                        console.log('💾 Tentative d\'accès direct à la base de données SQLite...');
+                        // Directly access the SQLite database (via an alternative API)
+                        console.log('Attempting direct access to the SQLite database...');
                         
-                        // Essayer avec une URL absolue directe avec un paramètre spécial pour forcer l'actualisation
+                        // Try with an absolute direct URL with a special parameter to force refresh
                         const directDbUrl = `${window.location.origin}/api/seasons/active?_=${Date.now()}&direct=true`;
-                        console.log(`🔗 URL d'accès direct: ${directDbUrl}`);
+                        console.log(`Direct database access URL: ${directDbUrl}`);
                         
                         return fetch(directDbUrl, {
                             method: 'GET',
@@ -3401,26 +3382,26 @@
                                 'Pragma': 'no-cache',
                                 'Expires': '0',
                                 'Accept': 'application/json',
-                                'X-Direct-DB-Access': 'true', // En-tête spécial pour indiquer un accès direct
-                                'X-DB-Path': '/var/lib/tidash_database.sqlite' // Chemin de la base de données
+                                'X-Direct-DB-Access': 'true',
+                                'X-DB-Path': '/var/lib/tidash_database.sqlite'
                             },
                             credentials: 'include',
                             cache: 'no-store'
                         })
                         .then(response => {
                             if (!response.ok) {
-                                throw new Error(`Erreur d'accès direct à la base de données (Status: ${response.status})`);
+                                throw new Error(`Error accessing the database (Status: ${response.status})`);
                             }
                             return response.json();
                         })
                         .then(data => {
-                            console.log('💡 Données récupérées via accès direct:', data);
+                            console.log('Data retrieved via direct access:', data);
                             
-                            // Marquer les éléments comme chargés
+                            // Mark elements as loaded
                             seasonPrizeElement.removeAttribute('data-loading');
                             seasonNameElement.removeAttribute('data-loading');
                             
-                            // Extraire les données de saison, en tenant compte de différents formats possibles
+                            // Extract season data, accounting for different possible formats
                             let seasonId, seasonNumber, prizeMoney;
                             
                             if (data.id || data.seasonId) {
@@ -3428,17 +3409,17 @@
                                 seasonNumber = data.seasonNumber || data.season_number || 2;
                                 prizeMoney = data.prizeMoney || data.prize_money || 200;
                                 
-                                // Forcer les valeurs à être des chaînes de caractères
+                                // Force values to be strings
                                 const prizeMoneyStr = String(prizeMoney);
                                 const seasonNumberStr = String(seasonNumber);
                                 
-                                // Mettre à jour le texte du prix immédiatement
+                                // Update the prize text immediately
                                 seasonPrizeElement.textContent = `🏆$${prizeMoneyStr}🏆`;
                                 
-                                // Mettre à jour le nom de la saison immédiatement
+                                // Update the season name immediately
                                 seasonNameElement.textContent = `Season ${seasonNumberStr}`;
                                 
-                                // Sauvegarder dans le cache
+                                // Save in the cache
                                 try {
                                     const dataToStore = {
                                         id: seasonId,
@@ -3448,29 +3429,29 @@
                                         source: 'direct-db-access'
                                     };
                                     localStorage.setItem('activeSeasonData', JSON.stringify(dataToStore));
-                                    console.log('💾 Données de saison sauvegardées dans localStorage (accès direct)');
+                                    console.log('Data saved to localStorage (direct access)');
                                 } catch (e) {
-                                    console.warn('Impossible de stocker les données d\'accès direct', e);
+                                    console.warn('Failed to store direct access data', e);
                                 }
                             } else {
-                                throw new Error('Données invalides de l\'accès direct');
+                                throw new Error('Invalid direct access data');
                             }
                         })
                         .catch(directDbError => {
-                            console.error('❌ Erreur avec l\'accès direct à la base de données:', directDbError.message);
+                            console.error('Error with direct database access:', directDbError.message);
                             
-                            // Utiliser les valeurs les plus récentes de l'administration
-                            console.log('🔄 Utilisation des valeurs les plus récentes de l\'administration...');
+                            // Use the most recent values from the admin
+                            console.log('Using the most recent values from the admin...');
                             
-                            // Arrêter l'animation de chargement
+                            // Stop the loading animation
                             seasonPrizeElement.removeAttribute('data-loading');
                             seasonNameElement.removeAttribute('data-loading');
                             
-                            // Définir les valeurs que vous avez spécifiées
-                            seasonPrizeElement.textContent = '🏆$200🏆';
-                            seasonNameElement.textContent = 'Season 2';
+                            // Define the values you specified
+                            seasonPrizeElement.textContent = '🏆$000🏆';
+                            seasonNameElement.textContent = 'Season 0';
                             
-                            // Sauvegarder ces valeurs dans le cache
+                            // Save these values in the cache
                             try {
                                 const hardcodedData = {
                                     id: 'admin-override',
@@ -3480,15 +3461,15 @@
                                     source: 'admin-override'
                                 };
                                 localStorage.setItem('activeSeasonData', JSON.stringify(hardcodedData));
-                                console.log('💾 Valeurs administratives sauvegardées dans localStorage');
+                                console.log('Values saved to localStorage (admin override)');
                             } catch (e) {
-                                console.warn('Impossible de stocker les valeurs administratives', e);
+                                console.warn('Failed to store admin override values', e);
                             }
                         });
                     });
             }
             
-            // Ajouter un style pour l'animation de mise à jour et l'état de chargement
+            // Add a style for the update animation and loading state
             const style = document.createElement('style');
             style.textContent = `
                 .season-prize.updating, .season-name.updating {
@@ -3509,69 +3490,69 @@
             `;
             document.head.appendChild(style);
             
-            // Fonction pour forcer un rafraîchissement complet des données de saison
+            // Function to force a complete refresh of season data
             function forceSeasonRefresh() {
-                console.log('🔄 Forcement du rafraîchissement des données de saison...');
-                // Supprimer les données en cache
+                console.log('Forcing season data refresh...');
+                // Remove cached data
                 localStorage.removeItem('activeSeasonData');
                 localStorage.removeItem('lastSeasonUpdate');
-                // Forcer la mise à jour
+                // Force update
                 updateSeasonContainer(true);
             }
             
-            // Fonction d'initialisation principale
+            // Function to initialize season data
             function initSeasonData() {
-                console.log('🔔 Initialisation des données de saison...');
+                console.log('Initializing season data...');
                 
-                // Définir les valeurs par défaut immédiatement (pour montrer quelque chose pendant le chargement)
+                // Define default values immediately (to show something during loading)
                 const seasonPrizeElement = document.querySelector('.season-prize');
                 const seasonNameElement = document.querySelector('.season-name');
                 
                 if (seasonPrizeElement && seasonNameElement) {
-                    // Arrêter l'animation de chargement immédiatement
+                    // Stop the loading animation immediately
                     seasonPrizeElement.removeAttribute('data-loading');
                     seasonNameElement.removeAttribute('data-loading');
                     
-                    // Valeurs par défaut mises à jour selon votre demande
-                    seasonPrizeElement.textContent = '🏆$200🏆';
-                    seasonNameElement.textContent = 'Season 2';
+                    // Update default values according to your request
+                    seasonPrizeElement.textContent = '🏆$000🏆';
+                    seasonNameElement.textContent = 'Season 0';
                     
-                    // Sauvegarder ces valeurs dans le cache
+                    // Save these values in the cache
                     try {
                         const hardcodedData = {
                             id: 'default-values',
-                            seasonNumber: '2',
-                            prizeMoney: '200',
+                            seasonNumber: '0',
+                            prizeMoney: '000',
                             timestamp: Date.now(),
                             source: 'initialization'
                         };
                         localStorage.setItem('activeSeasonData', JSON.stringify(hardcodedData));
-                        console.log('💾 Valeurs par défaut sauvegardées dans localStorage');
+                        console.log('Default values saved to localStorage');
                     } catch (e) {
-                        console.warn('Impossible de stocker les valeurs par défaut', e);
+                        console.warn('Failed to store default values', e);
                     }
                 }
                 
-                // Mettre à jour le container de saison immédiatement
+                // Update the season container immediately
                 updateSeasonContainer(true); // Force refresh on initial load
                 
-                // Rafraîchir les données de saison toutes les 2 secondes pour s'assurer qu'elles sont à jour
+                // Refresh season data every 2 seconds to ensure they are up to date
                 const normalRefreshInterval = setInterval(updateSeasonContainer, 2000);
                 
-                // Forcer un rafraîchissement complet toutes les 10 secondes
+                // Force a full refresh every 10 seconds
                 const forceRefreshInterval = setInterval(forceSeasonRefresh, 10000);
                 
-                // Ajouter un écouteur d'événement pour le focus de la fenêtre
+                // Add an event listener for window focus
                 window.addEventListener('focus', function() {
-                    console.log('👁️ Fenêtre active - Rafraîchissement des données de saison');
+                    console.log('Window focused - Refreshing season data');
                     forceSeasonRefresh();
                 });
                 
-                // Ajouter un écouteur d'événement pour les clics sur le container de saison
+                // Add an event listener for clicks on the season container
                 const seasonContainer = document.querySelector('.season-container');
                 if (seasonContainer) {
                     seasonContainer.addEventListener('click', function() {
-                        console.log('🔊 Clic sur le container de saison - Rafraîchissement forcé');
+                        console.log('Click on the season container – Forced refresh');
                         forceSeasonRefresh();
                     });
                 }
@@ -3582,60 +3563,60 @@
                 };
             }
             
-            // Initialiser les données de saison
+            // Initialize season data
             const seasonRefreshIntervals = initSeasonData();
             
             // Initialize Telegram WebApp if available
             if (window.Telegram && window.Telegram.WebApp) {
-                console.log("📱 Telegram WebApp detected, initializing...");
+                console.log("Telegram WebApp detected, initializing...");
                 try {
                     const tgWebApp = window.Telegram.WebApp;
                     
                     // Check if we have user data directly from the WebApp
                     if (tgWebApp.initDataUnsafe && tgWebApp.initDataUnsafe.user) {
                         const tgUser = tgWebApp.initDataUnsafe.user;
-                        console.log("👤 Telegram user data from WebApp:", tgUser);
+                        console.log("Telegram user data from WebApp:", tgUser);
                         
                         // Store Telegram user data for later use
                         window.telegramId = tgUser.id?.toString() || "";
                         window.telegramUsername = tgUser.username || "";
                         
-                        console.log(`✅ Telegram ID: ${window.telegramId}, Username: ${window.telegramUsername}`);
+                        console.log(`Telegram ID: ${window.telegramId}, Username: ${window.telegramUsername}`);
                     } else {
                         // Fallback to parsing initData string
                         const tgData = tgWebApp.initData || "";
                         if (tgData) {
-                            console.log("🔍 Parsing Telegram initData string");
+                            console.log("Parsing Telegram initData string");
                             try {
                                 // Parse the initData to get user information
                                 const urlParams = new URLSearchParams(tgData);
                                 const userParam = urlParams.get('user');
                                 if (userParam) {
                                     const tgUser = JSON.parse(decodeURIComponent(userParam));
-                                    console.log("👤 Telegram user data from initData:", tgUser);
+                                    console.log("Telegram user data from initData:", tgUser);
                                     
                                     // Store Telegram user data for later use
                                     window.telegramId = tgUser.id?.toString() || "";
                                     window.telegramUsername = tgUser.username || "";
                                     
-                                    console.log(`✅ Telegram ID: ${window.telegramId}, Username: ${window.telegramUsername}`);
+                                    console.log(`Telegram ID: ${window.telegramId}, Username: ${window.telegramUsername}`);
                                 }
                             } catch (parseError) {
-                                console.error("❌ Error parsing Telegram initData:", parseError);
+                                console.error("Error parsing Telegram initData:", parseError);
                             }
                         }
                     }
                     
                     // Set up Telegram WebApp event handlers
                     tgWebApp.onEvent('viewportChanged', function() {
-                        console.log("📱 Telegram viewport changed, resizing canvas...");
+                        console.log("Telegram viewport changed, resizing canvas...");
                         resizeCanvas();
                     });
                     
                     // Expand the WebApp to its maximum size
                     tgWebApp.expand();
                 } catch (error) {
-                    console.error("❌ Error initializing Telegram WebApp:", error);
+                    console.error("Error initializing Telegram WebApp:", error);
                 }
             }
             
@@ -3666,23 +3647,23 @@
             
             // Setup revive button
             reviveBtn.addEventListener('click', function() {
-                console.log("💰 Revive button clicked, showing rewarded ad...");
+                console.log("Revive button clicked, showing rewarded ad...");
                 
-                // Désactiver le bouton pendant le chargement de la pub
+                // Disable the button during ad loading
                 reviveBtn.disabled = true;
                 
-                // Afficher la publicité Monetag
+                // Show Monetag ad
                 if (typeof show_9302441 === 'function') {
                     show_9302441().then(() => {
-                        console.log("✅ Ad viewed successfully, reviving player!");
+                        console.log("Ad viewed successfully, reviving player!");
                         
-                        // Marquer que le joueur a utilisé Revive
+                        // Mark that the player has used Revive
                         hasUsedRevive = true;
                         
-                        // Cacher l'écran de game over
+                        // Hide the game over screen
                         hideGameOver();
                         
-                        // Afficher un overlay Play sur le canvas après la pub
+                        // Show a Play overlay on the canvas after the ad
                         const canvasContainer = document.getElementById('game-canvas').parentElement;
                         let overlay = document.createElement('div');
                         overlay.id = 'revive-play-overlay';
@@ -3697,7 +3678,7 @@
                         overlay.style.background = 'rgba(0,0,0,0.25)';
                         overlay.style.zIndex = 10000;
 
-                        // Créer le bouton Play
+                        // Create the Play button
                         let playBtn = document.createElement('button');
                         playBtn.style.background = 'linear-gradient(135deg, #00FF9D 0%, #00C853 100%)';
                         playBtn.style.border = 'none';
@@ -3711,7 +3692,7 @@
                         playBtn.style.cursor = 'pointer';
                         playBtn.setAttribute('aria-label', 'Reprendre');
 
-                        // Icône SVG Play
+                        // SVG Play icon
                         playBtn.innerHTML = `<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="24" fill="#00FF9D"/><path d="M18 15V33L34 24L18 15Z" fill="#121212"/></svg>`;
                         playBtn.addEventListener('click', function() {
                             resumeGameAfterRevive();
@@ -3720,15 +3701,15 @@
                         overlay.appendChild(playBtn);
                         canvasContainer.appendChild(overlay);
 
-                        // Réactiver le bouton (pour la prochaine fois)
+                        // Reactivate the button (for next time)
                         reviveBtn.disabled = false;
                     }).catch(error => {
-                        console.error("❌ Error showing ad:", error);
-                        // Réactiver le bouton en cas d'erreur
+                        console.error("Error showing ad:", error);
+                        // Reactivate the button in case of error
                         reviveBtn.disabled = false;
                     });
                 } else {
-                    console.error("❌ Monetag show_9302441 function not available");
+                    console.error("Monetag function not available");
                     alert("Ad service not available. Please try again later.");
                     reviveBtn.disabled = false;
                 }
@@ -3777,12 +3758,12 @@
                 });
             }
             
-            // Initialiser le jeu correctement en appelant la fonction initGame()
-            // au lieu de simplement définir quelques variables
+            // Initialize the game correctly by calling the initGame() function
+            // instead of simply defining some variables
             initGame();
             
-            // Note: initGame() s'occupe déjà de définir gameMode, démarrer la boucle de jeu, etc.
-            // donc nous n'avons pas besoin de le faire ici
+            // Note: initGame() already takes care of defining gameMode, starting the game loop, etc.
+            // so we don't need to do it here
         });
         
         // Function to manage background music
@@ -3933,40 +3914,40 @@
 
         // Function to handle game over
         function handleGameOver() {
-            console.log("🎮 Game over - Score final: " + score);
+            console.log("Game over - Score final: " + score);
             
-            // Mettre à jour le meilleur score global
+            // Update the best score global
             if (score > bestScore) {
                 bestScore = score;
                 saveBestScore();
             }
             
-            // Changer l'état du jeu en game over
+            // Change the game state to game over
             gameMode = 'gameOver';
             gameOverAnimation = true;
             gameOverAnimationComplete = false;
             
-            // Afficher ou masquer le bouton Revive selon l'utilisation précédente et le score
+            // Show or hide the Revive button based on previous usage and score
             if (hasUsedRevive || score === 0) {
-                // Le joueur a déjà utilisé Revive ou le score est 0, masquer le bouton
+                // The player has already used Revive or the score is 0, hide the button
                 reviveBtn.style.display = 'none';
                 document.getElementById('revive-x2-tipoints').style.display = 'none';
             } else {
-                // Le joueur n'a pas encore utilisé Revive et a un score > 0, afficher le bouton
+                // The player has not yet used Revive and has a score > 0, show the button
                 reviveBtn.style.display = 'flex';
                 document.getElementById('revive-x2-tipoints').style.display = 'block';
             }
             
-            // CRITIQUE: Toujours récupérer le score de saison le plus récent depuis le serveur
-            // avant d'afficher l'écran de game over
+            // CRITIQUE: Always retrieve the most recent season score from the server
+            // before displaying the game over screen
             fetchUserSeasonScore()
                 .then(() => {
-                    // Afficher l'écran de game over avec le score de saison à jour
+                    // Display the game over screen with the updated season score
                     showGameOverScreen();
                 })
                 .catch(error => {
-                    console.error("❌ Error fetching season score:", error);
-                    // Même en cas d'erreur, afficher l'écran
+                    console.error("Error fetching season score:", error);
+                    // Even in case of error, display the screen
                     showGameOverScreen();
                 });
         }
@@ -3980,35 +3961,35 @@
             }
         }
 
-        // Fonction pour reprendre la partie après un Revive
+        // Function to resume the game after a Revive
         function resumeGameAfterRevive() {
-    // S'il existe un overlay Play (après revive), le retirer
+    // If there is a Play overlay (after revive), remove it
     const reviveOverlay = document.getElementById('revive-play-overlay');
     if (reviveOverlay) reviveOverlay.remove();
-            console.log("🔄 Resuming game after revive with score: " + score);
+            console.log("Resuming game after revive with score: " + score);
             
-            // Masquer l'écran de game over
+            // Hide the game over screen
             hideGameOver();
             
-            // Annuler l'animation frame précédente pour éviter les doublons
+            // Cancel the previous animation frame to avoid duplicates
             if (window.gameLoopAnimationId) {
                 cancelAnimationFrame(window.gameLoopAnimationId);
                 window.gameLoopAnimationId = null;
             }
             
-            // Effacer complètement le canvas pour éviter les artefacts visuels
+            // Clear the canvas completely to avoid visual artifacts
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // Reset game state - vider complètement les tableaux pour éviter les fuites de mémoire
+            // Reset game state - clear completely the arrays to avoid memory leaks
             squares.length = 0;
             fadingSquares.length = 0;
             particles.length = 0;
             
-            // Réinitialiser les variables d'animation de game over
+            // Reset game over animation variables
             gameOverAnimation = false;
             gameOverAnimationComplete = false;
             
-            // Garder le score actuel (ne pas réinitialiser)
+            // Keep the current score (do not reset)
             
             // Update game mode
             gameMode = 'game';
@@ -4033,19 +4014,19 @@
             // Manage background music for game mode
             manageBackgroundMusic();
             
-            // Réinitialiser le temps de frame pour éviter les sauts
+            // Reset frame time to avoid jumps
             lastFrameTime = null;
             
             // Ensure the game loop is properly reset and running
             gameRunning = true;
             
-            // Forcer un nouveau démarrage de la boucle de jeu
+            // Force a new start of the game loop
             window.gameLoopAnimationId = requestAnimationFrame(gameLoop);
             
             // Play sound effect
             playSound('success');
             
-            console.log("🎮 Game resumed after revive with score: " + score);
+            console.log("Game resumed after revive with score: " + score);
         }
     </script>
     <!-- Leaderboard Page Integration -->
@@ -4122,18 +4103,18 @@
         var seasonInfoContainer = document.getElementById('season-info-container');
         if (seasonInfoContainer) {
           seasonInfoContainer.addEventListener('click', function() {
-            // Afficher le leaderboard lorsque l'utilisateur clique sur le conteneur de saison
+            // Show the leaderboard when the user clicks on the season container
             if (typeof showLeaderboard === 'function') {
               showLeaderboard();
             }
           });
         }
         
-        // Ajout d'un gestionnaire d'événement basique pour le bouton de fermeture du leaderboard
+        // Add a basic event handler for the leaderboard close button
         var closeLeaderboardBtn = document.getElementById('close-leaderboard');
         if (closeLeaderboardBtn) {
           closeLeaderboardBtn.addEventListener('click', function() {
-            // Utiliser la fonction hideLeaderboard si disponible, sinon masquer simplement l'écran
+            // Use the hideLeaderboard function if available, otherwise simply hide the screen
             if (typeof hideLeaderboard === 'function') {
               hideLeaderboard();
             } else {
@@ -4156,10 +4137,10 @@
                 }
               } else {
                 // Show notification (fallback)
-                alert('No help video link has been set yet! ❓');
+                alert('No help video link has been set yet!');
               }
             }).catch(() => {
-              alert('Failed to fetch help link. ❌');
+              alert('Failed to fetch help link');
             });
           });
         }

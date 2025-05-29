@@ -2,7 +2,7 @@
 // Only handles overlay creation, display, and data fetch. No other logic is touched.
 
 (function() {
-    // Affiche l'overlay scoretotal
+    // Display the scoretotal overlay
     function showScoretotalOverlay() {
         const overlay = document.getElementById('scoretotal-overlay');
         if (overlay) {
@@ -10,16 +10,16 @@
             fetchScoretotalAndUpdate();
         }
     }
-    // Cache l'overlay scoretotal
+    // Hide the scoretotal overlay
     function hideScoretotalOverlay() {
         const overlay = document.getElementById('scoretotal-overlay');
         if (overlay) overlay.style.display = 'none';
     }
-    // Injecte le contenu de l'overlay dans le div #scoretotal-overlay déjà présent dans le DOM
+    // Inject the overlay content into the div #scoretotal-overlay already present in the DOM
     function injectScoretotalOverlayContent() {
         const overlay = document.getElementById('scoretotal-overlay');
         if (!overlay) return;
-        if (overlay.dataset.filled === '1') return; // déjà injecté
+        if (overlay.dataset.filled === '1') return; // already injected
         overlay.innerHTML = '';
         overlay.style.position = 'fixed';
         overlay.style.top = '0';
@@ -235,13 +235,13 @@
     // Fetch user scoretotal (logic identical to updateScoreTotalDisplay)
     function fetchScoretotalAndUpdate() {
         const userIdOrDeviceId = (window.getCurrentUserIdOrDeviceId && window.getCurrentUserIdOrDeviceId()) || null;
-        // Toujours afficher l'overlay avec des valeurs par défaut si pas de données
+        // Always display the overlay with default values if no data
         function showFallback() {
             document.getElementById('scoretotal-overlay-value').textContent = '-';
             document.getElementById('scoretotal-overlay-percent').textContent = '0%';
             document.getElementById('scoretotal-overlay-bar').style.width = '0%';
             document.getElementById('scoretotal-overlay-score').textContent = '-';
-            // Message explicite
+            // Explicit fallback message
             let fallbackMsg = document.getElementById('scoretotal-overlay-fallback-msg');
             if (!fallbackMsg) {
                 fallbackMsg = document.createElement('div');
@@ -250,7 +250,7 @@
                 fallbackMsg.style.fontSize = '1.05rem';
                 fallbackMsg.style.margin = '16px 0 0 0';
                 fallbackMsg.style.textAlign = 'center';
-                fallbackMsg.textContent = 'Aucune donnée de score disponible pour ce compte.';
+                fallbackMsg.textContent = 'No score data available for this account.';
                 document.getElementById('scoretotal-overlay').appendChild(fallbackMsg);
             } else {
                 fallbackMsg.style.display = 'block';
@@ -266,14 +266,14 @@
                 return null;
             })
             .then(data => {
-                // Masquer le message fallback si on a des données
+                // Hide the fallback message if we have data
                 let fallbackMsg = document.getElementById('scoretotal-overlay-fallback-msg');
                 if (fallbackMsg) fallbackMsg.style.display = 'none';
                 if (data && typeof data.scoretotal === 'number') {
                     const score = Math.round(data.scoretotal);
                     document.getElementById('scoretotal-overlay-value').textContent = score.toLocaleString('en-US');
                     let percent = (score / 100000 * 100);
-                    let percentStr = percent.toFixed(3).replace(/\.0{1,3}$/, ''); // Enlève .000 si entier
+                    let percentStr = percent.toFixed(3).replace(/\.0{1,3}$/, '');
                     document.getElementById('scoretotal-overlay-percent').textContent = percentStr + '%';
                     document.getElementById('scoretotal-overlay-bar').style.width = (Math.max(0.01, Math.min(100, percent))) + '%';
                     document.getElementById('scoretotal-overlay-score').textContent = score.toLocaleString('en-US');
@@ -305,7 +305,7 @@
         }
     }
 
-    // Nouvelle logique de binding
+    // New binding logic
     window.addEventListener('DOMContentLoaded', function() {
         injectScoretotalOverlayContent();
         bindScoretotalOverlayTriggers();

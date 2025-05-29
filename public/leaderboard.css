@@ -69,13 +69,7 @@ html, body, #leaderboard-screen, * {
     font-weight: 500;
 }
 
-    background-color: rgba(255,255,255,0.08);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    transition: background 0.2s;
-}
+
 .leaderboard-title-section {
     display: flex;
     flex-direction: column;
