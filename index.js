@@ -379,7 +379,7 @@ bot.start((ctx) => {
       inline_keyboard: [
         [{ text: 'Play 🚀', web_app: { url: webAppUrl } }],
         [{ text: 'Help ❓', callback_data: 'show_help' }],
-        [{ text: 'Talk Hub 🌐', url: 'https://t.me/TiDash_Hub' }],
+        [{ text: 'ECO 🌐', url: 'https://eco.framer.wiki/' }],
       ]
     }
   }).then(() => {

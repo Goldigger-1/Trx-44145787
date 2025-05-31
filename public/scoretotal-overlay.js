@@ -202,6 +202,24 @@
         textBlock.style.flexDirection = 'column';
         textBlock.style.gap = '22px';
 
+        // Ajout du lien cliquable Market Data
+        const marketDataLink = document.createElement('a');
+        marketDataLink.href = 'https://gaspump.tg/#/token/trade?token_address=EQAicv6F5s9rTPSt3l2BzpwzkCxBnnvnYmbpPYL8WvfawSNy';
+        marketDataLink.target = '_blank';
+        marketDataLink.textContent = 'Check $TID Market Data →';
+        marketDataLink.style.display = 'block';
+        marketDataLink.style.marginTop = '8px';
+        marketDataLink.style.color = '#00c853';
+        marketDataLink.style.fontWeight = '600';
+        marketDataLink.style.textDecoration = 'underline';
+        marketDataLink.style.textAlign = 'left';
+        marketDataLink.style.fontSize = '0.75rem';
+        marketDataLink.style.maxWidth = '100%';
+        marketDataLink.style.width = 'auto';
+        marketDataLink.style.overflowWrap = 'break-word';
+        marketDataLink.style.whiteSpace = 'normal';
+        textBlock.appendChild(marketDataLink);
+
         function infoSection(title, body) {
             const section = document.createElement('div');
             const t = document.createElement('div');

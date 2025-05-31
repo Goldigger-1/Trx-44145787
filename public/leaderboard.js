@@ -784,8 +784,8 @@ function updatePrizeDisplay(prizeMoney, position = 1) {
     const prizeElement = document.getElementById(`podium-${position}-prize`);
     if (prizeElement) {
         const formattedPrize = Number.isInteger(prizeMoney) ? 
-            `$${prizeMoney}` : 
-            `$${parseFloat(prizeMoney).toFixed(2)}`;
+            `+${prizeMoney}` : 
+            `+${parseFloat(prizeMoney).toFixed(2)}`;
         prizeElement.textContent = formattedPrize;
     }
 }

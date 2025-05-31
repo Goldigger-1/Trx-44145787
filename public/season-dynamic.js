@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 seasonCircleText.textContent = `S${data.seasonNumber}`;
             }
             if (seasonPrizeText && data.prizeMoney !== undefined) {
-                seasonPrizeText.textContent = `$${data.prizeMoney} Prize`;
+                seasonPrizeText.textContent = `$TID +${data.prizeMoney}`;
             }
         })
         .catch(() => {
