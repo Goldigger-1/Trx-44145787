@@ -213,7 +213,7 @@
         marketDataLink.style.fontWeight = '600';
         marketDataLink.style.textDecoration = 'underline';
         marketDataLink.style.textAlign = 'left';
-        marketDataLink.style.fontSize = '0.75rem';
+        marketDataLink.style.fontSize = '0.90rem';
         marketDataLink.style.maxWidth = '100%';
         marketDataLink.style.width = 'auto';
         marketDataLink.style.overflowWrap = 'break-word';
@@ -225,7 +225,7 @@
             const t = document.createElement('div');
             t.textContent = title;
             t.style.fontWeight = '600';
-            t.style.fontSize = '0.92rem';
+            t.style.fontSize = '0.90rem';
             t.style.color = '#fff';
             t.style.marginBottom = '2px';
             section.appendChild(t);
