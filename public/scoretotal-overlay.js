@@ -126,7 +126,7 @@
         progressGroup.style.flexDirection = 'column';
         progressGroup.style.gap = '6px';
 
-        // First line: % and 10.00 $TID
+        // First line: % and 50.00 $TID
         const progressTop = document.createElement('div');
         progressTop.style.display = 'flex';
         progressTop.style.justifyContent = 'space-between';
@@ -145,7 +145,7 @@
         progressTop.appendChild(percentLabel);
 
         const cashLabel = document.createElement('div');
-        cashLabel.textContent = '10.00 $TID';
+        cashLabel.textContent = '50.00 $TID';
         cashLabel.style.color = '#00FF9D';
         cashLabel.style.fontSize = '0.92rem';
         cashLabel.style.fontWeight = '600';
@@ -291,7 +291,7 @@
                     const score = Math.round(data.scoretotal);
                     document.getElementById('scoretotal-overlay-value').textContent = score.toLocaleString('en-US');
                     let percent = (score / 100000 * 100);
-                    let percentStr = percent.toFixed(3).replace(/\.0{1,3}$/, '');
+                    let percentStr = percent.toFixed(2).replace(/\.0{1,2}$/, '');
                     document.getElementById('scoretotal-overlay-percent').textContent = percentStr + '%';
                     document.getElementById('scoretotal-overlay-bar').style.width = (Math.max(0.01, Math.min(100, percent))) + '%';
                     document.getElementById('scoretotal-overlay-score').textContent = score.toLocaleString('en-US');

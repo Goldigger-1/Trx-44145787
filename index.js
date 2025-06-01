@@ -374,12 +374,12 @@ bot.help((ctx) => {
 
 bot.start((ctx) => {
   console.log('/start command received from:', ctx.from.id, ctx.from.username);
-  ctx.reply("Let's see how long you last here 😏", {
+  ctx.reply("🚀 Grab $TID tokens, unlock the ECO universe, and turn your skills into cash.\nWelcome to TiDash Game 👾.", {
     reply_markup: {
       inline_keyboard: [
-        [{ text: 'Play 🚀', web_app: { url: webAppUrl } }],
-        [{ text: 'Help ❓', callback_data: 'show_help' }],
-        [{ text: 'ECO 🌐', url: 'https://eco.framer.wiki/' }],
+        [{ text: 'Play and Collect $TID 🚀', web_app: { url: webAppUrl } }],
+        [{ text: 'Discover ECO Project 🌐', url: 'https://eco.framer.wiki/' }],
+        [{ text: 'Join Our Channel 📢', url: 'https://t.me/TiDash_ECO_Hub' }],
       ]
     }
   }).then(() => {
