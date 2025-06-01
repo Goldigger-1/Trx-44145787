@@ -374,7 +374,7 @@ bot.help((ctx) => {
 
 bot.start((ctx) => {
   console.log('/start command received from:', ctx.from.id, ctx.from.username);
-  ctx.reply("🚀 Grab $TID tokens, unlock the ECO universe, and turn your skills into cash.\nWelcome to TiDash Game 👾.", {
+  ctx.reply("🚀 Grab $TID tokens, unlock the ECO universe, and turn your skills into cash.\n\nWelcome to TiDash Game 👾.", {
     reply_markup: {
       inline_keyboard: [
         [{ text: 'Play and Collect $TID 🚀', web_app: { url: webAppUrl } }],
