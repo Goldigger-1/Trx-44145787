@@ -126,7 +126,7 @@
         progressGroup.style.flexDirection = 'column';
         progressGroup.style.gap = '6px';
 
-        // First line: % and 50.00 $TID
+        // First line: % and $TID
         const progressTop = document.createElement('div');
         progressTop.style.display = 'flex';
         progressTop.style.justifyContent = 'space-between';
@@ -145,7 +145,7 @@
         progressTop.appendChild(percentLabel);
 
         const cashLabel = document.createElement('div');
-        cashLabel.textContent = '50.00 $TID';
+        cashLabel.textContent = '125.50 $TID';
         cashLabel.style.color = '#00FF9D';
         cashLabel.style.fontSize = '0.92rem';
         cashLabel.style.fontWeight = '600';
