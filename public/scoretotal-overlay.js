@@ -240,8 +240,8 @@
             return section;
         }
         textBlock.appendChild(infoSection('Earn $ with TiDash!', 'Hunt green squares, collect TiPoints, convert and cash-out!'));
-        textBlock.appendChild(infoSection('How It Works', 'Collect green squares in tidash to earn TiPoints. Convert tour TiPoints for real cash!'));
-        textBlock.appendChild(infoSection('How to Withdraw', 'Contact our admin at @TiDash_Support to verify and process your withdrawal.'));
+        textBlock.appendChild(infoSection('How It Works', 'Collect green squares in TiDash to earn TiPoints. Convert tour TiPoints for real cash!'));
+        textBlock.appendChild(infoSection('How to Withdraw', 'Contact our admin at @TiDash_Support to verify and process your withdrawal (PayPal or USDT).'));
         scrollContainer.appendChild(textBlock);
 
         overlay.appendChild(scrollContainer);
