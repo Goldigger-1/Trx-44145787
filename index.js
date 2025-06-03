@@ -378,8 +378,8 @@ bot.start((ctx) => {
     reply_markup: {
       inline_keyboard: [
         [{ text: 'Play and Earn $ 🚀', web_app: { url: webAppUrl } }],
-        [{ text: 'Discover ECO Project 🌐', url: 'https://eco.framer.wiki/' }],
         [{ text: 'Join Our Channel 📢', url: 'https://t.me/TiDash_ECO_Hub' }],
+        [{ text: 'Discover ECO Project 🌐', url: 'https://eco.framer.wiki/' }],
       ]
     }
   }).then(() => {
