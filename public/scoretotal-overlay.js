@@ -145,7 +145,7 @@
         progressTop.appendChild(percentLabel);
 
         const cashLabel = document.createElement('div');
-        cashLabel.textContent = '125.50 $TID';
+        cashLabel.textContent = '10.00 $';
         cashLabel.style.color = '#00FF9D';
         cashLabel.style.fontSize = '0.92rem';
         cashLabel.style.fontWeight = '600';
@@ -207,7 +207,7 @@
         marketDataLink.href = 'https://gaspump.tg/#/token/trade?token_address=EQAicv6F5s9rTPSt3l2BzpwzkCxBnnvnYmbpPYL8WvfawSNy';
         marketDataLink.target = '_blank';
         marketDataLink.textContent = 'Check $TID Market Data →';
-        marketDataLink.style.display = 'block';
+        marketDataLink.style.display = 'none';
         marketDataLink.style.marginTop = '8px';
         marketDataLink.style.color = '#00c853';
         marketDataLink.style.fontWeight = '600';
@@ -239,9 +239,8 @@
             section.appendChild(b);
             return section;
         }
-        textBlock.appendChild(infoSection('Earn tokens with TiDash!', 'Hunt green squares, collect TiDash tokens, and prepare for TiDash ECO!'));
-        textBlock.appendChild(infoSection('How It Works', 'Collect green squares in tidash to earn tidash tokens. Use them in the upcoming TiDash ECO Game, launching in 2026, where you can buy items, trade, and live in an immersive world. You can also exchange your tokens for real cash! — Two great reasons to play!'));
-        textBlock.appendChild(infoSection('TiDash ECO', 'Without tokens, you cannot join TiDash ECO, so this is your key to accessing this exciting project. Ready to Play?'));
+        textBlock.appendChild(infoSection('Earn $ with TiDash!', 'Hunt green squares, collect TiPoints, convert and cash-out!'));
+        textBlock.appendChild(infoSection('How It Works', 'Collect green squares in tidash to earn TiPoints. Convert tour TiPoints for real cash!'));
         textBlock.appendChild(infoSection('How to Withdraw', 'Contact our admin at @TiDash_Support to verify and process your withdrawal.'));
         scrollContainer.appendChild(textBlock);
 
