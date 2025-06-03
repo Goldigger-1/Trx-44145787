@@ -145,7 +145,7 @@
         progressTop.appendChild(percentLabel);
 
         const cashLabel = document.createElement('div');
-        cashLabel.textContent = '10.00 $';
+        cashLabel.textContent = '1,000.00 $TID';
         cashLabel.style.color = '#00FF9D';
         cashLabel.style.fontSize = '0.92rem';
         cashLabel.style.fontWeight = '600';
@@ -207,7 +207,7 @@
         marketDataLink.href = 'https://gaspump.tg/#/token/trade?token_address=EQAicv6F5s9rTPSt3l2BzpwzkCxBnnvnYmbpPYL8WvfawSNy';
         marketDataLink.target = '_blank';
         marketDataLink.textContent = 'Check $TID Market Data →';
-        marketDataLink.style.display = 'none';
+        marketDataLink.style.display = 'block';
         marketDataLink.style.marginTop = '8px';
         marketDataLink.style.color = '#00c853';
         marketDataLink.style.fontWeight = '600';
@@ -239,9 +239,9 @@
             section.appendChild(b);
             return section;
         }
-        textBlock.appendChild(infoSection('Earn $ with TiDash!', 'Hunt green squares, collect TiPoints, convert and cash-out!'));
-        textBlock.appendChild(infoSection('How It Works', 'Collect green squares in TiDash to earn TiPoints. Convert tour TiPoints for real cash!'));
-        textBlock.appendChild(infoSection('How to Withdraw', 'Contact our admin at @TiDash_Support to verify and process your withdrawal (PayPal or USDT).'));
+        textBlock.appendChild(infoSection('Earn $TID Tokens with TiDash!', 'Hunt green squares, collect TiPoints, convert and cash-out!'));
+        textBlock.appendChild(infoSection('How It Works', 'Collect green squares in TiDash to earn TiPoints. Convert tour TiPoints for $TID Tokens and real cash!'));
+        textBlock.appendChild(infoSection('How to Withdraw', 'Contact our admin at @TiDash_Support to verify and process your withdrawal.'));
         scrollContainer.appendChild(textBlock);
 
         overlay.appendChild(scrollContainer);
