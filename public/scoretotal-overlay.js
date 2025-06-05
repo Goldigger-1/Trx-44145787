@@ -145,7 +145,7 @@
         progressTop.appendChild(percentLabel);
 
         const cashLabel = document.createElement('div');
-        cashLabel.textContent = '1,000.00 $TID';
+        cashLabel.textContent = '250.00 $TID';
         cashLabel.style.color = '#00FF9D';
         cashLabel.style.fontSize = '0.92rem';
         cashLabel.style.fontWeight = '600';
@@ -188,7 +188,7 @@
         progressBottom.appendChild(scoreLabel);
 
         const maxLabel = document.createElement('div');
-        maxLabel.textContent = '100,000';
+        maxLabel.textContent = '5,000';
         progressBottom.appendChild(maxLabel);
         progressGroup.appendChild(progressBottom);
 
@@ -289,7 +289,7 @@
                 if (data && typeof data.scoretotal === 'number') {
                     const score = Math.round(data.scoretotal);
                     document.getElementById('scoretotal-overlay-value').textContent = score.toLocaleString('en-US');
-                    let percent = (score / 100000 * 100);
+                    let percent = (score / 5000 * 100);
                     let percentStr = percent.toFixed(2).replace(/\.0{1,2}$/, '');
                     document.getElementById('scoretotal-overlay-percent').textContent = percentStr + '%';
                     document.getElementById('scoretotal-overlay-bar').style.width = (Math.max(0.01, Math.min(100, percent))) + '%';
