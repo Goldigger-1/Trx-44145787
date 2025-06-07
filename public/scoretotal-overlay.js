@@ -50,9 +50,9 @@
         header.style.zIndex = '10';
 
         const title = document.createElement('div');
-        title.textContent = 'TiPoints';
+        title.textContent = '$TID Balance';
         title.className = 'settings-title';
-        title.style.fontSize = '1.45rem';
+        title.style.fontSize = '1.1rem';
         title.style.fontWeight = 'bold';
         title.style.color = '#fff';
         title.style.letterSpacing = '0.04em';
@@ -92,17 +92,13 @@
         scoreRow.style.alignSelf = 'flex-start';
         scoreRow.style.paddingRight = '0';
 
-        const diamond = document.createElement('div');
-        diamond.id = 'scoretotal-overlay-diamond';
-        diamond.style.width = '32px';
-        diamond.style.height = '32px';
-        diamond.style.background = 'linear-gradient(135deg, #00ff9d 0%, #00c97b 100%)';
-        diamond.style.borderRadius = '12px';
-        diamond.style.transform = 'rotate(45deg)';
-        diamond.style.boxShadow = '0 0 18px 4px #00FF9D44';
-        diamond.style.marginBottom = '0';
-        diamond.style.animation = 'diamondPulse 2s infinite ease-in-out';
-        scoreRow.appendChild(diamond);
+        const coinSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        coinSvg.setAttribute('width', '32');
+        coinSvg.setAttribute('height', '32');
+        coinSvg.setAttribute('viewBox', '0 0 24 24');
+        coinSvg.style.verticalAlign = 'middle';
+        coinSvg.innerHTML = '<circle cx="12" cy="12" r="11" fill="#FFD700" stroke="#E6B800" stroke-width="2"/><text x="12" y="16" text-anchor="middle" font-size="11" font-family="Arial" fill="#fff" font-weight="bold">$</text>';
+        scoreRow.appendChild(coinSvg);
 
         const scoreValue = document.createElement('div');
         scoreValue.id = 'scoretotal-overlay-value';
@@ -116,83 +112,6 @@
         scoreRow.appendChild(scoreValue);
 
         scrollContainer.appendChild(scoreRow);
-
-        // Progress group
-        const progressGroup = document.createElement('div');
-        progressGroup.style.width = '100%';
-        progressGroup.style.padding = '0 18px';
-        progressGroup.style.margin = '32px 0 70px 0';
-        progressGroup.style.display = 'flex';
-        progressGroup.style.flexDirection = 'column';
-        progressGroup.style.gap = '6px';
-
-        // First line: % and $TID
-        const progressTop = document.createElement('div');
-        progressTop.style.display = 'flex';
-        progressTop.style.justifyContent = 'space-between';
-        progressTop.style.alignItems = 'center';
-        progressTop.style.fontSize = '1.08rem';
-        progressTop.style.fontWeight = '600';
-        progressTop.style.color = '#fff';
-        progressTop.style.letterSpacing = '0.02em';
-
-        const percentLabel = document.createElement('div');
-        percentLabel.id = 'scoretotal-overlay-percent';
-        percentLabel.textContent = '0%';
-        percentLabel.style.fontSize = '0.81rem';
-        percentLabel.style.fontWeight = '600';
-        percentLabel.style.color = '#aaa';
-        progressTop.appendChild(percentLabel);
-
-        const cashLabel = document.createElement('div');
-        cashLabel.textContent = '250.00 $TID';
-        cashLabel.style.color = '#00FF9D';
-        cashLabel.style.fontSize = '0.92rem';
-        cashLabel.style.fontWeight = '600';
-        progressTop.appendChild(cashLabel);
-        progressGroup.appendChild(progressTop);
-
-        // Progress bar
-        const progressBarContainer = document.createElement('div');
-        progressBarContainer.style.height = '12px';
-        progressBarContainer.style.width = '100%';
-        progressBarContainer.style.background = 'rgba(255,255,255,0.08)';
-        progressBarContainer.style.borderRadius = '10px';
-        progressBarContainer.style.overflow = 'hidden';
-        progressBarContainer.style.boxShadow = '0 2px 8px #00FF9D22';
-
-        const progressBar = document.createElement('div');
-        progressBar.id = 'scoretotal-overlay-bar';
-        progressBar.style.height = '100%';
-        progressBar.style.width = '0%';
-        progressBar.style.background = 'linear-gradient(90deg, #00FF9D 0%, #00C853 100%)';
-        progressBar.style.borderRadius = '10px';
-        progressBar.style.transition = 'width 0.7s cubic-bezier(.7,.2,.3,1)';
-        progressBarContainer.appendChild(progressBar);
-        progressGroup.appendChild(progressBarContainer);
-
-        // Third line: scoretotal and 100,000
-        const progressBottom = document.createElement('div');
-        progressBottom.style.display = 'flex';
-        progressBottom.style.justifyContent = 'space-between';
-        progressBottom.style.alignItems = 'center';
-        progressBottom.style.fontSize = '0.81rem';
-        progressBottom.style.fontWeight = '400';
-        progressBottom.style.color = '#aaa';
-        progressBottom.style.marginTop = '3px';
-        progressBottom.style.letterSpacing = '0.01em';
-
-        const scoreLabel = document.createElement('div');
-        scoreLabel.id = 'scoretotal-overlay-score';
-        scoreLabel.textContent = '-';
-        progressBottom.appendChild(scoreLabel);
-
-        const maxLabel = document.createElement('div');
-        maxLabel.textContent = '5,000';
-        progressBottom.appendChild(maxLabel);
-        progressGroup.appendChild(progressBottom);
-
-        scrollContainer.appendChild(progressGroup);
 
         // Text content (info blocks)
         const textBlock = document.createElement('div');
@@ -287,13 +206,8 @@
                 let fallbackMsg = document.getElementById('scoretotal-overlay-fallback-msg');
                 if (fallbackMsg) fallbackMsg.style.display = 'none';
                 if (data && typeof data.scoretotal === 'number') {
-                    const score = Math.round(data.scoretotal);
-                    document.getElementById('scoretotal-overlay-value').textContent = score.toLocaleString('en-US');
-                    let percent = (score / 5000 * 100);
-                    let percentStr = percent.toFixed(2).replace(/\.0{1,2}$/, '');
-                    document.getElementById('scoretotal-overlay-percent').textContent = percentStr + '%';
-                    document.getElementById('scoretotal-overlay-bar').style.width = (Math.max(0.01, Math.min(100, percent))) + '%';
-                    document.getElementById('scoretotal-overlay-score').textContent = score.toLocaleString('en-US');
+                    var value = (data.scoretotal * 0.05).toFixed(2);
+                    document.getElementById('scoretotal-overlay-value').textContent = value;
                 } else {
                     showFallback();
                 }
@@ -305,22 +219,16 @@
 
     // Bind open event à diamond et value
     function bindScoretotalOverlayTriggers() {
-        function openOverlay() {
-            showScoretotalOverlay();
-        }
-        // Diamond
-        const diamond = document.getElementById('scoretotal-diamond');
-        if (diamond) {
-            diamond.style.cursor = 'pointer';
-            diamond.addEventListener('click', openOverlay);
-        }
-        // Value
-        const value = document.getElementById('scoretotal-value');
-        if (value) {
-            value.style.cursor = 'pointer';
-            value.addEventListener('click', openOverlay);
-        }
+    function openOverlay() {
+        showScoretotalOverlay();
     }
+    // Bind click on the whole group
+    const area = document.getElementById('scoretotal-area');
+    if (area) {
+        area.style.cursor = 'pointer';
+        area.addEventListener('click', openOverlay);
+    }
+}
 
     // New binding logic
     window.addEventListener('DOMContentLoaded', function() {

@@ -917,7 +917,7 @@
         
         <div id="home-screen">
             <!-- Season information section -->
-            <div id="season-info-container" class="season-info-container">
+            <div id="season-info-container" class="season-info-container" style="display:none;">
                 <div class="season-info-row">
                     <div class="season-circle-container">
                         <div class="season-gradient-border">
@@ -939,9 +939,12 @@
             </div>
             
             <!-- Scoretotal area -->
-            <div id="scoretotal-area" style="position:absolute;left:0;right:0;bottom:36px;display:flex;flex-direction:column;align-items:center;z-index:20;">
-                <div id="scoretotal-diamond"></div>
-                <div id="scoretotal-value">-</div>
+            <div id="scoretotal-area" style="position:absolute; top:16px; left:16px; bottom:auto; right:auto; display:flex; flex-direction:row; align-items:center; z-index:20;">
+                <svg width="24" height="24" viewBox="0 0 24 24" style="vertical-align:middle;" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="12" cy="12" r="11" fill="#FFD700" stroke="#E6B800" stroke-width="2"/>
+  <text x="12" y="16" text-anchor="middle" font-size="11" font-family="Arial" fill="#fff" font-weight="bold">$</text>
+</svg>
+<div id="scoretotal-value" style="margin-left:8px;">-</div>
             </div>
             <!-- Help button -->
             <div id="help-button">
@@ -988,7 +991,7 @@
     REVIVE
 </button>
 <div id="revive-x2-tipoints" style="display:none;margin-top:-3px;font-size:14px;color:#FFD700;font-weight:400;opacity:0.85;text-align:center;letter-spacing:0.02em;">
-    <span style="font-weight:700;">x2</span> TiPoints
+    <span style="font-weight:700;">x2</span> $TID Tokens
 </div>
             </div>
             <!-- Sticky user group from leaderboard (season rank & best score) -->

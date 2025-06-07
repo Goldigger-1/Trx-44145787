@@ -340,6 +340,8 @@ html, body, #leaderboard-screen, * {
 
 /* Game Over page: sticky inside bordered container */
 #game-over .leaderboard-user-row {
+  display: none !important;
+
     position: absolute;
     left: 16px;
     right: 16px;
