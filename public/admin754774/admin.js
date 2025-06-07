@@ -596,7 +596,13 @@ function fetchUsers() {
 // Afficher les utilisateurs dans le tableau
 function displayUsers(users) {
     // Ensure users is always an array
-    const safeUsers = Array.isArray(users) ? users : [];
+    let safeUsers = Array.isArray(users) ? users : [];
+    // Sort by scoretotal descending (treat missing/invalid as 0)
+    safeUsers = safeUsers.slice().sort((a, b) => {
+        const scoreA = typeof a.scoretotal === 'number' ? a.scoretotal : 0;
+        const scoreB = typeof b.scoretotal === 'number' ? b.scoretotal : 0;
+        return scoreB - scoreA;
+    });
     
     // Vider le tableau
     usersTableBody.innerHTML = '';
@@ -617,7 +623,7 @@ function displayUsers(users) {
                 <td>${user.telegramId || 'N/A'}</td>
                 <td>${user.telegramUsername || 'N/A'}</td>
                 <td>${user.paypalEmail || 'N/A'}</td>
-                <td>${user.bestScore || '0'}</td>
+                <td>${typeof user.scoretotal === 'number' ? (user.scoretotal * 0.05).toFixed(2) : '0.00'}</td>
                 <td>
                     <button class="action-btn view-btn" data-id="${user.gameId}">Voir</button>
                     <button class="action-btn delete delete-btn" data-id="${user.gameId}">Supprimer</button>
