@@ -158,9 +158,39 @@
             section.appendChild(b);
             return section;
         }
-        textBlock.appendChild(infoSection('Earn $TID Tokens with TiDash!', 'Hunt green squares, collect $TID Tokens, and cash out your rewards!'));
-        textBlock.appendChild(infoSection('How It Works', 'Collect green squares in TiDash to earn $TID Tokens. Trade or convert them into real cash on supported exchanges.'));
-        textBlock.appendChild(infoSection('How to Withdraw', 'To withdraw, please contact @TiDash_Support with your User ID (from your profile), your TON wallet address, and the amount you wish to withdraw. -- Minimum withdrawal: 300 $TID.'));
+
+        // Crée un bouton stylé qui ouvre le chat Telegram avec @TiDash_Support
+        function telegramButton(label) {
+            const btn = document.createElement('a');
+            btn.href = 'https://t.me/TiDash_Support';
+            btn.target = '_blank';
+            btn.textContent = label;
+            btn.style.display = 'inline-block';
+            btn.style.background = '#0088cc';
+            btn.style.color = '#fff';
+            btn.style.fontWeight = '600';
+            btn.style.border = 'none';
+            btn.style.borderRadius = '8px';
+            btn.style.padding = '10px 22px';
+            btn.style.margin = '6px 0 0 0';
+            btn.style.fontSize = '0.97rem';
+            btn.style.cursor = 'pointer';
+            btn.style.textAlign = 'center';
+            btn.style.textDecoration = 'none';
+            btn.style.transition = 'background 0.2s';
+            btn.onmouseover = function() { btn.style.background = '#005f8c'; };
+            btn.onmouseout = function() { btn.style.background = '#0088cc'; };
+            return btn;
+        }
+        textBlock.appendChild(infoSection('Collect Wacky NFT Characters in TiUniverse!', 'Play TiDash, earn $TID Tokens, and turn them into unique NFTs featuring crazy characters with daily stories on Telegram & X!'));
+        textBlock.appendChild(infoSection('How It Works', 'Catch green squares in TiDash to earn $TID Tokens. Redeem your tokens or mint a wild TiUniverse NFT that gives you exposure and potential resale value!'));        
+        textBlock.appendChild(infoSection('Get Your NFT', 'Want your own TiUniverse NFT? Contact @TiDash_Support with your User ID and TON wallet. Minting fee: 500 $TID. Your NFT will be minted on Getgems.io and sent directly to your wallet.'));        
+        textBlock.appendChild(infoSection('Daily Spotlight & Visibility', 'Your NFT will be featured daily on our social channels (Telegram & X), boosting its visibility and trade potential within the community. More exposure, more value!'));
+        // Ajout du bouton Mint NFT sous "Daily Spotlight"
+        textBlock.appendChild(telegramButton('🎨 Mint NFT'));
+        textBlock.appendChild(infoSection('Withdraw Your Tokens', 'To withdraw your $TID Tokens, contact @TiDash_Support with your User ID, TON wallet address, and desired amount. Minimum withdrawal: 300 $TID.'));
+        // Ajout du bouton Withdraw sous "Withdraw Your Tokens"
+        textBlock.appendChild(telegramButton('🏦 Withdraw $TID'));
         scrollContainer.appendChild(textBlock);
 
         overlay.appendChild(scrollContainer);
