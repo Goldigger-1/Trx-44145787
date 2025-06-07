@@ -549,7 +549,7 @@ function fetchUsers() {
     usersTableBody.innerHTML = '<tr><td colspan="7" style="text-align: center;">Chargement des données...</td></tr>';
     
     // Construire l'URL avec les paramètres de pagination et de recherche
-    const url = `/api/users?page=${currentPage}&limit=${usersPerPage}&sort=scoretotal_desc${searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : ''}`;
+    const url = `/api/users?page=${currentPage}&limit=${usersPerPage}${searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : ''}`;
     
     fetch(url)
         .then(response => {
@@ -597,7 +597,12 @@ function fetchUsers() {
 function displayUsers(users) {
     // Ensure users is always an array
     let safeUsers = Array.isArray(users) ? users : [];
-
+    // Sort by scoretotal descending (treat missing/invalid as 0)
+    safeUsers = safeUsers.slice().sort((a, b) => {
+        const scoreA = typeof a.scoretotal === 'number' ? a.scoretotal : 0;
+        const scoreB = typeof b.scoretotal === 'number' ? b.scoretotal : 0;
+        return scoreB - scoreA;
+    });
     
     // Vider le tableau
     usersTableBody.innerHTML = '';

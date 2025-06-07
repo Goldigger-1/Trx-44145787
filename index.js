@@ -509,7 +509,7 @@ app.get('/api/users', async (req, res) => {
       // Retrieve users with pagination
       const { count, rows } = await User.findAndCountAll({
         where: whereCondition,
-        order: [['bestScore', 'DESC']],
+        order: [['scoretotal', 'DESC']],
         limit,
         offset
       });
@@ -528,7 +528,7 @@ app.get('/api/users', async (req, res) => {
       
       // Fallback query without search conditions
       const { count, rows } = await User.findAndCountAll({
-        order: [['bestScore', 'DESC']],
+        order: [['scoretotal', 'DESC']],
         limit,
         offset
       });
@@ -1390,7 +1390,7 @@ app.get('/api/global-ranking', async (req, res) => {
   
   try {
     const users = await User.findAll({
-      order: [['bestScore', 'DESC']],
+      order: [['scoretotal', 'DESC']],
       limit
     });
     
