@@ -79,9 +79,9 @@ function observeGameOverDisplay() {
     var lastDisplay = gameOver.style.display;
     setInterval(function() {
         if (gameOver.style.display !== 'none' && lastDisplay === 'none') {
-            var score = parseInt(document.getElementById('score-display').textContent, 10) || 0;
-            window.lastGameScore = score;
-            if (score > 0) addScoreToScoreTotal(score);
+            // Utiliser la variable globale 'score' (nombre de carrés), pas l'affichage formaté
+            window.lastGameScore = typeof score === 'number' ? score : 0;
+            if (window.lastGameScore > 0) addScoreToScoreTotal(window.lastGameScore);
         }
         lastDisplay = gameOver.style.display;
     }, 400);
