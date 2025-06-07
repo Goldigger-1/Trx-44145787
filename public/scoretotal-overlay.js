@@ -202,7 +202,7 @@
             btn.style.textAlign = 'center';
             btn.style.textDecoration = 'none';
             btn.style.transition = 'background 0.2s';
-            btn.onmouseover = function() { btn.style.background = '#fff'; };
+            btn.onmouseover = function() { btn.style.background = '#fafafa'; };
             btn.onmouseout = function() { btn.style.background = '#fff'; };
             return btn;
         }
