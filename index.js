@@ -374,7 +374,7 @@ bot.help((ctx) => {
 
 bot.start((ctx) => {
   console.log('/start command received from:', ctx.from.id, ctx.from.username);
-  ctx.reply("🚀 Play, Earn & Turn Tokens into Profit! 💰\n🎁 Withdraw, or mint NFTs and sell them! 🎭\n\nWelcome to TiDash Game 👾.", {
+  ctx.reply("🚀 Play, Earn & Turn Tokens into Profit!\n🎁 Withdraw, or mint NFTs and sell them!\n\nWelcome to TiDash Game 👾.", {
     reply_markup: {
       inline_keyboard: [
         [{ text: 'Play and Earn $TID 🚀', web_app: { url: webAppUrl } }],
