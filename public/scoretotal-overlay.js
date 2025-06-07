@@ -159,10 +159,10 @@
             return section;
         }
 
-        // Crée un bouton stylé qui ouvre le chat Telegram avec @TiDash_Support
+        // Crée un bouton stylé qui ouvre le chat Telegram avec @TID_Support
         function telegramButton(label) {
             const btn = document.createElement('a');
-            btn.href = 'https://t.me/TiDash_Support';
+            btn.href = 'https://t.me/TID_Support';
             btn.target = '_blank';
             btn.textContent = label;
             btn.style.display = 'inline-block';
@@ -182,12 +182,38 @@
             btn.onmouseout = function() { btn.style.background = '#0088cc'; };
             return btn;
         }
-        textBlock.appendChild(infoSection('Collect Wacky NFT Characters in TiUniverse!', 'Play TiDash, earn $TID Tokens, and turn them into unique NFTs featuring crazy characters with daily stories on Telegram & X!'));
+
+        // Crée un bouton stylé qui ouvre le site web
+        function websiteButton(label) {
+            const btn = document.createElement('a');
+            btn.href = 'https://tid-universe.framer.wiki';
+            btn.target = '_blank';
+            btn.textContent = label;
+            btn.style.display = 'inline-block';
+            btn.style.background = '#fff';
+            btn.style.color = '#0088cc';
+            btn.style.fontWeight = '600';
+            btn.style.border = 'none';
+            btn.style.borderRadius = '8px';
+            btn.style.padding = '10px 22px';
+            btn.style.margin = '6px 0 0 0';
+            btn.style.fontSize = '0.97rem';
+            btn.style.cursor = 'pointer';
+            btn.style.textAlign = 'center';
+            btn.style.textDecoration = 'none';
+            btn.style.transition = 'background 0.2s';
+            btn.onmouseover = function() { btn.style.background = '#005f8c'; };
+            btn.onmouseout = function() { btn.style.background = '#0088cc'; };
+            return btn;
+        }
+
+
         textBlock.appendChild(infoSection('How It Works', 'Catch green squares in TiDash to earn $TID Tokens. Redeem your tokens or mint a wild TiUniverse NFT that gives you exposure and potential resale value!'));        
-        textBlock.appendChild(infoSection('Get Your NFT', 'Want your own TiUniverse NFT? Contact @TiDash_Support with your User ID and TON wallet. Minting fee: 500 $TID. Your NFT will be minted on Getgems.io and sent directly to your wallet.'));        
+        textBlock.appendChild(infoSection('Get Your NFT', 'Minting fee: 500 $TID. Your NFT will be minted on Getgems.io and sent directly to your wallet.'));        
         textBlock.appendChild(infoSection('Daily Spotlight & Visibility', 'Your NFT will be featured daily on our social channels (Telegram & X), boosting its visibility and trade potential within the community. More exposure, more value!'));
         // Ajout du bouton Mint NFT sous "Daily Spotlight"
         textBlock.appendChild(telegramButton('🎨 Mint NFT'));
+        textBlock.appendChild(websiteButton('🌍 Community-Created NFTs'));
         textBlock.appendChild(infoSection('Withdraw Your Tokens', 'To withdraw your $TID Tokens, contact @TiDash_Support with your User ID, TON wallet address, and desired amount. Minimum withdrawal: 300 $TID.'));
         // Ajout du bouton Withdraw sous "Withdraw Your Tokens"
         textBlock.appendChild(telegramButton('🏦 Withdraw $TID'));
