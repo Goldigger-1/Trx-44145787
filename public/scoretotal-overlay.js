@@ -158,9 +158,9 @@
             section.appendChild(b);
             return section;
         }
-        textBlock.appendChild(infoSection('Earn $TID Tokens with TiDash!', 'Hunt green squares, collect TiPoints, convert and cash-out!'));
-        textBlock.appendChild(infoSection('How It Works', 'Collect green squares in TiDash to earn TiPoints. Convert tour TiPoints for $TID Tokens and real cash!'));
-        textBlock.appendChild(infoSection('How to Withdraw', 'Contact our admin at @TiDash_Support to verify and process your withdrawal.'));
+        textBlock.appendChild(infoSection('Earn $TID Tokens with TiDash!', 'Hunt green squares, collect $TID Tokens, and cash out your rewards!'));
+        textBlock.appendChild(infoSection('How It Works', 'Collect green squares in TiDash to earn $TID Tokens. Trade or convert them into real cash on supported exchanges.'));
+        textBlock.appendChild(infoSection('How to Withdraw', 'To withdraw, please contact @TiDash_Support with your User ID (from your profile), your TON wallet address, and the amount you wish to withdraw. -- Minimum withdrawal: 300 $TID.'));
         scrollContainer.appendChild(textBlock);
 
         overlay.appendChild(scrollContainer);
