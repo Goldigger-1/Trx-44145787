@@ -208,13 +208,13 @@
         }
 
 
-        textBlock.appendChild(infoSection('How It Works', 'Catch green squares in TiDash to earn $TID Tokens. Redeem your tokens or mint a wild TiUniverse NFT that gives you exposure and potential resale value!'));        
-        textBlock.appendChild(infoSection('Get Your NFT', 'Minting fee: 500 $TID. Your NFT will be minted on Getgems.io and sent directly to your wallet.'));        
-        textBlock.appendChild(infoSection('Daily Spotlight & Visibility', 'Your NFT will be featured daily on our social channels (Telegram & X), boosting its visibility and trade potential within the community. More exposure, more value!'));
+        textBlock.appendChild(infoSection('How It Works', 'Collect green squares in TiDash to earn $TID. Use them to mint unique NFTs that generate real monthly revenue.'));        
+        textBlock.appendChild(infoSection('Get Your NFT', 'Minting costs 500 $TID. Your NFT is sent to your TON wallet via Getgems.io.'));        
+        textBlock.appendChild(infoSection('Monthly Revenue Sharing', '50% of the game’s ad revenue is distributed to all NFT holders — the more NFTs you own, the more you earn.'));
         // Ajout du bouton Mint NFT sous "Daily Spotlight"
         textBlock.appendChild(telegramButton('🎨 Mint NFT'));
         textBlock.appendChild(websiteButton('🌍 Community-Created NFTs'));
-        textBlock.appendChild(infoSection('Withdraw Your Tokens', 'To withdraw your $TID Tokens, contact @TiDash_Support with your User ID, TON wallet address, and desired amount. Minimum withdrawal: 300 $TID.'));
+        textBlock.appendChild(infoSection('Withdraw Your Tokens', 'Send your User ID and amount (min 300 $TID) to request a withdrawal on your TON wallet.'));
         // Ajout du bouton Withdraw sous "Withdraw Your Tokens"
         textBlock.appendChild(telegramButton('🏦 Withdraw $TID'));
         scrollContainer.appendChild(textBlock);
