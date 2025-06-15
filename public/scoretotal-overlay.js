@@ -212,7 +212,7 @@
         textBlock.appendChild(infoSection('Get Your NFT', 'Minting costs 500 $TID. Your NFT is sent to your TON wallet via Getgems.io.'));        
         textBlock.appendChild(infoSection('Monthly Revenue Sharing', '50% of the game’s ad revenue is distributed to all NFT holders — the more NFTs you own, the more you earn.'));
         // Ajout du bouton Mint NFT sous "Daily Spotlight"
-        textBlock.appendChild(telegramButton('🎨 Mint NFT'));
+        textBlock.appendChild(telegramButton('💰 My Earning Share'));
         textBlock.appendChild(websiteButton('🌍 Community-Created NFTs'));
         textBlock.appendChild(infoSection('Withdraw Your Tokens', 'Send your User ID and amount (min 300 $TID) to request a withdrawal on your TON wallet.'));
         // Ajout du bouton Withdraw sous "Withdraw Your Tokens"

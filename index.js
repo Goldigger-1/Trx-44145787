@@ -374,7 +374,7 @@ bot.help((ctx) => {
 
 bot.start((ctx) => {
   console.log('/start command received from:', ctx.from.id, ctx.from.username);
-  ctx.reply("🚀 Play, Earn & Turn Tokens into Real Monthly Revenue! 💰\n\nWelcome to TiDash Game 👾.", {
+  ctx.reply("🚀 Play and Get Paid. Every Month. 💰\n\nWelcome to TiDash Game 👾.", {
     reply_markup: {
       inline_keyboard: [
         [{ text: 'Play & Earn 🚀', web_app: { url: webAppUrl } }],
