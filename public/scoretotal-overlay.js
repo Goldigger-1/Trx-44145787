@@ -208,15 +208,15 @@
         }
 
 
-        textBlock.appendChild(infoSection('How It Works', 'Collect green squares in TiDash to earn $TID. Use them to mint unique NFTs that generate real monthly revenue.'));        
-        textBlock.appendChild(infoSection('Get Your NFT', 'Minting costs 500 $TID. Your NFT is sent to your TON wallet via Getgems.io.'));        
-        textBlock.appendChild(infoSection('Monthly Revenue Sharing', '50% of the game’s ad revenue is distributed to all NFT holders — the more NFTs you own, the more you earn.'));
+        textBlock.appendChild(infoSection('Step 1: Play & Earn', 'Collect green squares in the game to earn $TID.'));        
+        textBlock.appendChild(infoSection('Step 2: Get Your Revenue NFT', 'Use 500 $TID to mint your Revenue NFT. Every NFT gives you a share of the game’s revenue and is delivered straight to your TON wallet through Getgems.io.'));        
+        textBlock.appendChild(infoSection('Step 3: Monthly Revenue Sharing', '50% of the game’s ad revenue is distributed to all NFT holders — the more NFTs you own, the more you earn.'));
         // Ajout du bouton Mint NFT sous "Daily Spotlight"
-        textBlock.appendChild(telegramButton('💰 My Earning Share'));
-        textBlock.appendChild(websiteButton('🌍 Community-Created NFTs'));
-        textBlock.appendChild(infoSection('Withdraw Your Tokens', 'Send your User ID and amount (min 300 $TID) to request a withdrawal on your TON wallet.'));
+        textBlock.appendChild(telegramButton('Get Revenue NFT - 500 $TID'));
+        textBlock.appendChild(websiteButton('Community Revenue NFTs'));
+        textBlock.appendChild(infoSection('Withdraw Your Tokens', 'Transfer your $TID to your TON wallet.'));
         // Ajout du bouton Withdraw sous "Withdraw Your Tokens"
-        textBlock.appendChild(telegramButton('🏦 Withdraw $TID'));
+        textBlock.appendChild(telegramButton('Withdraw - 300 $TID min'));
         scrollContainer.appendChild(textBlock);
 
         overlay.appendChild(scrollContainer);
