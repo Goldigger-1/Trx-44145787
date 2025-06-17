@@ -173,7 +173,7 @@
             btn.style.borderRadius = '8px';
             btn.style.padding = '10px 22px';
             btn.style.margin = '6px 0 0 0';
-            btn.style.fontSize = '0.97rem';
+            btn.style.fontSize = '0.81rem';
             btn.style.cursor = 'pointer';
             btn.style.textAlign = 'center';
             btn.style.textDecoration = 'none';
@@ -197,7 +197,7 @@
             btn.style.borderRadius = '8px';
             btn.style.padding = '10px 22px';
             btn.style.margin = '6px 0 0 0';
-            btn.style.fontSize = '0.97rem';
+            btn.style.fontSize = '0.81rem';
             btn.style.cursor = 'pointer';
             btn.style.textAlign = 'center';
             btn.style.textDecoration = 'none';

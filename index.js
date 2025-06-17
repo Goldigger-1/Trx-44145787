@@ -379,7 +379,7 @@ bot.start((ctx) => {
       inline_keyboard: [
         [{ text: 'Play & Earn 🚀', web_app: { url: webAppUrl } }],
         [{ text: 'Join Our Channel 📢', url: 'https://t.me/TID_Universe' }],
-        [{ text: 'Community NFTs 🌐', url: 'https://tid-universe.framer.wiki/' }],
+        [{ text: 'How It Works 🌐', url: 'https://tid-universe.framer.wiki/' }],
       ]
     }
   }).then(() => {
