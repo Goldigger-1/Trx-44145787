@@ -209,11 +209,31 @@
 
 
         textBlock.appendChild(infoSection('Step 1: Play & Earn', 'Collect green squares in the game to earn $TID.'));        
-        textBlock.appendChild(infoSection('Step 2: Get Your Revenue NFT', 'Every "Revenue NFT" gives you a share of the game’s revenue and is delivered straight to your TON wallet through Getgems.io.'));        
+        textBlock.appendChild(infoSection('Step 2: Get Your Revenue NFT', 'Every "Revenue NFT" gives you a share of the game’s revenue and is delivered straight to your TON wallet through Getgems.io.'));
         textBlock.appendChild(infoSection('Step 3: Monthly Revenue Sharing', '50% of the game’s ad revenue is distributed to all NFT holders — the more NFTs you own, the more you earn.'));
+        
+        // Ajout du lien cliquableWatch Tutorial Video
+        const tutoDataLink = document.createElement('a');
+        tutoDataLink.href = 'https://youtu.be/x0uQdNLLBKY';
+        tutoDataLink.target = '_blank';
+        tutoDataLink.textContent = 'Watch the Tutorial Video →';
+        tutoDataLink.style.display = 'block';
+        tutoDataLink.style.marginTop = '0px';
+        tutoDataLink.style.color = '#00c853';
+        tutoDataLink.style.fontWeight = '600';
+        tutoDataLink.style.textDecoration = 'underline';
+        tutoDataLink.style.textAlign = 'left';
+        tutoDataLink.style.fontSize = '0.90rem';
+        tutoDataLink.style.maxWidth = '100%';
+        tutoDataLink.style.width = 'auto';
+        tutoDataLink.style.overflowWrap = 'break-word';
+        tutoDataLink.style.whiteSpace = 'normal';
+        textBlock.appendChild(tutoDataLink);        
+
         // Ajout du bouton Mint NFT sous "Daily Spotlight"
         textBlock.appendChild(telegramButton('Get Revenue NFT - 500 $TID'));
         textBlock.appendChild(websiteButton('Community Revenue NFTs'));
+
         textBlock.appendChild(infoSection('Withdraw Your Tokens', 'Transfer your $TID to your TON wallet.'));
         // Ajout du bouton Withdraw sous "Withdraw Your Tokens"
         textBlock.appendChild(telegramButton('Withdraw - 300 $TID min'));
