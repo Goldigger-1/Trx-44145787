@@ -186,7 +186,7 @@
         // Crée un bouton stylé qui ouvre le site web
         function websiteButton(label) {
             const btn = document.createElement('a');
-            btn.href = 'https://tid-universe.framer.wiki';
+            btn.href = 'https://tid-universe.framer.wiki/#divider-characters';
             btn.target = '_blank';
             btn.textContent = label;
             btn.style.display = 'inline-block';
