@@ -194,7 +194,7 @@
         option1.innerHTML = `
           <strong style="color:#fff; font-size:0.9rem;">Option 1: Instant Cashout (USD)</strong><br><br>
           <span style="color:#fafafa; font-size:0.81rem;">
-            - Convert your $TID tokens into real money (US Dollars) instantly.<br>
+            - Convert your $TID tokens into real money instantly.<br>
             - Withdraw via PayPal or TON wallet.<br><br>
           </span>
           <strong style="color:#fff; font-size:0.9rem;">1000 $TID = $2.5 USD</strong>
@@ -245,7 +245,7 @@
         option3.innerHTML = `
           <strong style="color:#fff; font-size:0.9rem;">Option 3: Withdraw Your Tokens</strong><br><br>
           <span style="color:#fafafa; font-size:0.81rem;">
-            - Transfer your $TID to your TON wallet.".<br><br>
+            - Transfer your $TID to your TON wallet.<br><br>
           </span>
           <strong style="color:#fff; font-size:0.9rem;">Minimum = 300 $TID</strong>
         `;
