@@ -121,24 +121,6 @@
         textBlock.style.flexDirection = 'column';
         textBlock.style.gap = '22px';
 
-        // Ajout du lien cliquable Market Data
-        const marketDataLink = document.createElement('a');
-        marketDataLink.href = 'https://gaspump.tg/#/token/trade?token_address=EQAicv6F5s9rTPSt3l2BzpwzkCxBnnvnYmbpPYL8WvfawSNy';
-        marketDataLink.target = '_blank';
-        marketDataLink.textContent = 'Check $TID Market Data →';
-        marketDataLink.style.display = 'block';
-        marketDataLink.style.marginTop = '8px';
-        marketDataLink.style.color = '#00c853';
-        marketDataLink.style.fontWeight = '600';
-        marketDataLink.style.textDecoration = 'underline';
-        marketDataLink.style.textAlign = 'left';
-        marketDataLink.style.fontSize = '0.90rem';
-        marketDataLink.style.maxWidth = '100%';
-        marketDataLink.style.width = 'auto';
-        marketDataLink.style.overflowWrap = 'break-word';
-        marketDataLink.style.whiteSpace = 'normal';
-        textBlock.appendChild(marketDataLink);
-
         function infoSection(title, body) {
             const section = document.createElement('div');
             const t = document.createElement('div');
@@ -151,7 +133,7 @@
             const b = document.createElement('div');
             b.textContent = body;
             b.style.fontSize = '0.81rem';
-            b.style.color = '#aaa';
+            b.style.color = '#fafafa';
             b.style.fontWeight = '400';
             b.style.lineHeight = '1.5';
             b.style.marginBottom = '8px';
@@ -162,7 +144,7 @@
         // Crée un bouton stylé qui ouvre le chat Telegram avec @TID_Support
         function telegramButton(label) {
             const btn = document.createElement('a');
-            btn.href = 'https://t.me/TID_Support';
+            btn.href = 'https://t.me/Yo_BeanZ';
             btn.target = '_blank';
             btn.textContent = label;
             btn.style.display = 'inline-block';
@@ -207,11 +189,34 @@
             return btn;
         }
 
-
-        textBlock.appendChild(infoSection('Step 1: Play & Earn', 'Collect green squares in the game to earn $TID.'));        
-        textBlock.appendChild(infoSection('Step 2: Get Your Revenue NFT', 'Every "Revenue NFT" gives you a share of the game’s revenue and is delivered straight to your TON wallet through Getgems.io.'));
-        textBlock.appendChild(infoSection('Step 3: Monthly Revenue Sharing', '50% of the game’s ad revenue is distributed to all NFT holders — the more NFTs you own, the more you earn.'));
         
+        const option1 = document.createElement('div');
+        option1.innerHTML = `
+          <strong style="color:#fff; font-size:0.9rem;">Option 1: Instant Cashout (USD)</strong><br><br>
+          <span style="color:#fafafa; font-size:0.81rem;">
+            - Convert your $TID tokens into real money (US Dollars) instantly.<br>
+            - Withdraw via PayPal or TON wallet.<br><br>
+          </span>
+          <strong style="color:#fff; font-size:0.9rem;">1000 $TID = $2.5 USD</strong>
+        `;
+        textBlock.appendChild(option1);
+
+        textBlock.appendChild(telegramButton('Cash Out - PayPal / Crypto'));
+
+        textBlock.appendChild(infoSection('', ''));
+        
+        const option2 = document.createElement('div');
+        option2.innerHTML = `
+          <strong style="color:#fff; font-size:0.9rem;">Option 2: NFT Revenue Sharing</strong><br><br>
+          <span style="color:#fafafa; font-size:0.81rem;">
+            - Convert your $TID tokens into a "Revenue NFT".<br>
+            - Earn monthly rewards: 30% of the game’s ad revenue is shared with all NFT holders.<br><br>
+          </span>
+          <strong style="color:#fff; font-size:0.9rem;">500 $TID = 1 Revenue NFT</strong>
+        `;
+        textBlock.appendChild(option2);
+
+
         // Ajout du lien cliquableWatch Tutorial Video
         const tutoDataLink = document.createElement('a');
         tutoDataLink.href = 'https://youtu.be/x0uQdNLLBKY';
@@ -231,12 +236,41 @@
         textBlock.appendChild(tutoDataLink);        
 
         // Ajout du bouton Mint NFT sous "Daily Spotlight"
-        textBlock.appendChild(telegramButton('Get Revenue NFT - 500 $TID'));
+        textBlock.appendChild(telegramButton('Get a Revenue NFT'));
         textBlock.appendChild(websiteButton('Community Revenue NFTs'));
 
-        textBlock.appendChild(infoSection('Withdraw Your Tokens', 'Transfer your $TID to your TON wallet.'));
+        textBlock.appendChild(infoSection('', ''));
+
+        const option3 = document.createElement('div');
+        option3.innerHTML = `
+          <strong style="color:#fff; font-size:0.9rem;">Option 3: Withdraw Your Tokens</strong><br><br>
+          <span style="color:#fafafa; font-size:0.81rem;">
+            - Transfer your $TID to your TON wallet.".<br><br>
+          </span>
+          <strong style="color:#fff; font-size:0.9rem;">Minimum = 300 $TID</strong>
+        `;
+        textBlock.appendChild(option3);
+        
+        // Ajout du lien cliquable Market Data
+        const marketDataLink = document.createElement('a');
+        marketDataLink.href = 'https://gaspump.tg/#/token/trade?token_address=EQAicv6F5s9rTPSt3l2BzpwzkCxBnnvnYmbpPYL8WvfawSNy';
+        marketDataLink.target = '_blank';
+        marketDataLink.textContent = 'Check $TID Market Data →';
+        marketDataLink.style.display = 'block';
+        marketDataLink.style.marginTop = '8px';
+        marketDataLink.style.color = '#00c853';
+        marketDataLink.style.fontWeight = '600';
+        marketDataLink.style.textDecoration = 'underline';
+        marketDataLink.style.textAlign = 'left';
+        marketDataLink.style.fontSize = '0.90rem';
+        marketDataLink.style.maxWidth = '100%';
+        marketDataLink.style.width = 'auto';
+        marketDataLink.style.overflowWrap = 'break-word';
+        marketDataLink.style.whiteSpace = 'normal';
+        textBlock.appendChild(marketDataLink);        
+        
         // Ajout du bouton Withdraw sous "Withdraw Your Tokens"
-        textBlock.appendChild(telegramButton('Withdraw - 300 $TID min'));
+        textBlock.appendChild(telegramButton('Withdraw $TID Tokens'));
         scrollContainer.appendChild(textBlock);
 
         overlay.appendChild(scrollContainer);
