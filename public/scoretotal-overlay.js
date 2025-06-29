@@ -189,6 +189,30 @@
             return btn;
         }
 
+
+        // Crée un bouton stylé qui ouvre le site web
+        function marketButton(label) {
+            const btn = document.createElement('a');
+            btn.href = 'https://gaspump.tg/#/token/trade?token_address=EQAicv6F5s9rTPSt3l2BzpwzkCxBnnvnYmbpPYL8WvfawSNy';
+            btn.target = '_blank';
+            btn.textContent = label;
+            btn.style.display = 'inline-block';
+            btn.style.background = '#fff';
+            btn.style.color = '#0088cc';
+            btn.style.fontWeight = '600';
+            btn.style.border = 'none';
+            btn.style.borderRadius = '8px';
+            btn.style.padding = '10px 22px';
+            btn.style.margin = '6px 0 0 0';
+            btn.style.fontSize = '0.81rem';
+            btn.style.cursor = 'pointer';
+            btn.style.textAlign = 'center';
+            btn.style.textDecoration = 'none';
+            btn.style.transition = 'background 0.2s';
+            btn.onmouseover = function() { btn.style.background = '#fafafa'; };
+            btn.onmouseout = function() { btn.style.background = '#fff'; };
+            return btn;
+        }
         
         const option1 = document.createElement('div');
         option1.innerHTML = `
@@ -249,28 +273,11 @@
           </span>
           <strong style="color:#fff; font-size:0.9rem;">Minimum = 300 $TID</strong>
         `;
-        textBlock.appendChild(option3);
-        
-        // Ajout du lien cliquable Market Data
-        const marketDataLink = document.createElement('a');
-        marketDataLink.href = 'https://gaspump.tg/#/token/trade?token_address=EQAicv6F5s9rTPSt3l2BzpwzkCxBnnvnYmbpPYL8WvfawSNy';
-        marketDataLink.target = '_blank';
-        marketDataLink.textContent = 'Check $TID Market Data →';
-        marketDataLink.style.display = 'block';
-        marketDataLink.style.marginTop = '8px';
-        marketDataLink.style.color = '#00c853';
-        marketDataLink.style.fontWeight = '600';
-        marketDataLink.style.textDecoration = 'underline';
-        marketDataLink.style.textAlign = 'left';
-        marketDataLink.style.fontSize = '0.90rem';
-        marketDataLink.style.maxWidth = '100%';
-        marketDataLink.style.width = 'auto';
-        marketDataLink.style.overflowWrap = 'break-word';
-        marketDataLink.style.whiteSpace = 'normal';
-        textBlock.appendChild(marketDataLink);        
+        textBlock.appendChild(option3);        
         
         // Ajout du bouton Withdraw sous "Withdraw Your Tokens"
         textBlock.appendChild(telegramButton('Withdraw $TID Tokens'));
+        textBlock.appendChild(marketButton('Check $TID Market Data'));
         scrollContainer.appendChild(textBlock);
 
         overlay.appendChild(scrollContainer);
